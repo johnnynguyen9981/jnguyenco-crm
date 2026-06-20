@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FAQ — JNguyen Co.</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy:  #083a4f;
+    --sand:  #a58d66;
+    --teal:  #407e8c;
+    --pale:  #c0d5d6;
+    --cream: #f7f4f1;
+    --dark:  #071e28;
+    --mid:   #5a7a85;
+    --gray:  #6b7280;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Jost', sans-serif;
+    background: var(--cream);
+    color: var(--navy);
+  }
+
+  /* ── Section wrapper ─────────────────────────────── */
+  .faq-section {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 80px 24px 100px;
+  }
+
+  /* ── Header ──────────────────────────────────────── */
+  .faq-header {
+    text-align: center;
+    margin-bottom: 64px;
+  }
+
+  .faq-eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3.5px;
+    text-transform: uppercase;
+    color: var(--sand);
+    margin-bottom: 16px;
+  }
+
+  .faq-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(38px, 6vw, 60px);
+    font-weight: 300;
+    color: var(--navy);
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+  }
+
+  .faq-title em {
+    font-style: italic;
+    color: var(--teal);
+  }
+
+  .faq-sub {
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--gray);
+    margin-top: 16px;
+    line-height: 1.7;
+    max-width: 460px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .faq-rule {
+    width: 40px;
+    height: 1.5px;
+    background: var(--sand);
+    margin: 28px auto 0;
+  }
+
+  /* ── Category tabs ───────────────────────────────── */
+  .faq-tabs {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 48px;
+  }
+
+  .tab-btn {
+    padding: 8px 20px;
+    border-radius: 40px;
+    border: 1.5px solid rgba(8,58,79,.15);
+    background: transparent;
+    font-family: 'Jost', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--navy);
+    cursor: pointer;
+    transition: all .2s;
+    letter-spacing: .3px;
+  }
+
+  .tab-btn:hover,
+  .tab-btn.active {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: #fff;
+  }
+
+  /* ── FAQ groups ──────────────────────────────────── */
+  .faq-group { display: none; }
+  .faq-group.visible { display: block; }
+
+  /* ── Accordion items ─────────────────────────────── */
+  .faq-item {
+    border-bottom: 1px solid rgba(8,58,79,.1);
+    overflow: hidden;
+  }
+
+  .faq-item:first-child {
+    border-top: 1px solid rgba(8,58,79,.1);
+  }
+
+  .faq-question {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 22px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .faq-q-text {
+    font-family: 'Jost', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--navy);
+    line-height: 1.4;
+    transition: color .2s;
+  }
+
+  .faq-item.open .faq-q-text { color: var(--teal); }
+
+  .faq-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid var(--pale);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all .25s;
+    color: var(--teal);
+  }
+
+  .faq-item.open .faq-icon {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: #fff;
+    transform: rotate(45deg);
+  }
+
+  .faq-icon svg { width: 13px; height: 13px; }
+
+  .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .35s cubic-bezier(.4,0,.2,1);
+  }
+
+  .faq-answer-inner {
+    padding: 0 0 24px;
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--gray);
+    line-height: 1.8;
+  }
+
+  .faq-answer-inner strong {
+    color: var(--navy);
+    font-weight: 600;
+  }
+
+  .faq-answer-inner ul {
+    margin: 10px 0 0 16px;
+    space-y: 4px;
+  }
+
+  .faq-answer-inner ul li {
+    margin-bottom: 6px;
+  }
+
+  .faq-answer-inner a {
+    color: var(--teal);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* ── CTA strip ───────────────────────────────────── */
+  .faq-cta {
+    margin-top: 64px;
+    background: var(--dark);
+    border-radius: 16px;
+    padding: 48px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .faq-cta::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(64,126,140,.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .faq-cta-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--sand);
+    margin-bottom: 14px;
+  }
+
+  .faq-cta h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    font-weight: 300;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+
+  .faq-cta p {
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--pale);
+    margin-bottom: 28px;
+    line-height: 1.7;
+  }
+
+  .cta-btn {
+    display: inline-block;
+    padding: 14px 44px;
+    background: var(--sand);
+    color: #fff;
+    font-family: 'Jost', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 3px;
+    transition: background .25s, transform .2s;
+  }
+
+  .cta-btn:hover {
+    background: var(--teal);
+    transform: translateY(-1px);
+  }
+</style>
+</head>
+<body>
+
+<section class="faq-section">
+
+  <!-- Header -->
+  <div class="faq-header">
+    <p class="faq-eyebrow">Got questions?</p>
+    <h2 class="faq-title">Everything you need<br>to <em>know</em></h2>
+    <p class="faq-sub">Can't find your answer here? Reach out directly — we're always happy to chat.</p>
+    <div class="faq-rule"></div>
+  </div>
+
+  <!-- Category tabs -->
+  <div class="faq-tabs">
+    <button class="tab-btn active" data-group="all">All</button>
+    <button class="tab-btn" data-group="booking">Booking</button>
+    <button class="tab-btn" data-group="packages">Packages</button>
+    <button class="tab-btn" data-group="photos">Photos & Delivery</button>
+    <button class="tab-btn" data-group="day">On the Day</button>
+    <button class="tab-btn" data-group="pricing">Pricing</button>
+  </div>
+
+  <!-- ALL group (default) -->
+  <div class="faq-group visible" id="group-all">
+
+    <!-- Booking -->
+    <div class="faq-item" data-cat="booking">
+      <button class="faq-question">
+        <span class="faq-q-text">How far in advance should I book?</span>
+        <span class="faq-icon"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">
+          We recommend booking <strong>6–12 months in advance</strong> for weddings, especially for peak season dates (October–April). We only take a limited number of bookings each year to ensure every client gets our full attention. For events and portrait sessions, 4–8 weeks is usually plenty of time — but reach out early to avoid missing out.
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-item" data-cat="booking">
+      <button class="faq-question">
+        <span class="faq-q-text">How do I secure my date?</span>
+        <span class="faq-icon"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">
+          Once you're happy with your quote, we'll send over a contract for you to review and sign. Your date is officially locked in once the contract is signed and a <strong>30% deposit</strong> has been paid. The remaining balance is due 14 days before your event.
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-item" data-cat="booking">
+      <button class="faq-question">
+        <span class="faq-q-text">Do you travel outside of Canberra?</span>
+        <span class="faq-icon"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">
+          Absolutely! We're based in Canberra but available for events across the ACT, Sydney, and regional NSW. For destinations further afield, travel costs (flights, accommodation) are added to the package. Get in touch and we'll sort out a tailored quote.
+        </div>
+      </div>
+    </div>
+
+    <!-- Packages -->
+    <div class="faq-item" data-cat="packages">
+      <button class="faq-question">
+        <span class="faq-q-text">What's the difference between your wedding packages?</span>
+        <span class="faq-icon"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">
+          We offer three wedding packages:
+          <ul>
+            <li><strong>Mini Wedding / Elopement ($1,600)</strong> — Up to 4 hours, 1 photographer + 1 videographer, 200–350 images, 3–5 min highlight film. Perfect for intimate ceremonies.</li>
+            <li><strong>Full Day Essential ($3,200)</strong> — Up to 8 hours, 400–600 images, 5–7 min highlight film. Our most popular package.</li>
+            <li><strong>Full Day Premium ($4,800)</strong> — Up to 13 hours, 2 photographers + 2 videographers, 700–1,000 images, 6–8 min cinematic film. Maximum coverage for larger weddings.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-item" data-cat="packages">
+      <button class="faq-question">
+        <span class="faq-q-text">Can I get photography without videography (or vice versa)?</span>
+        <span class="faq-icon"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">
+          Yes! For events, birthdays, and parties, you can book <strong>photography only at $200/hr</strong>, or add videography for a combined rate of <strong>$350/hr</strong>. For wedding packages, both photo and video are included — we believe they work best together to tell the full story of your day.
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-item" data-cat="packages">
+      <button class="faq-question">
+        <span class="faq-q-text">Do you shoot portrait sessions?</span>
+        <span class="faq-icon"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">
+          We do! Portrait sessions are available at <strong>$200/hr</strong> and cover headshots, couples, family, newborn, and maternity sessions. These are a wonderful way to capture a moment in time outside of a big event.
+        </div>
+      </div>
+    </div>
+
+    <!-- Photos & Delivery -->
+    <div class="faq-item" data-cat="photos">
+      <button class="faq-question">
+        <span class="faq-q-text">When will I receive my photos and video?</span>
+        <span class="faq-icon"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">
+          You'll receive a <strong>next-day teaser</strong> (a handful of edited highlights — great for sharing on the day after!). The full gallery and film are delivered within <strong>4–8 weeks</strong> via a private online gallery link. Wedding films may take up to 8 weeks due to the editing involved.
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-item" data-cat="photos">
+      <button class="faq-question">
+        <span class="faq-q-text">How many photos will I receive?</span>
+        <span class="faq-icon"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">
+          It depends on your package:
+          <ul>
+            <li><strong>Mini Wedding:</strong> 200–350 professionally edited images</li>
+            <li><strong>Full Day Essential:</strong> 400–600 edited images</li>
+            <li><strong>Full Day Premium:</strong> 700–1,000 edited images</li>
+            <li><strong>Events:</strong> 60+ edited images per hour</li>
+          </ul>
+          Every image is individually edited — we never deliver unedited or batch-filtered photos.
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-item" data-cat="photos">
+      <button class="faq-question">
+        <span class="faq-q-text">Can I print or share my photos freely?</span>
+        <span class="faq-icon"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">
+          Yes — you receive <strong>full personal usage rights</strong> to all delivered images. Share them on social media, print them, frame them, use them in your home. The only restriction is commercial resale. We do retain the right to use images in our portfolio and marketing (if you'd prefer we don't, just let us know).
+        </div>
+      </div>
+    </div>
+
+    <!-- On the Day -->
+    <div class="faq-item" data-cat="day">
+      <button class="faq-question">
+        <span class="faq-q-text">What if it rains on my wedding day?</span>
+        <span class="faq-icon"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">
+          Rain can actually make for stunning, moody photos — some of our favourites have been on rainy days! We always come prepared and know how to work with any conditions. If you're worried, it's worth having a wet-weather backup plan with your venue. We'll adapt to whatever the day brings.
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-item" data-cat="day">
+      <button class="faq-question">
+        <span class="faq-q-text">Do you do a venue visit or pre-shoot consultation?</span>
+        <span class="faq-icon"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">
+          We offer a complimentary pre-event consultation (via Zoom or in person) to go over your day's timeline, must-have shots, and any special requests. For destination or complex venues, a site visit can be arranged — just ask and we'll work something out.
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing -->
+    <div class="faq-item" data-cat="pricing">
+      <button class="faq-question">
+        <span class="faq-q-text">What payment methods do you accept?</span>
+        <span class="faq-icon"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">
+          We accept <strong>bank transfer (EFT)</strong>. Payment details are included in your invoice. A 30% deposit is required to confirm your booking, with the balance due 14 days before your event.
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-item" data-cat="pricing">
+      <button class="faq-question">
+        <span class="faq-q-text">What is your cancellation policy?</span>
+        <span class="faq-icon"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">
+          If you need to cancel, please let us know as soon as possible. The deposit is non-refundable as it covers date reservation and pre-event work. If you need to <strong>reschedule</strong>, we'll do our best to accommodate your new date at no extra cost, subject to availability. Full details are outlined in your contract.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /group-all -->
+
+</section>
+
+<!-- CTA Strip -->
+<div style="max-width:860px;margin:0 auto;padding:0 24px 100px;">
+  <div class="faq-cta">
+    <p class="faq-cta-label">Still have questions?</p>
+    <h3>Let's have a chat</h3>
+    <p>We're happy to answer anything before you commit.<br>No pressure — just a friendly conversation.</p>
+    <a href="/enquire" class="cta-btn">Get in Touch</a>
+  </div>
+</div>
+
+<script>
+  // ── Accordion ──────────────────────────────────────────
+  document.querySelectorAll('.faq-question').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item   = btn.closest('.faq-item');
+      const answer = item.querySelector('.faq-answer');
+      const isOpen = item.classList.contains('open');
+
+      // Close all
+      document.querySelectorAll('.faq-item.open').forEach(el => {
+        el.classList.remove('open');
+        el.querySelector('.faq-answer').style.maxHeight = '0';
+      });
+
+      // Open clicked (if it was closed)
+      if (!isOpen) {
+        item.classList.add('open');
+        answer.style.maxHeight = answer.scrollHeight + 'px';
+      }
+    });
+  });
+
+  // ── Tabs ───────────────────────────────────────────────
+  // (all FAQs are in one group for simplicity — tabs filter by data-category)
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const group = btn.dataset.group;
+
+      document.querySelectorAll('.faq-item').forEach(item => {
+        const cat = item.dataset.cat ?? 'all';
+        item.style.display = (group === 'all' || cat === group) ? '' : 'none';
+      });
+
+      // Close all open items on tab switch
+      document.querySelectorAll('.faq-item.open').forEach(el => {
+        el.classList.remove('open');
+        el.querySelector('.faq-answer').style.maxHeight = '0';
+      });
+    });
+  });
+</script>
+
+</body>
+</html>

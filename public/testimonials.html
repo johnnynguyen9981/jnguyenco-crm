@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stories & Testimonials — JNguyen Co.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Variables ─────────────────────────────────────── */
+    :root {
+      --navy:   #083a4f;
+      --sand:   #a58d66;
+      --teal:   #407e8c;
+      --pale:   #c0d5d6;
+      --cream:  #f7f4f1;
+      --dark:   #05212d;
+      --muted:  rgba(8,58,79,.45);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: var(--cream);
+      color: var(--navy);
+      overflow-x: hidden;
+    }
+
+    /* ── Grain overlay ─────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: .025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 200px;
+    }
+
+    /* ── Nav strip ─────────────────────────────────────── */
+    .site-nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 3rem;
+      background: rgba(5,33,45,.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(165,141,102,.18);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+    }
+
+    .nav-flame svg {
+      height: 28px;
+      width: auto;
+      fill: var(--sand);
+      display: block;
+    }
+
+    .nav-name {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .nav-name span {
+      font-family: 'Jost', sans-serif;
+      font-size: .6rem;
+      font-weight: 600;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: #fff;
+    }
+
+    .nav-name small {
+      font-size: .48rem;
+      letter-spacing: .3em;
+      color: var(--pale);
+      text-transform: uppercase;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: .72rem;
+      font-weight: 500;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.6);
+      text-decoration: none;
+      transition: color .2s;
+    }
+
+    .nav-links a:hover { color: var(--sand); }
+
+    .nav-cta {
+      display: inline-block;
+      padding: .5rem 1.4rem;
+      background: var(--sand);
+      color: #fff !important;
+      border-radius: 2px;
+      font-size: .68rem !important;
+      letter-spacing: .14em !important;
+    }
+
+    .nav-cta:hover { background: #c0a87a !important; color: #fff !important; }
+
+    /* ── Hero ──────────────────────────────────────────── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--dark);
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 50%, rgba(64,126,140,.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 80% at 80% 30%, rgba(165,141,102,.12) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 100% at 50% 100%, rgba(8,58,79,.6) 0%, transparent 70%);
+    }
+
+    /* Decorative lines */
+    .hero-lines {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .hero-lines::before,
+    .hero-lines::after {
+      content: '';
+      position: absolute;
+      background: var(--sand);
+      opacity: .15;
+    }
+
+    .hero-lines::before {
+      width: 1px;
+      top: 0; bottom: 0;
+      left: 12%;
+    }
+
+    .hero-lines::after {
+      width: 1px;
+      top: 0; bottom: 0;
+      right: 12%;
+    }
+
+    .hero-inner {
+      position: relative;
+      text-align: center;
+      padding: 8rem 2rem 5rem;
+      max-width: 900px;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: .75rem;
+      font-size: .65rem;
+      font-weight: 600;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-bottom: 2rem;
+      opacity: 0;
+      animation: fadeUp .8s .2s forwards;
+    }
+
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '';
+      width: 40px;
+      height: 1px;
+      background: var(--sand);
+      opacity: .5;
+    }
+
+    .hero-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(3.5rem, 9vw, 7.5rem);
+      font-weight: 300;
+      line-height: .95;
+      color: #fff;
+      letter-spacing: -.01em;
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadeUp .9s .4s forwards;
+    }
+
+    .hero-title em {
+      font-style: italic;
+      color: var(--sand);
+    }
+
+    .hero-sub {
+      font-size: .9rem;
+      font-weight: 300;
+      letter-spacing: .08em;
+      color: rgba(255,255,255,.45);
+      margin-bottom: 3.5rem;
+      opacity: 0;
+      animation: fadeUp .9s .6s forwards;
+    }
+
+    /* Rating summary */
+    .hero-rating {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .75rem;
+      opacity: 0;
+      animation: fadeUp .9s .8s forwards;
+    }
+
+    .rating-stars {
+      display: flex;
+      gap: .35rem;
+    }
+
+    .rating-stars svg {
+      width: 22px;
+      height: 22px;
+      fill: var(--sand);
+      filter: drop-shadow(0 0 6px rgba(165,141,102,.6));
+    }
+
+    .rating-number {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 4rem;
+      font-weight: 300;
+      color: #fff;
+      line-height: 1;
+      letter-spacing: -.02em;
+    }
+
+    .rating-count {
+      font-size: .7rem;
+      font-weight: 400;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.35);
+    }
+
+    .google-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      margin-top: .5rem;
+      padding: .4rem .8rem;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 2px;
+      background: rgba(255,255,255,.04);
+    }
+
+    .google-badge svg { width: 52px; height: auto; }
+
+    .google-badge span {
+      font-size: .62rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.3);
+    }
+
+    /* Scroll hint */
+    .scroll-hint {
+      position: absolute;
+      bottom: 2.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .5rem;
+      opacity: 0;
+      animation: fadeUp .8s 1.2s forwards;
+    }
+
+    .scroll-hint span {
+      font-size: .58rem;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.2);
+    }
+
+    .scroll-line {
+      width: 1px;
+      height: 40px;
+      background: linear-gradient(to bottom, var(--sand), transparent);
+      animation: scrollPulse 2s 1.5s infinite;
+    }
+
+    /* ── Featured quote ────────────────────────────────── */
+    .featured {
+      background: var(--navy);
+      padding: 7rem 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .featured::before {
+      content: '\201C';
+      position: absolute;
+      top: -1rem;
+      left: 5%;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22rem;
+      font-weight: 300;
+      color: rgba(165,141,102,.08);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .featured-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      text-align: center;
+      position: relative;
+    }
+
+    .featured-label {
+      font-size: .62rem;
+      font-weight: 600;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-bottom: 2.5rem;
+    }
+
+    .featured-quote {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.6rem, 3.5vw, 2.6rem);
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1.4;
+      color: #fff;
+      margin-bottom: 2rem;
+    }
+
+    .featured-author {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .featured-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #fff;
+      flex-shrink: 0;
+      border: 1px solid rgba(165,141,102,.3);
+    }
+
+    .featured-meta strong {
+      display: block;
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .1em;
+      color: var(--pale);
+      text-transform: uppercase;
+    }
+
+    .featured-meta span {
+      font-size: .65rem;
+      color: rgba(255,255,255,.3);
+      letter-spacing: .08em;
+    }
+
+    .featured-stars {
+      display: flex;
+      justify-content: center;
+      gap: .3rem;
+      margin-bottom: 2rem;
+    }
+
+    .featured-stars svg { width: 14px; height: 14px; fill: var(--sand); }
+
+    /* ── Reviews section ───────────────────────────────── */
+    .reviews-section {
+      padding: 7rem 2rem;
+      background: var(--cream);
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 4.5rem;
+    }
+
+    .section-eyebrow {
+      font-size: .62rem;
+      font-weight: 600;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 300;
+      line-height: 1.1;
+      color: var(--navy);
+    }
+
+    .section-title em {
+      font-style: italic;
+      color: var(--teal);
+    }
+
+    /* Masonry grid */
+    .reviews-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      columns: 3;
+      column-gap: 1.5rem;
+    }
+
+    @media (max-width: 900px) { .reviews-grid { columns: 2; } }
+    @media (max-width: 580px) { .reviews-grid { columns: 1; } }
+
+    .review-card {
+      break-inside: avoid;
+      margin-bottom: 1.5rem;
+      background: #fff;
+      border: 1px solid rgba(8,58,79,.08);
+      border-radius: 4px;
+      padding: 2rem;
+      position: relative;
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .6s ease, transform .6s ease, box-shadow .3s ease;
+    }
+
+    .review-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .review-card:hover {
+      box-shadow: 0 12px 40px rgba(8,58,79,.1);
+      transform: translateY(-2px);
+    }
+
+    .review-card.visible:hover {
+      transform: translateY(-2px);
+    }
+
+    /* Stagger delays */
+    .review-card:nth-child(3n+1) { transition-delay: 0s; }
+    .review-card:nth-child(3n+2) { transition-delay: .1s; }
+    .review-card:nth-child(3n)   { transition-delay: .2s; }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: .85rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .card-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .card-meta { flex: 1; min-width: 0; }
+
+    .card-name {
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      color: var(--navy);
+      margin-bottom: .25rem;
+    }
+
+    .card-time {
+      font-size: .65rem;
+      color: var(--muted);
+      letter-spacing: .05em;
+    }
+
+    .card-stars {
+      display: flex;
+      gap: .2rem;
+      margin-bottom: .9rem;
+    }
+
+    .card-stars svg { width: 12px; height: 12px; fill: var(--sand); }
+
+    .card-text {
+      font-size: .82rem;
+      font-weight: 300;
+      line-height: 1.75;
+      color: #3a4d57;
+    }
+
+    .card-text.clamped {
+      display: -webkit-box;
+      -webkit-line-clamp: 5;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .read-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: 'Jost', sans-serif;
+      font-size: .7rem;
+      font-weight: 500;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-top: .6rem;
+      padding: 0;
+      display: block;
+    }
+
+    .read-toggle:hover { color: var(--teal); }
+
+    /* Quote mark on card */
+    .card-quote-mark {
+      position: absolute;
+      top: 1rem;
+      right: 1.2rem;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 4rem;
+      font-weight: 300;
+      color: rgba(165,141,102,.12);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* Google mini-badge on cards */
+    .card-google {
+      margin-top: 1.2rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(8,58,79,.06);
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+
+    .card-google svg { width: 36px; height: auto; }
+
+    .card-google span {
+      font-size: .58rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── Loading state ─────────────────────────────────── */
+    .reviews-loading {
+      text-align: center;
+      padding: 4rem;
+      color: var(--muted);
+      font-size: .8rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .loading-dots span {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--sand);
+      margin: 0 3px;
+      animation: bounce 1.4s infinite;
+    }
+
+    .loading-dots span:nth-child(2) { animation-delay: .2s; }
+    .loading-dots span:nth-child(3) { animation-delay: .4s; }
+
+    /* ── Source badge ──────────────────────────────────── */
+    .source-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .3rem .75rem;
+      border-radius: 20px;
+      font-size: .6rem;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      margin-bottom: 3rem;
+    }
+
+    .source-badge.live {
+      background: rgba(64,126,140,.12);
+      color: var(--teal);
+      border: 1px solid rgba(64,126,140,.25);
+    }
+
+    .source-badge.scraped {
+      background: rgba(165,141,102,.1);
+      color: var(--sand);
+      border: 1px solid rgba(165,141,102,.2);
+    }
+
+    .source-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* ── CTA ───────────────────────────────────────────── */
+    .cta-strip {
+      background: var(--dark);
+      padding: 7rem 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-strip::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 50% 100%, rgba(64,126,140,.2), transparent);
+    }
+
+    .cta-inner { position: relative; max-width: 640px; margin: 0 auto; }
+
+    .cta-eyebrow {
+      font-size: .62rem;
+      font-weight: 600;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--sand);
+      margin-bottom: 1.5rem;
+    }
+
+    .cta-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      font-weight: 300;
+      color: #fff;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+
+    .cta-title em { font-style: italic; color: var(--pale); }
+
+    .cta-sub {
+      font-size: .85rem;
+      font-weight: 300;
+      color: rgba(255,255,255,.4);
+      letter-spacing: .05em;
+      margin-bottom: 2.5rem;
+      line-height: 1.7;
+    }
+
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .75rem;
+      padding: .9rem 2.2rem;
+      background: var(--sand);
+      color: #fff;
+      font-family: 'Jost', sans-serif;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      text-decoration: none;
+      border-radius: 2px;
+      transition: background .2s, transform .2s;
+    }
+
+    .cta-btn:hover {
+      background: #c0a87a;
+      transform: translateY(-1px);
+    }
+
+    .cta-btn svg { width: 16px; height: 16px; }
+
+    /* ── Footer ────────────────────────────────────────── */
+    footer {
+      background: #03161f;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    footer p {
+      font-size: .62rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.2);
+    }
+
+    /* ── Animations ────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes scrollPulse {
+      0%, 100% { opacity: .4; transform: scaleY(1); }
+      50%       { opacity: 1;  transform: scaleY(1.1); }
+    }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: .4; }
+      40%            { transform: translateY(-8px); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Nav ──────────────────────────────────────────── -->
+  <nav class="site-nav">
+    <a href="/" class="nav-brand">
+      <span class="nav-flame">
+        <svg viewBox="0 0 1395 2048" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M1394.51,1313.64c-.68-29.93-2.52-57.64-6.2-84.67l-416.08,416.08-138.14-138.05,487.67-487.67c-22.38-46.69-51.44-99.59-88.74-162.85l-524.67,524.67-138.14-138.05,559.55-559.55c-25.28-42.43-53.38-89.71-82.83-139.21l-587.74,587.74-138.05-138.14L944.04,371.05c-81.96-138.24-160.81-271.15-206.34-348.17-18.12-30.52-62.29-30.52-80.31,0-44.08,74.4-119.06,201.01-198.11,334.12-111.12,187.45-230.08,387.79-281.61,473.43-51.54,85.93-88.54,153.25-114.89,211.48C13.37,1150.89,1.07,1228.01.1,1335.05c-.1,5.04-.1,10.07-.1,15.21,0,88.45,0,283.36,207.12,490.48,66.36,66.36,135.14,111.6,199.76,142.41,136.98,65.39,254.88,65.78,289.36,64.62l2.52-.19c33.71,1.16,146.96.78,279.87-60.16,67.33-30.9,139.69-77.31,209.25-146.86,207.12-207.12,207.12-402.03,207.12-490.48,0-12.5-.1-24.61-.48-36.42Z"/>
+        </svg>
+      </span>
+      <div class="nav-name">
+        <span>JNguyen Co.</span>
+        <small>Canberra</small>
+      </div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="/contact.html">Contact</a></li>
+      <li><a href="/faq-section.html">FAQ</a></li>
+      <li><a href="/contact.html" class="nav-cta">Enquire Now</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── Hero ─────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-lines"></div>
+    <div class="hero-inner">
+      <p class="hero-eyebrow">Client Stories</p>
+      <h1 class="hero-title">Words from<br /><em>Happy Couples</em></h1>
+      <p class="hero-sub">Real stories from real people — every one a moment I'll never forget.</p>
+
+      <div class="hero-rating" id="heroRating">
+        <div class="rating-stars">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <div class="rating-number" id="heroRatingNum">5.0</div>
+        <div class="rating-count" id="heroRatingCount">Loading reviews…</div>
+        <div class="google-badge">
+          <!-- Google logo SVG -->
+          <svg viewBox="0 0 272 92" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#4285F4" d="M115.75 47.18c0 12.77-9.99 22.18-22.25 22.18s-22.25-9.41-22.25-22.18C71.25 34.32 81.24 25 93.5 25s22.25 9.32 22.25 22.18zm-9.74 0c0-7.98-5.79-13.44-12.51-13.44S80.99 39.2 80.99 47.18c0 7.9 5.79 13.44 12.51 13.44s12.51-5.55 12.51-13.44z"/>
+            <path fill="#EA4335" d="M163.75 47.18c0 12.77-9.99 22.18-22.25 22.18s-22.25-9.41-22.25-22.18c0-12.85 9.99-22.18 22.25-22.18s22.25 9.32 22.25 22.18zm-9.74 0c0-7.98-5.79-13.44-12.51-13.44s-12.51 5.46-12.51 13.44c0 7.9 5.79 13.44 12.51 13.44s12.51-5.55 12.51-13.44z"/>
+            <path fill="#FBBC05" d="M209.75 26.34v39.82c0 16.38-9.66 23.07-21.08 23.07-10.75 0-17.22-7.19-19.66-13.07l8.48-3.53c1.51 3.61 5.21 7.87 11.17 7.87 7.31 0 11.84-4.51 11.84-13v-3.19h-.34c-2.18 2.69-6.38 5.04-11.68 5.04-11.09 0-21.25-9.66-21.25-22.09 0-12.52 10.16-22.26 21.25-22.26 5.29 0 9.49 2.35 11.68 4.96h.34v-3.61h9.25zm-8.56 20.92c0-7.81-5.21-13.52-11.84-13.52-6.72 0-12.35 5.71-12.35 13.52 0 7.73 5.63 13.36 12.35 13.36 6.63 0 11.84-5.63 11.84-13.36z"/>
+            <path fill="#4285F4" d="M225 3v65h-9.5V3h9.5z"/>
+            <path fill="#34A853" d="M262.02 54.48l7.56 5.04c-2.44 3.61-8.32 9.83-18.48 9.83-12.6 0-22.01-9.74-22.01-22.18 0-13.19 9.49-22.18 20.92-22.18 11.51 0 17.14 9.16 18.98 14.11l1.01 2.52-29.65 12.28c2.27 4.45 5.8 6.72 10.75 6.72 4.96 0 8.4-2.44 10.92-6.14zm-23.27-7.98l19.82-8.23c-1.09-2.77-4.37-4.7-8.23-4.7-4.95 0-11.84 4.37-11.59 12.93z"/>
+            <path fill="#EA4335" d="M35.29 41.41V32H67c.31 1.64.47 3.58.47 5.68 0 7.06-1.93 15.79-8.15 22.01-6.05 6.3-13.78 9.66-24.02 9.66C16.32 69.35.36 53.89.36 34.91.36 15.93 16.32.47 35.3.47c10.5 0 17.98 4.12 23.6 9.49l-6.64 6.64c-4.03-3.78-9.49-6.72-16.97-6.72-13.86 0-24.7 11.17-24.7 25.03 0 13.86 10.84 25.03 24.7 25.03 8.99 0 14.11-3.61 17.39-6.89 2.66-2.66 4.41-6.46 5.1-11.65l-22.49.01z"/>
+          </svg>
+          <span>Verified Reviews</span>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-hint">
+      <span>Scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- ── Featured Quote ────────────────────────────────── -->
+  <section class="featured" id="featuredSection">
+    <div class="featured-inner">
+      <p class="featured-label">Featured Review</p>
+      <div class="featured-stars" id="featuredStars">
+        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      </div>
+      <blockquote class="featured-quote" id="featuredQuote">
+        "We couldn't be happier with how our photos and video turned out. Johnny has an incredible eye for detail and a real talent for capturing genuine emotion. Every time we look back at our wedding gallery, it takes us right back to that day."
+      </blockquote>
+      <div class="featured-author">
+        <div class="featured-avatar" id="featuredAvatar">HP</div>
+        <div class="featured-meta">
+          <strong id="featuredName">Hannah Pham</strong>
+          <span id="featuredTime">4 weeks ago · Google Review</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Reviews Grid ──────────────────────────────────── -->
+  <section class="reviews-section">
+    <div class="section-header">
+      <p class="section-eyebrow">All Reviews</p>
+      <h2 class="section-title">Every <em>story</em> matters</h2>
+    </div>
+
+    <div style="text-align:center; margin-top:-2rem; margin-bottom: 1rem;">
+      <div class="source-badge live" id="sourceBadge" style="display:none;"></div>
+    </div>
+
+    <div id="reviewsContainer">
+      <div class="reviews-loading">
+        <div class="loading-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <p style="margin-top:1rem;">Fetching your stories</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA strip ─────────────────────────────────────── -->
+  <section class="cta-strip">
+    <div class="cta-inner">
+      <p class="cta-eyebrow">Ready to create your story?</p>
+      <h2 class="cta-title">Let's capture <em>your</em><br />most beautiful day</h2>
+      <p class="cta-sub">Limited bookings available each year to ensure every couple gets our full attention and artistry.</p>
+      <a href="/contact.html" class="cta-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+        Start Your Enquiry
+      </a>
+    </div>
+  </section>
+
+  <!-- ── Footer ───────────────────────────────────────── -->
+  <footer>
+    <p>&copy; 2025 JNguyen Co. · Canberra Wedding &amp; Event Photography &amp; Videography</p>
+  </footer>
+
+  <script>
+    /* ── Avatar colour palette ─────────────────────────── */
+    const AVATAR_COLORS = ['#407e8c','#083a4f','#a58d66','#5e8e6e','#7e5c8c'];
+    function avatarColor(name) {
+      let h = 0;
+      for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+      return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+    }
+
+    function initials(name) {
+      return name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    }
+
+    function stars(n) {
+      return Array.from({length: 5}, (_,i) => `
+        <svg viewBox="0 0 24 24" ${i < n ? '' : 'style="opacity:.25"'}>
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>`).join('');
+    }
+
+    /* ── Scroll-triggered reveal ───────────────────────── */
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+
+    /* ── Read more / less ──────────────────────────────── */
+    function attachToggle(card, text) {
+      if (text.length < 220) return;
+      const p = card.querySelector('.card-text');
+      p.classList.add('clamped');
+      const btn = document.createElement('button');
+      btn.className = 'read-toggle';
+      btn.textContent = 'Read more';
+      btn.addEventListener('click', () => {
+        const open = p.classList.toggle('clamped');
+        btn.textContent = open ? 'Read more' : 'Read less';
+      });
+      p.after(btn);
+    }
+
+    /* ── Render a review card ──────────────────────────── */
+    function renderCard(review) {
+      const card = document.createElement('div');
+      card.className = 'review-card';
+      card.innerHTML = `
+        <span class="card-quote-mark">"</span>
+        <div class="card-top">
+          <div class="card-avatar" style="background:${avatarColor(review.author_name)}">${initials(review.author_name)}</div>
+          <div class="card-meta">
+            <div class="card-name">${review.author_name}</div>
+            <div class="card-time">${review.relative_time_description || ''}</div>
+          </div>
+        </div>
+        <div class="card-stars">${stars(review.rating || 5)}</div>
+        <p class="card-text">${review.text || ''}</p>
+        <div class="card-google">
+          <svg viewBox="0 0 272 92" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#4285F4" d="M115.75 47.18c0 12.77-9.99 22.18-22.25 22.18s-22.25-9.41-22.25-22.18C71.25 34.32 81.24 25 93.5 25s22.25 9.32 22.25 22.18zm-9.74 0c0-7.98-5.79-13.44-12.51-13.44S80.99 39.2 80.99 47.18c0 7.9 5.79 13.44 12.51 13.44s12.51-5.55 12.51-13.44z"/>
+            <path fill="#EA4335" d="M163.75 47.18c0 12.77-9.99 22.18-22.25 22.18s-22.25-9.41-22.25-22.18c0-12.85 9.99-22.18 22.25-22.18s22.25 9.32 22.25 22.18zm-9.74 0c0-7.98-5.79-13.44-12.51-13.44s-12.51 5.46-12.51 13.44c0 7.9 5.79 13.44 12.51 13.44s12.51-5.55 12.51-13.44z"/>
+            <path fill="#FBBC05" d="M209.75 26.34v39.82c0 16.38-9.66 23.07-21.08 23.07-10.75 0-17.22-7.19-19.66-13.07l8.48-3.53c1.51 3.61 5.21 7.87 11.17 7.87 7.31 0 11.84-4.51 11.84-13v-3.19h-.34c-2.18 2.69-6.38 5.04-11.68 5.04-11.09 0-21.25-9.66-21.25-22.09 0-12.52 10.16-22.26 21.25-22.26 5.29 0 9.49 2.35 11.68 4.96h.34v-3.61h9.25zm-8.56 20.92c0-7.81-5.21-13.52-11.84-13.52-6.72 0-12.35 5.71-12.35 13.52 0 7.73 5.63 13.36 12.35 13.36 6.63 0 11.84-5.63 11.84-13.36z"/>
+            <path fill="#4285F4" d="M225 3v65h-9.5V3h9.5z"/>
+            <path fill="#34A853" d="M262.02 54.48l7.56 5.04c-2.44 3.61-8.32 9.83-18.48 9.83-12.6 0-22.01-9.74-22.01-22.18 0-13.19 9.49-22.18 20.92-22.18 11.51 0 17.14 9.16 18.98 14.11l1.01 2.52-29.65 12.28c2.27 4.45 5.8 6.72 10.75 6.72 4.96 0 8.4-2.44 10.92-6.14zm-23.27-7.98l19.82-8.23c-1.09-2.77-4.37-4.7-8.23-4.7-4.95 0-11.84 4.37-11.59 12.93z"/>
+            <path fill="#EA4335" d="M35.29 41.41V32H67c.31 1.64.47 3.58.47 5.68 0 7.06-1.93 15.79-8.15 22.01-6.05 6.3-13.78 9.66-24.02 9.66C16.32 69.35.36 53.89.36 34.91.36 15.93 16.32.47 35.3.47c10.5 0 17.98 4.12 23.6 9.49l-6.64 6.64c-4.03-3.78-9.49-6.72-16.97-6.72-13.86 0-24.7 11.17-24.7 25.03 0 13.86 10.84 25.03 24.7 25.03 8.99 0 14.11-3.61 17.39-6.89 2.66-2.66 4.41-6.46 5.1-11.65l-22.49.01z"/>
+          </svg>
+          <span>Google Review</span>
+        </div>
+      `;
+      attachToggle(card, review.text || '');
+      observer.observe(card);
+      return card;
+    }
+
+    /* ── Fetch & render ────────────────────────────────── */
+    async function loadReviews() {
+      let data;
+      try {
+        const res = await fetch('/api/reviews');
+        data = await res.json();
+      } catch(e) {
+        data = {
+          name: 'JNguyen Co.', rating: 5.0, totalReviews: 13,
+          source: 'scraped',
+          reviews: [
+            { author_name: 'Vinh Dong', rating: 5, relative_time_description: '3 weeks ago', text: 'The photos were amazing! Johnny has a great eye and made us feel super comfortable throughout the whole shoot. We will definitely be booking again!' },
+            { author_name: 'Hannah Pham', rating: 5, relative_time_description: '4 weeks ago', text: "We couldn't be happier with how our photos and video turned out. Johnny has an incredible eye for detail and a real talent for capturing genuine emotion. Every time we look back at our wedding gallery, it takes us right back to that day." },
+            { author_name: 'Anna Marcus', rating: 5, relative_time_description: '3 weeks ago', text: "Johnny captured our Autumn photos at Weston Park beautifully. He had great ideas for poses and locations, and we felt at ease the entire time. Would highly recommend to anyone looking for a photographer in Canberra." },
+          ]
+        };
+      }
+
+      /* Update hero */
+      const total = data.totalReviews || data.reviews?.length || 0;
+      document.getElementById('heroRatingNum').textContent = (data.rating || 5).toFixed(1);
+      document.getElementById('heroRatingCount').textContent =
+        `${total} Google Review${total !== 1 ? 's' : ''}`;
+
+      /* Featured review */
+      const feat = data.reviews?.find(r => r.text && r.text.length > 100) || data.reviews?.[0];
+      if (feat) {
+        document.getElementById('featuredQuote').textContent = `"${feat.text}"`;
+        document.getElementById('featuredName').textContent = feat.author_name;
+        document.getElementById('featuredTime').textContent = `${feat.relative_time_description || ''} · Google Review`;
+        const av = document.getElementById('featuredAvatar');
+        av.textContent = initials(feat.author_name);
+        av.style.background = avatarColor(feat.author_name);
+      }
+
+      /* Source badge */
+      const badge = document.getElementById('sourceBadge');
+      if (data.source === 'live') {
+        badge.className = 'source-badge live';
+        badge.textContent = 'Live · Google Reviews';
+        badge.style.display = 'inline-flex';
+      } else {
+        badge.className = 'source-badge scraped';
+        badge.textContent = 'Verified Reviews';
+        badge.style.display = 'inline-flex';
+      }
+
+      /* Render cards */
+      const container = document.getElementById('reviewsContainer');
+      if (!data.reviews?.length) {
+        container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:3rem;">No reviews yet.</p>';
+        return;
+      }
+
+      const grid = document.createElement('div');
+      grid.className = 'reviews-grid';
+      data.reviews.forEach(r => grid.appendChild(renderCard(r)));
+      container.innerHTML = '';
+      container.appendChild(grid);
+    }
+
+    loadReviews();
+  </script>
+</body>
+</html>

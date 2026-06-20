@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JNguyen Co. CRM — System Manual</title>
+<style>
+  :root {
+    --navy:     #083a4f;
+    --sand:     #a58d66;
+    --teal:     #407e8c;
+    --pale:     #c0d5d6;
+    --cream:    #f7f4f1;
+    --white:    #ffffff;
+    --gray100:  #f3f4f6;
+    --gray200:  #e5e7eb;
+    --gray500:  #6b7280;
+    --gray700:  #374151;
+    --gray900:  #111827;
+    --badge-r:  6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--cream);
+    color: var(--gray900);
+    line-height: 1.65;
+    font-size: 15px;
+  }
+
+  /* ─── Layout ──────────────────────────────────────────────────── */
+  .wrapper { display: flex; min-height: 100vh; }
+
+  nav {
+    width: 260px;
+    min-width: 260px;
+    background: var(--navy);
+    color: var(--white);
+    padding: 32px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  nav .logo {
+    padding: 0 24px 24px;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+    margin-bottom: 16px;
+  }
+  nav .logo h2 { font-size: 18px; font-weight: 700; color: var(--white); }
+  nav .logo p  { font-size: 11px; color: var(--pale); margin-top: 2px; letter-spacing: .05em; text-transform: uppercase; }
+
+  nav ul { list-style: none; padding: 0 12px; }
+  nav ul li { margin-bottom: 2px; }
+  nav ul li a {
+    display: block;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: rgba(255,255,255,.75);
+    text-decoration: none;
+    font-size: 13.5px;
+    transition: background .15s, color .15s;
+  }
+  nav ul li a:hover,
+  nav ul li a.active { background: rgba(255,255,255,.1); color: var(--white); }
+  nav ul li.section-head {
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--pale);
+    padding: 18px 12px 6px;
+    font-weight: 600;
+  }
+
+  main {
+    flex: 1;
+    padding: 48px 60px;
+    max-width: 900px;
+  }
+
+  /* ─── Typography ──────────────────────────────────────────────── */
+  h1 { font-size: 32px; font-weight: 800; color: var(--navy); margin-bottom: 8px; }
+  h2 { font-size: 22px; font-weight: 700; color: var(--navy); margin: 48px 0 16px; padding-top: 48px; border-top: 1px solid var(--gray200); }
+  h2:first-of-type { margin-top: 32px; padding-top: 0; border-top: none; }
+  h3 { font-size: 16px; font-weight: 700; color: var(--teal); margin: 28px 0 10px; }
+  p  { margin-bottom: 12px; color: var(--gray700); }
+
+  .subtitle { color: var(--gray500); font-size: 15px; margin-bottom: 32px; }
+
+  /* ─── Step cards ──────────────────────────────────────────────── */
+  .steps { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+
+  .step {
+    display: flex;
+    gap: 16px;
+    background: var(--white);
+    border: 1px solid var(--gray200);
+    border-radius: 10px;
+    padding: 18px 20px;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    min-width: 32px;
+    height: 32px;
+    background: var(--navy);
+    color: var(--white);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .step-body h4 { font-size: 14.5px; font-weight: 700; color: var(--gray900); margin-bottom: 4px; }
+  .step-body p  { font-size: 13.5px; margin-bottom: 0; }
+
+  /* ─── Stage cards (workflow) ──────────────────────────────────── */
+  .stages { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 20px 0; }
+
+  .stage {
+    background: var(--white);
+    border: 1px solid var(--gray200);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .stage .stage-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-weight: 700;
+    color: var(--sand);
+    margin-bottom: 6px;
+  }
+  .stage h4 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+  .stage ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+  .stage ul li {
+    font-size: 13px;
+    color: var(--gray700);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .stage ul li::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--teal);
+    flex-shrink: 0;
+  }
+
+  /* ─── Info / tip / warn boxes ─────────────────────────────────── */
+  .box {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 13.5px;
+  }
+  .box.info   { background: #e8f4f8; border-left: 4px solid var(--teal); }
+  .box.tip    { background: #fef9ec; border-left: 4px solid var(--sand); }
+  .box.warn   { background: #fff3cd; border-left: 4px solid #f59e0b; }
+  .box strong { font-weight: 700; }
+  .box p      { margin-bottom: 0; color: inherit; }
+
+  /* ─── Table ───────────────────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px; }
+  th {
+    background: var(--navy);
+    color: var(--white);
+    text-align: left;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 12.5px;
+  }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--gray200); color: var(--gray700); }
+  tr:nth-child(even) td { background: var(--gray100); }
+
+  /* ─── Badge ───────────────────────────────────────────────────── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--badge-r);
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .badge.navy  { background: var(--navy);  color: var(--white); }
+  .badge.teal  { background: var(--teal);  color: var(--white); }
+  .badge.sand  { background: var(--sand);  color: var(--white); }
+  .badge.green { background: #059669;      color: var(--white); }
+  .badge.amber { background: #d97706;      color: var(--white); }
+  .badge.gray  { background: var(--gray200); color: var(--gray700); }
+
+  /* ─── Code ────────────────────────────────────────────────────── */
+  code {
+    font-family: "SF Mono", Menlo, monospace;
+    background: var(--gray100);
+    border: 1px solid var(--gray200);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 12.5px;
+    color: #c0392b;
+  }
+
+  /* ─── HR / divider ────────────────────────────────────────────── */
+  hr { border: none; border-top: 1px solid var(--gray200); margin: 36px 0; }
+
+  /* ─── Flow arrows ─────────────────────────────────────────────── */
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    align-items: center;
+    margin: 20px 0;
+    font-size: 13px;
+  }
+  .flow-step {
+    background: var(--navy);
+    color: var(--white);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .flow-arrow {
+    color: var(--gray500);
+    font-size: 18px;
+    padding: 0 6px;
+    line-height: 1;
+  }
+
+  /* ─── Print ───────────────────────────────────────────────────── */
+  @media print {
+    nav { display: none; }
+    main { padding: 24px; }
+    h2 { page-break-before: always; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<!-- ── Sidebar Nav ───────────────────────────────────────────────── -->
+<nav>
+  <div class="logo">
+    <h2>JNguyen Co.</h2>
+    <p>CRM System Manual</p>
+  </div>
+  <ul>
+    <li class="section-head">Getting Started</li>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#login">Login &amp; Access</a></li>
+    <li class="section-head">Core Modules</li>
+    <li><a href="#clients">Clients</a></li>
+    <li><a href="#bookings">Bookings</a></li>
+    <li><a href="#documents">Documents</a></li>
+    <li><a href="#invoices">Invoices</a></li>
+    <li><a href="#deliverables">Deliverables</a></li>
+    <li class="section-head">Workflow</li>
+    <li><a href="#workflow">Full Job Workflow</a></li>
+    <li><a href="#booking-actions">Booking Actions</a></li>
+    <li><a href="#email">Email System</a></li>
+    <li class="section-head">Reference</li>
+    <li><a href="#packages">Packages &amp; Rates</a></li>
+    <li><a href="#statuses">Status Reference</a></li>
+    <li><a href="#env">Environment Setup</a></li>
+  </ul>
+</nav>
+
+<!-- ── Main Content ──────────────────────────────────────────────── -->
+<main>
+
+  <!-- HEADER -->
+  <h1>JNguyen Co. CRM</h1>
+  <p class="subtitle">System Manual — Wedding &amp; Event Photography / Videography, Canberra</p>
+
+  <div class="box info">
+    <p><strong>Purpose:</strong> This manual covers every feature in the CRM — from adding a client to delivering the final gallery. Read it top-to-bottom once, then use the sidebar to jump back to any section.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <h2 id="overview">Overview</h2>
+  <p>The CRM manages the complete lifecycle of every booking:</p>
+
+  <div class="flow">
+    <div class="flow-step">Enquiry</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Quote</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Contract</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Deposit</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Event Day</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Edit &amp; Deliver</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Review</div>
+  </div>
+
+  <p>Each stage has dedicated buttons inside the Booking Detail page so nothing gets missed.</p>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <h2 id="login">Login &amp; Access</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Open the app</h4>
+        <p>Navigate to <code>http://localhost:3000</code> (development) or your deployed URL in a browser.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Sign in with your Supabase account</h4>
+        <p>Enter your email and password. All data is scoped to your account — nobody else can see your clients or bookings.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Connect Google (first time only)</h4>
+        <p>Go to <strong>Settings → Integrations</strong> and connect your Google account. This enables the Gmail API for sending emails from your Gmail address.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <h2 id="clients">Clients Module</h2>
+  <p>Every booking must be linked to a client. Create the client first, then create the booking.</p>
+
+  <h3>Add a New Client</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Go to Clients → New Client</h4>
+        <p>Click <strong>+ New Client</strong> in the sidebar or the Clients index page.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Fill in the details</h4>
+        <p>Required: first name, last name, email. Optional: phone, address, partner name, event type.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>06 — Quote &amp; Deposit section</h4>
+        <p>Select a package to auto-fill the Quoted Total. Adjust the deposit amount if needed (default is 30%). These pre-fill the linked booking.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>Save</h4>
+        <p>You'll be redirected to the client detail page. From there, use the <strong>+ New Booking</strong> button to create a booking for this client.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box tip">
+    <p><strong>Tip:</strong> If the client fills out your enquiry form, create their client record immediately — even before you've quoted them. It keeps your pipeline clean.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <h2 id="bookings">Bookings Module</h2>
+  <p>A booking tracks everything about a job: dates, venue, package, pricing, deliverables, and emails sent.</p>
+
+  <h3>Create a New Booking</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Bookings → New Booking (or from Client page)</h4>
+        <p>If you open New Booking from a client's page, the client field is pre-filled.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>01 — Event Details</h4>
+        <p>Set event type (Wedding / Event / Portrait), event date, start time, and number of hours booked.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>02 — Venue</h4>
+        <p>Enter venue name and address. This appears on quotes and confirmation emails.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>03 — Package</h4>
+        <p>Select the package. The package name drives deliverable auto-population later.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h4>06 — Pricing</h4>
+        <p>Enter the <strong>Quoted Total (AUD)</strong> and <strong>Deposit Amount (AUD)</strong>. These print on the PDF quote.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h4>Save</h4>
+        <p>Booking is created with status <span class="badge navy">INQUIRY</span>. You'll land on the Booking Detail page.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <h2 id="workflow">Full Job Workflow</h2>
+  <p>Open any booking's detail page. In the top-right corner you'll see the <strong>Booking Actions</strong> panel — four rows of buttons that walk you through every stage of the job.</p>
+
+  <div class="stages">
+    <div class="stage">
+      <div class="stage-label">Stage 1 — Pre-Booking</div>
+      <h4>Quote &amp; Confirm</h4>
+      <ul>
+        <li>Send Quote (PDF email)</li>
+        <li>Send Confirmation</li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="stage-label">Stage 2 — Pre-Event</div>
+      <h4>Prepare</h4>
+      <ul>
+        <li>Pre-Event Checklist email</li>
+        <li>Setup Deliverables</li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="stage-label">Stage 3 — Post-Event</div>
+      <h4>Deliver &amp; Review</h4>
+      <ul>
+        <li>Send Gallery (Drive link)</li>
+        <li>Request Google Review</li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="stage-label">Stage 4 — Admin</div>
+      <h4>Financials &amp; Calendar</h4>
+      <ul>
+        <li>Generate Invoice</li>
+        <li>Sync to Calendar</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <h2 id="booking-actions">Booking Actions — Step by Step</h2>
+
+  <h3>1 · Send Quote</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Click "Send Quote" on the Booking Detail page</h4>
+        <p>Located top-right in the BookingActions panel (Stage 1).</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>What happens automatically</h4>
+        <p>The system generates a branded PDF quote using the booking data, emails it via GoDaddy SMTP (<code>johnny.nguyen@jnguyen.co</code>), and updates the booking status to <span class="badge teal">QUOTED</span>.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>The PDF includes</h4>
+        <p>Quote number, event details, package name, deliverables list, total price, deposit amount, balance, and bank transfer details.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>2 · Send Confirmation</h3>
+  <p>Once the contract is signed and deposit received, click <strong>Send Confirmation</strong>. This sends a booking-confirmed email to the client and sets status to <span class="badge green">CONFIRMED</span>.</p>
+
+  <h3>3 · Pre-Event Checklist</h3>
+  <p>Send this 1–2 weeks before the event. The email asks the client to confirm:</p>
+  <ul style="margin: 8px 0 12px 20px; color: var(--gray700); font-size: 13.5px; display: flex; flex-direction: column; gap: 4px;">
+    <li>Run sheet / timeline</li>
+    <li>Vendor contacts</li>
+    <li>Venue access details</li>
+    <li>Any last-minute timeline changes</li>
+  </ul>
+
+  <h3>4 · Setup Deliverables</h3>
+  <p>Click <strong>Setup Deliverables</strong> to auto-create deliverable records based on the booking's package. Due dates are calculated from the event date.</p>
+
+  <table>
+    <thead>
+      <tr><th>Package</th><th>Deliverables Created</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Mini Wedding / Elopement</td>
+        <td>Teaser (+2 days), Photo Gallery (+28 days), Highlight Film (+42 days)</td>
+      </tr>
+      <tr>
+        <td>Full Day Essential (8 hr)</td>
+        <td>Teaser (+2 days), Photo Gallery (+42 days), Highlight Film (+56 days)</td>
+      </tr>
+      <tr>
+        <td>Full Day Premium (13 hr)</td>
+        <td>Teaser (+2 days), Gallery (+42 days), Film (+56 days), Raw Footage (+56 days)</td>
+      </tr>
+      <tr>
+        <td>Hourly Photo</td>
+        <td>Photo Gallery (+14 days)</td>
+      </tr>
+      <tr>
+        <td>Hourly Photo + Video</td>
+        <td>Photo Gallery (+14 days), Highlight Film (+21 days)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="box tip">
+    <p><strong>Idempotent:</strong> Clicking Setup Deliverables again won't create duplicates — it only adds types that don't already exist on the booking.</p>
+  </div>
+
+  <h3>5 · Send Gallery</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Export and upload to Google Drive first</h4>
+        <p>Upload the final edited files to your Google Drive and copy the share link.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Confirm final payment is cleared</h4>
+        <p>Only send the gallery once the balance is paid.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Click "Send Gallery" and paste the Drive link</h4>
+        <p>A modal opens for the Drive URL. The email is sent via GoDaddy SMTP with download tips and the link.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>6 · Request Review</h3>
+  <p>Click <strong>Request Review</strong> a few days after gallery delivery. A friendly email is sent asking the client to leave a Google review. The review link goes to: <code>https://g.page/r/CZdsm6gVm2xqEAE/review</code></p>
+
+  <h3>7 · Generate Invoice</h3>
+  <p>Click <strong>Generate Invoice</strong> to open the invoice creation page pre-filled with this booking's data. Send the invoice PDF via email once generated.</p>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <h2 id="documents">Documents Module</h2>
+  <p>Upload and manage contracts, run sheets, and any other files associated with a booking.</p>
+
+  <h3>Upload a File</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Go to Documents (sidebar)</h4>
+        <p>The Documents page lists all files in your Supabase storage bucket.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Click Upload or drag a file in</h4>
+        <p>Accepted types: PDF, images, Word documents. Files are private to your account.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Delete Files</h3>
+  <p>Two deletion options are available:</p>
+  <ul style="margin: 8px 0 16px 20px; color: var(--gray700); font-size: 13.5px; display:flex; flex-direction:column; gap:6px;">
+    <li><strong>Per-row checkbox → "Delete Selected (N)"</strong> — tick one or more rows using the checkbox on the left, then click the teal button that appears at the top.</li>
+    <li><strong>"Delete All" button</strong> — deletes every file in the bucket. Use with caution.</li>
+  </ul>
+
+  <div class="box warn">
+    <p><strong>Warning:</strong> File deletion is permanent. There is no recycle bin or undo.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <h2 id="invoices">Invoices Module</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Create from a booking</h4>
+        <p>Use the <strong>Generate Invoice</strong> button on the Booking Detail page to pre-fill the invoice form.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Review the amounts</h4>
+        <p>Set the total amount, due date, and any line items. Mark what's already been paid (deposit).</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Send Invoice PDF</h4>
+        <p>Click Send Invoice. A PDF is generated and emailed to the client. Status changes to <span class="badge amber">SENT</span>.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>Mark as Paid</h4>
+        <p>When bank transfer clears, open the invoice and mark it as <span class="badge green">PAID</span>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <h2 id="deliverables">Deliverables Module</h2>
+  <p>Track the status of every deliverable for every booking.</p>
+
+  <table>
+    <thead>
+      <tr><th>Status</th><th>Meaning</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="badge gray">NOT_STARTED</span></td><td>Created but work hasn't begun</td></tr>
+      <tr><td><span class="badge amber">IN_PROGRESS</span></td><td>Culling / editing underway</td></tr>
+      <tr><td><span class="badge teal">REVIEW</span></td><td>Ready for your internal review</td></tr>
+      <tr><td><span class="badge green">DELIVERED</span></td><td>Sent to client</td></tr>
+    </tbody>
+  </table>
+
+  <p>Update each deliverable's status from the Booking Detail page → Deliverables section. The due dates set by <strong>Setup Deliverables</strong> show when each item is expected.</p>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <h2 id="email">Email System</h2>
+  <p>The CRM has two outgoing email accounts. Most emails default to GoDaddy.</p>
+
+  <table>
+    <thead>
+      <tr><th>Account</th><th>Address</th><th>Used For</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>GoDaddy SMTP</strong> (default)</td>
+        <td><code>johnny.nguyen@jnguyen.co</code></td>
+        <td>Quotes, confirmations, checklists, gallery delivery, review requests, invoices</td>
+      </tr>
+      <tr>
+        <td><strong>Gmail API</strong></td>
+        <td><code>johnny.nguyen9981@gmail.com</code></td>
+        <td>Pass <code>from_account: "gmail"</code> in the API call to route here instead</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="box warn">
+    <p><strong>Security:</strong> Never share your GoDaddy SMTP password in chat or code. Add <code>SMTP_PASS=your_password</code> to <code>.env.local</code> directly on your machine and restart the dev server.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <h2 id="packages">Packages &amp; Rates</h2>
+
+  <table>
+    <thead>
+      <tr><th>Package</th><th>Duration</th><th>Price</th><th>Highlights</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Mini Wedding / Elopement</td>
+        <td>Up to 4 hours</td>
+        <td>$1,600</td>
+        <td>1 Photo + 1 Video, 200–350 images, 3–5 min film, next-day teaser</td>
+      </tr>
+      <tr>
+        <td>Full Day Essential</td>
+        <td>Up to 8 hours</td>
+        <td>$3,200</td>
+        <td>1 Photo + 1 Video, 400–600 images, 5–7 min film, next-day teaser</td>
+      </tr>
+      <tr>
+        <td>Full Day Premium</td>
+        <td>Up to 13 hours</td>
+        <td>$4,800</td>
+        <td>2 Photo + 2 Video, 700–1,000 images, 6–8 min film, speeches</td>
+      </tr>
+      <tr>
+        <td>Hourly Photography</td>
+        <td>Per hour</td>
+        <td>$150/hr</td>
+        <td>Events, birthdays, baptisms, parties</td>
+      </tr>
+      <tr>
+        <td>Hourly Photo + Video</td>
+        <td>Per hour</td>
+        <td>$250/hr</td>
+        <td>Photography $150 + Videography add-on $100</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="box tip">
+    <p><strong>Deposit:</strong> Standard deposit is 30% of the quoted total. This is calculated automatically when you click Send Quote, but you can override it per-booking in the Pricing section.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <h2 id="statuses">Status Reference</h2>
+
+  <table>
+    <thead>
+      <tr><th>Status</th><th>Trigger</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="badge gray">INQUIRY</span></td><td>Booking created</td></tr>
+      <tr><td><span class="badge teal">QUOTED</span></td><td>Send Quote clicked</td></tr>
+      <tr><td><span class="badge navy">CONFIRMED</span></td><td>Send Confirmation clicked</td></tr>
+      <tr><td><span class="badge amber">COMPLETED</span></td><td>Gallery delivered, job done</td></tr>
+      <tr><td><span class="badge gray">CANCELLED</span></td><td>Manually set if booking falls through</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <h2 id="env">Environment Setup</h2>
+  <p>These variables must be set in <code>.env.local</code> in your project root. Restart the dev server after any change.</p>
+
+  <table>
+    <thead>
+      <tr><th>Variable</th><th>Value</th><th>Required For</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>NEXT_PUBLIC_SUPABASE_URL</code></td><td>Your Supabase project URL</td><td>Database &amp; auth</td></tr>
+      <tr><td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td><td>Supabase anon key</td><td>Database &amp; auth</td></tr>
+      <tr><td><code>SMTP_HOST</code></td><td><code>smtpout.secureserver.net</code></td><td>GoDaddy email</td></tr>
+      <tr><td><code>SMTP_PORT</code></td><td><code>465</code></td><td>GoDaddy email</td></tr>
+      <tr><td><code>SMTP_USER</code></td><td><code>johnny.nguyen@jnguyen.co</code></td><td>GoDaddy email</td></tr>
+      <tr><td><code>SMTP_PASS</code></td><td>Your GoDaddy email password</td><td>GoDaddy email</td></tr>
+      <tr><td><code>NEXT_PUBLIC_APP_URL</code></td><td><code>http://localhost:3000</code></td><td>Email link generation</td></tr>
+      <tr><td><code>GOOGLE_CLIENT_ID</code></td><td>From Google Cloud Console</td><td>Gmail API</td></tr>
+      <tr><td><code>GOOGLE_CLIENT_SECRET</code></td><td>From Google Cloud Console</td><td>Gmail API</td></tr>
+    </tbody>
+  </table>
+
+  <hr />
+
+  <p style="color: var(--gray500); font-size: 12.5px; text-align: center;">
+    JNguyen Co. CRM — Internal Documentation &nbsp;·&nbsp; Last updated June 2026
+  </p>
+
+</main>
+</div>
+</body>
+</html>

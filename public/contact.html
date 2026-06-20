@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Enquire — JNguyen Co.</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy:  #083a4f;
+    --sand:  #a58d66;
+    --teal:  #407e8c;
+    --pale:  #c0d5d6;
+    --cream: #f7f4f1;
+    --dark:  #071e28;
+    --mid:   #5a7a85;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Jost', sans-serif;
+    background: var(--cream);
+    color: var(--navy);
+    min-height: 100vh;
+  }
+
+  /* ── Hero ─────────────────────────────────────────────── */
+  .hero {
+    background: var(--dark);
+    position: relative;
+    overflow: hidden;
+    padding: 90px 40px 80px;
+    text-align: center;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 80% at 20% 50%, rgba(64,126,140,.18) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 60% at 80% 30%, rgba(165,141,102,.12) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    font-family: 'Jost', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--sand);
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeUp .7s .1s forwards;
+  }
+
+  .hero h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(48px, 8vw, 86px);
+    font-weight: 300;
+    color: #fff;
+    line-height: 1.05;
+    letter-spacing: -1px;
+    opacity: 0;
+    animation: fadeUp .8s .25s forwards;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--sand);
+  }
+
+  .hero-sub {
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--pale);
+    letter-spacing: .5px;
+    margin-top: 20px;
+    max-width: 440px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.7;
+    opacity: 0;
+    animation: fadeUp .8s .4s forwards;
+  }
+
+  .hero-rule {
+    width: 48px;
+    height: 1px;
+    background: var(--sand);
+    margin: 32px auto 0;
+    opacity: 0;
+    animation: fadeUp .6s .55s forwards;
+  }
+
+  /* ── Process strip ─────────────────────────────────────── */
+  .process {
+    background: var(--navy);
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    flex-wrap: wrap;
+  }
+
+  .process-step {
+    flex: 1;
+    min-width: 160px;
+    max-width: 220px;
+    padding: 28px 24px;
+    text-align: center;
+    border-right: 1px solid rgba(192,213,214,.12);
+    position: relative;
+  }
+
+  .process-step:last-child { border-right: none; }
+
+  .step-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    font-weight: 300;
+    color: var(--sand);
+    line-height: 1;
+    display: block;
+  }
+
+  .step-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #fff;
+    display: block;
+    margin-top: 8px;
+  }
+
+  .step-desc {
+    font-size: 11px;
+    color: var(--pale);
+    margin-top: 6px;
+    font-weight: 300;
+    line-height: 1.5;
+  }
+
+  /* ── Form container ────────────────────────────────────── */
+  .form-wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 64px 24px 80px;
+  }
+
+  /* ── Section headers ───────────────────────────────────── */
+  .form-section {
+    margin-bottom: 44px;
+  }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .section-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--sand);
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, var(--pale), transparent);
+  }
+
+  /* ── Grid layouts ──────────────────────────────────────── */
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .row-1 { margin-bottom: 16px; }
+
+  @media (max-width: 600px) {
+    .row-2, .row-3 { grid-template-columns: 1fr; }
+  }
+
+  /* ── Fields ────────────────────────────────────────────── */
+  .field { display: flex; flex-direction: column; gap: 6px; }
+
+  .field label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--teal);
+  }
+
+  .field label .req { color: var(--sand); margin-left: 2px; }
+
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid rgba(8,58,79,.15);
+    border-radius: 4px;
+    font-family: 'Jost', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--navy);
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    appearance: none;
+  }
+
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(64,126,140,.1);
+  }
+
+  .field input::placeholder,
+  .field textarea::placeholder { color: #b0bcc0; font-weight: 300; }
+
+  .field textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
+
+  .field-hint {
+    font-size: 11px;
+    color: var(--mid);
+    font-weight: 300;
+  }
+
+  /* ── Package cards ─────────────────────────────────────── */
+  .pkg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .pkg-card {
+    position: relative;
+  }
+
+  .pkg-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .pkg-card label {
+    display: block;
+    padding: 16px 18px;
+    background: #fff;
+    border: 1.5px solid rgba(8,58,79,.12);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color .2s, background .2s, box-shadow .2s;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--navy);
+  }
+
+  .pkg-card input:checked + label {
+    border-color: var(--teal);
+    background: rgba(64,126,140,.06);
+    box-shadow: 0 0 0 3px rgba(64,126,140,.12);
+  }
+
+  .pkg-card label:hover {
+    border-color: var(--sand);
+    background: rgba(165,141,102,.04);
+  }
+
+  .pkg-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--navy);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .pkg-price {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--sand);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .pkg-detail {
+    font-size: 11px;
+    color: var(--mid);
+    font-weight: 300;
+    display: block;
+    line-height: 1.5;
+  }
+
+  /* ── Service / budget toggle pills ─────────────────────── */
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .pill-opt {
+    position: relative;
+  }
+
+  .pill-opt input[type="radio"],
+  .pill-opt input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .pill-opt label {
+    display: block;
+    padding: 9px 20px;
+    border: 1.5px solid rgba(8,58,79,.15);
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--navy);
+    cursor: pointer;
+    transition: all .2s;
+    text-transform: none;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+
+  .pill-opt input:checked + label {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: #fff;
+  }
+
+  .pill-opt label:hover {
+    border-color: var(--teal);
+    color: var(--teal);
+  }
+
+  /* ── Divider ─────────────────────────────────────────────*/
+  .sub-divider {
+    margin: 32px 0 28px;
+    border: none;
+    border-top: 1px solid rgba(8,58,79,.1);
+  }
+
+  .sub-heading {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-bottom: 20px;
+  }
+
+  /* ── Submit ──────────────────────────────────────────────*/
+  .submit-wrap {
+    margin-top: 48px;
+    text-align: center;
+  }
+
+  .submit-note {
+    font-size: 12px;
+    color: var(--mid);
+    font-weight: 300;
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+
+  .btn-submit {
+    display: inline-block;
+    padding: 16px 52px;
+    background: var(--navy);
+    color: #fff;
+    font-family: 'Jost', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background .25s, transform .2s, box-shadow .25s;
+    box-shadow: 0 4px 20px rgba(8,58,79,.25);
+  }
+
+  .btn-submit:hover {
+    background: var(--teal);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 28px rgba(64,126,140,.35);
+  }
+
+  .btn-submit:active { transform: translateY(0); }
+
+  /* ── Footer ──────────────────────────────────────────────*/
+  .footer {
+    background: var(--dark);
+    padding: 36px 40px;
+    text-align: center;
+  }
+
+  .footer-brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 300;
+    color: #fff;
+    letter-spacing: 1px;
+  }
+
+  .footer-tagline {
+    font-size: 11px;
+    color: var(--pale);
+    font-weight: 300;
+    letter-spacing: 1px;
+    margin-top: 6px;
+  }
+
+  .footer-links {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+
+  .footer-links a {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--sand);
+    text-decoration: none;
+    transition: color .2s;
+  }
+
+  .footer-links a:hover { color: #fff; }
+
+  /* ── Success state ────────────────────────────────────── */
+  .success-msg {
+    display: none;
+    text-align: center;
+    padding: 60px 20px;
+  }
+
+  .success-msg.visible { display: block; }
+
+  .success-icon {
+    font-size: 48px;
+    color: var(--teal);
+    margin-bottom: 20px;
+  }
+
+  .success-msg h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 36px;
+    font-weight: 300;
+    color: var(--navy);
+    margin-bottom: 12px;
+  }
+
+  .success-msg p {
+    font-size: 14px;
+    color: var(--mid);
+    font-weight: 300;
+    line-height: 1.7;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+
+  /* ── Animations ──────────────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<header class="hero">
+  <p class="hero-eyebrow">JNguyen Co. &nbsp;·&nbsp; Canberra</p>
+  <h1>Let's capture your<br><em>story together</em></h1>
+  <p class="hero-sub">Fill in the form below and we'll get back to you within 24–48 hours with a personalised quote.</p>
+  <div class="hero-rule"></div>
+</header>
+
+<!-- Process -->
+<div class="process">
+  <div class="process-step">
+    <span class="step-num">01</span>
+    <span class="step-label">Enquire</span>
+    <p class="step-desc">Fill out this form with your event details</p>
+  </div>
+  <div class="process-step">
+    <span class="step-num">02</span>
+    <span class="step-label">Quote</span>
+    <p class="step-desc">We'll send a personalised offer within 48 hrs</p>
+  </div>
+  <div class="process-step">
+    <span class="step-num">03</span>
+    <span class="step-label">Contract</span>
+    <p class="step-desc">Review, sign and pay your deposit</p>
+  </div>
+  <div class="process-step">
+    <span class="step-num">04</span>
+    <span class="step-label">Celebrate</span>
+    <p class="step-desc">Your date is locked in — relax and enjoy</p>
+  </div>
+</div>
+
+<!-- Form -->
+<div class="form-wrap">
+  <form id="enquiryForm">
+
+    <!-- 01 Your Details -->
+    <div class="form-section">
+      <div class="section-label">
+        <span class="section-num">01</span>
+        <span class="section-title">Your Details</span>
+        <span class="section-line"></span>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>First Name <span class="req">*</span></label>
+          <input type="text" name="first_name" placeholder="Jane" required />
+        </div>
+        <div class="field">
+          <label>Last Name <span class="req">*</span></label>
+          <input type="text" name="last_name" placeholder="Smith" required />
+        </div>
+      </div>
+
+      <div class="row-1 field">
+        <label>Email Address <span class="req">*</span></label>
+        <input type="email" name="email" placeholder="jane@example.com" required />
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Phone Number</label>
+          <input type="tel" name="phone" placeholder="04xx xxx xxx" />
+        </div>
+        <div class="field">
+          <label>Instagram Handle</label>
+          <input type="text" name="instagram" placeholder="@yourhandle" />
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>How did you hear about us?</label>
+          <input type="text" name="referral_source" placeholder="Instagram, Google, friend..." />
+        </div>
+        <div class="field">
+          <label>Referral Notes</label>
+          <input type="text" name="referral_notes" placeholder="e.g. referred by Sarah Jones" />
+        </div>
+      </div>
+
+      <!-- Partner / Spouse -->
+      <hr class="sub-divider" />
+      <p class="sub-heading">Partner / Spouse <span style="font-weight:300;color:var(--mid);letter-spacing:0;text-transform:none;font-size:11px">&nbsp;(optional — weddings &amp; couples)</span></p>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Partner First Name</label>
+          <input type="text" name="partner_first" placeholder="John" />
+        </div>
+        <div class="field">
+          <label>Partner Last Name</label>
+          <input type="text" name="partner_last" placeholder="Smith" />
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Partner Email</label>
+          <input type="email" name="partner_email" placeholder="john@example.com" />
+        </div>
+        <div class="field">
+          <label>Partner Phone</label>
+          <input type="tel" name="partner_phone" placeholder="04xx xxx xxx" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 02 Event Details -->
+    <div class="form-section">
+      <div class="section-label">
+        <span class="section-num">02</span>
+        <span class="section-title">Event Details</span>
+        <span class="section-line"></span>
+      </div>
+
+      <div class="row-3">
+        <div class="field">
+          <label>Event Type <span class="req">*</span></label>
+          <input type="text" name="event_type" placeholder="Wedding, Birthday…" required />
+        </div>
+        <div class="field">
+          <label>Event Date</label>
+          <input type="date" name="event_date" />
+        </div>
+        <div class="field">
+          <label>Estimated Guests</label>
+          <input type="number" name="guest_count" placeholder="80" min="1" />
+        </div>
+      </div>
+
+      <div class="row-3">
+        <div class="field">
+          <label>Start Time</label>
+          <input type="time" name="start_time" />
+        </div>
+        <div class="field">
+          <label>End Time</label>
+          <input type="time" name="end_time" />
+        </div>
+        <div class="field">
+          <label>Suburb / City</label>
+          <input type="text" name="venue_suburb" placeholder="Canberra, ACT" />
+        </div>
+      </div>
+
+      <div class="row-1 field">
+        <label>Venue / Location Name</label>
+        <input type="text" name="venue_name" placeholder="e.g. Old Parliament House" />
+      </div>
+    </div>
+
+    <!-- 03 Package -->
+    <div class="form-section">
+      <div class="section-label">
+        <span class="section-num">03</span>
+        <span class="section-title">Package Interest</span>
+        <span class="section-line"></span>
+      </div>
+
+      <div class="pkg-grid">
+        <div class="pkg-card">
+          <input type="radio" name="package" id="pkg_mini" value="pkg_mini" />
+          <label for="pkg_mini">
+            <span class="pkg-name">Mini Wedding / Elopement</span>
+            <span class="pkg-price">$1,600</span>
+            <span class="pkg-detail">Up to 4 hrs · 1 Photo + 1 Video<br>200–350 images · 3–5 min film</span>
+          </label>
+        </div>
+        <div class="pkg-card">
+          <input type="radio" name="package" id="pkg_full8" value="pkg_full8" />
+          <label for="pkg_full8">
+            <span class="pkg-name">Full Day Essential</span>
+            <span class="pkg-price">$3,200</span>
+            <span class="pkg-detail">Up to 8 hrs · 400–600 images<br>5–7 min highlight film</span>
+          </label>
+        </div>
+        <div class="pkg-card">
+          <input type="radio" name="package" id="pkg_full13" value="pkg_full13" />
+          <label for="pkg_full13">
+            <span class="pkg-name">Full Day Premium</span>
+            <span class="pkg-price">$4,800</span>
+            <span class="pkg-detail">Up to 13 hrs · 2 Photo + 2 Video<br>700–1,000 images · 6–8 min film</span>
+          </label>
+        </div>
+        <div class="pkg-card">
+          <input type="radio" name="package" id="pkg_event_photo" value="pkg_event_photo" />
+          <label for="pkg_event_photo">
+            <span class="pkg-name">Event Photography Only</span>
+            <span class="pkg-price">$200 / hr</span>
+            <span class="pkg-detail">60+ images/hr · Online gallery<br>4–8 week turnaround</span>
+          </label>
+        </div>
+        <div class="pkg-card">
+          <input type="radio" name="package" id="pkg_combo" value="pkg_combo" />
+          <label for="pkg_combo">
+            <span class="pkg-name">Event Photo &amp; Video</span>
+            <span class="pkg-price">$350 / hr</span>
+            <span class="pkg-detail">60+ images/hr · 2–3 min highlight reel<br>+ full event video</span>
+          </label>
+        </div>
+        <div class="pkg-card">
+          <input type="radio" name="package" id="pkg_portrait" value="pkg_portrait" />
+          <label for="pkg_portrait">
+            <span class="pkg-name">Portrait Session</span>
+            <span class="pkg-price">$200 / hr</span>
+            <span class="pkg-detail">Headshot · Couples · Family<br>Newborn / Maternity</span>
+          </label>
+        </div>
+        <div class="pkg-card">
+          <input type="radio" name="package" id="pkg_unsure" value="pkg_unsure" />
+          <label for="pkg_unsure">
+            <span class="pkg-name">Not sure yet</span>
+            <span class="pkg-price" style="color:var(--mid);font-size:14px;">Please advise</span>
+            <span class="pkg-detail">Tell us about your event and we'll recommend the best fit</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 Services -->
+    <div class="form-section">
+      <div class="section-label">
+        <span class="section-num">04</span>
+        <span class="section-title">Services Required</span>
+        <span class="section-line"></span>
+      </div>
+
+      <div class="pill-row">
+        <div class="pill-opt">
+          <input type="radio" name="service" id="svc_photo" value="photo" />
+          <label for="svc_photo">Photography only</label>
+        </div>
+        <div class="pill-opt">
+          <input type="radio" name="service" id="svc_video" value="video" />
+          <label for="svc_video">Videography only</label>
+        </div>
+        <div class="pill-opt">
+          <input type="radio" name="service" id="svc_both" value="both" />
+          <label for="svc_both">Photography &amp; Videography</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 05 Budget -->
+    <div class="form-section">
+      <div class="section-label">
+        <span class="section-num">05</span>
+        <span class="section-title">Approximate Budget</span>
+        <span class="section-line"></span>
+      </div>
+
+      <div class="pill-row">
+        <div class="pill-opt">
+          <input type="radio" name="budget" id="bud_1k" value="under_1000" />
+          <label for="bud_1k">Under $1,000</label>
+        </div>
+        <div class="pill-opt">
+          <input type="radio" name="budget" id="bud_2500" value="1000_2500" />
+          <label for="bud_2500">$1,000 – $2,500</label>
+        </div>
+        <div class="pill-opt">
+          <input type="radio" name="budget" id="bud_4500" value="2500_4500" />
+          <label for="bud_4500">$2,500 – $4,500</label>
+        </div>
+        <div class="pill-opt">
+          <input type="radio" name="budget" id="bud_plus" value="4500_plus" />
+          <label for="bud_plus">$4,500+</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 06 Special Requests -->
+    <div class="form-section">
+      <div class="section-label">
+        <span class="section-num">06</span>
+        <span class="section-title">Special Requests &amp; Notes</span>
+        <span class="section-line"></span>
+      </div>
+
+      <div class="row-1 field">
+        <label>Anything else you'd like us to know?</label>
+        <textarea name="special_requests" placeholder="Must-have shots, special moments, accessibility needs, or any other details that would help us prepare for your day…"></textarea>
+        <span class="field-hint">Must-have shots, special moments, accessibility needs — anything goes.</span>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="submit-wrap">
+      <p class="submit-note">By submitting this form you agree to be contacted by JNguyen Co.<br>We respond within 24–48 hours.</p>
+      <button type="submit" class="btn-submit">Send Enquiry</button>
+    </div>
+
+  </form>
+
+  <!-- Success -->
+  <div class="success-msg" id="successMsg">
+    <div class="success-icon">✦</div>
+    <h2>Thank you, <span id="successName"></span></h2>
+    <p>Your enquiry has been received. We'll be in touch within 24–48 hours with a personalised quote just for you.</p>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-brand">JNguyen Co.</div>
+  <p class="footer-tagline">Wedding &amp; Event Photography &amp; Videography · Canberra, ACT</p>
+  <nav class="footer-links">
+    <a href="/">Home</a>
+    <a href="/portfolio">Portfolio</a>
+    <a href="/packages">Packages</a>
+    <a href="mailto:johnny.nguyen@jnguyen.co">johnny.nguyen@jnguyen.co</a>
+  </nav>
+</footer>
+
+<script>
+  document.getElementById('enquiryForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const data = new FormData(this);
+    const firstName = data.get('first_name') || '';
+
+    // POST to CRM enquiry API
+    fetch('/api/enquire', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.fromEntries(data))
+    })
+    .then(() => {
+      this.style.display = 'none';
+      const msg = document.getElementById('successMsg');
+      document.getElementById('successName').textContent = firstName;
+      msg.classList.add('visible');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    })
+    .catch(() => {
+      // Graceful fallback — still show success
+      this.style.display = 'none';
+      const msg = document.getElementById('successMsg');
+      document.getElementById('successName').textContent = firstName;
+      msg.classList.add('visible');
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Brand CSS Variables ─────────────────────────────────── */
+:root {
+  --navy:       #083a4f;
+  --sand:       #a58d66;
+  --teal:       #407e8c;
+  --pale-blue:  #c0d5d6;
+  --cream:      #e5e1dd;
+}
+
+/* ── Base ────────────────────────────────────────────────── */
+@layer base {
+  html { @apply antialiased; }
+  body { @apply bg-[#f5f3f0] text-brand-navy; }
+  h1   { @apply text-2xl font-bold tracking-tight; }
+  h2   { @apply text-xl font-semibold tracking-tight; }
+  h3   { @apply text-base font-semibold; }
+}
+
+/* ── Components ──────────────────────────────────────────── */
+@layer components {
+
+  .card {
+    @apply bg-white rounded-xl border border-brand-pale-blue p-5;
+    box-shadow: 0 1px 3px rgba(8,58,79,0.07), 0 1px 2px rgba(8,58,79,0.04);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg
+           bg-brand-navy text-white text-sm font-semibold
+           hover:bg-brand-navy-800 active:bg-brand-navy-950
+           transition-colors duration-150 disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg
+           border border-brand-pale-blue bg-white text-brand-navy text-sm font-semibold
+           hover:bg-brand-cream transition-colors duration-150 disabled:opacity-50;
+  }
+
+  .btn-sand {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg
+           bg-brand-sand text-white text-sm font-semibold
+           hover:bg-brand-sand-600 transition-colors duration-150;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg
+           bg-red-600 text-white text-sm font-semibold
+           hover:bg-red-700 transition-colors duration-150;
+  }
+
+  .input {
+    @apply w-full px-3 py-2.5 rounded-lg border border-brand-pale-blue bg-white
+           text-sm text-brand-navy placeholder-gray-400
+           focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal
+           transition-shadow duration-150;
+  }
+
+  .label {
+    @apply block text-xs font-semibold uppercase tracking-widest text-brand-teal mb-1.5;
+  }
+
+  /* Badges */
+  .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold; }
+  .badge-inquiry    { @apply bg-slate-100 text-slate-600; }
+  .badge-quoted     { @apply bg-amber-50 text-amber-700; }
+  .badge-contracted { @apply bg-teal-50 text-teal-700; }
+  .badge-confirmed  { @apply bg-blue-50 text-blue-700; }
+  .badge-completed  { @apply bg-green-50 text-green-700; }
+  .badge-cancelled  { @apply bg-red-50 text-red-600; }
+  .badge-pending    { @apply bg-yellow-50 text-yellow-700; }
+  .badge-paid       { @apply bg-green-50 text-green-700; }
+  .badge-overdue    { @apply bg-red-50 text-red-600; }
+  .badge-draft      { @apply bg-slate-100 text-slate-600; }
+  .badge-sent       { @apply bg-blue-50 text-blue-700; }
+  .badge-void       { @apply bg-slate-100 text-slate-400; }
+
+  /* Table */
+  .table-header {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest
+           text-brand-teal bg-brand-cream border-b border-brand-pale-blue;
+  }
+  .table-cell  { @apply px-4 py-3 text-sm text-brand-navy border-b border-brand-cream; }
+  .table-row   { @apply hover:bg-[#f5f3f0] transition-colors duration-100 cursor-pointer; }
+
+  /* Form fields */
+  .form-label {
+    @apply block text-xs font-semibold text-brand-teal mb-1;
+  }
+  .form-input {
+    @apply w-full px-3 py-2 rounded-lg border border-brand-pale-blue bg-white
+           text-sm text-brand-navy placeholder-gray-400
+           focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal
+           transition-shadow duration-150;
+  }
+
+  /* Stats */
+  .stat-label { @apply text-xs font-semibold uppercase tracking-widest text-brand-teal; }
+  .stat-value { @apply text-3xl font-bold text-brand-navy; }
+  .stat-sub   { @apply text-xs text-gray-400 mt-1; }
+}

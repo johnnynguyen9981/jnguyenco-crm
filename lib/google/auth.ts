@@ -1,0 +1,135 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Google OAuth2 — Token management
+// All token handling is SERVER-SIDE ONLY. Tokens never touch the browser.
+// ─────────────────────────────────────────────────────────────────────────────
+import { google } from "googleapis";
+import { createClient } from "@/lib/supabase/server";
+
+/** Scopes we request from the user during OAuth consent */
+export const GOOGLE_SCOPES = [
+  "https://www.googleapis.com/auth/gmail.send",       // Send email as johnny.nguyen@jnguyen.co
+  "https://www.googleapis.com/auth/calendar.events",  // Create/update calendar events
+];
+
+/** Build an OAuth2 client from environment credentials */
+export function getOAuth2Client() {
+  return new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID!,
+    process.env.GOOGLE_CLIENT_SECRET!,
+    process.env.GOOGLE_REDIRECT_URI!
+  );
+}
+
+/**
+ * Generate the Google consent-screen URL.
+ * Redirect the user here when they click "Connect Google" in Settings.
+ */
+export function getGoogleAuthUrl(): string {
+  const client = getOAuth2Client();
+  return client.generateAuthUrl({
+    access_type: "offline",        // Required to get a refresh_token
+    prompt:      "consent",        // Force consent screen so refresh_token is always returned
+    scope:       GOOGLE_SCOPES,
+    state:       "google_connect", // Tells /api/auth/callback this is a token exchange, not a Supabase login
+  });
+}
+
+/**
+ * Exchange the one-time auth_code (from Google callback) for tokens,
+ * then persist them to the google_tokens table.
+ * Called only from /api/auth/callback — never from the browser.
+ */
+export async function exchangeCodeAndSaveTokens(
+  code: string,
+  userId: string
+): Promise<void> {
+  const client = getOAuth2Client();
+  const { tokens } = await client.getToken(code);
+
+  if (!tokens.access_token || !tokens.refresh_token || !tokens.expiry_date) {
+    throw new Error(
+      "Google did not return all required tokens. Make sure prompt=consent is set."
+    );
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("google_tokens").upsert(
+    {
+      owner_id:      userId,
+      access_token:  tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      token_expiry:  new Date(tokens.expiry_date).toISOString(),
+      scopes:        GOOGLE_SCOPES.join(" "),
+      updated_at:    new Date().toISOString(),
+    },
+    { onConflict: "owner_id" }
+  );
+
+  if (error) {
+    throw new Error(`Failed to save Google tokens: ${error.message}`);
+  }
+}
+
+/**
+ * Returns an authenticated OAuth2 client for the given user.
+ * Automatically refreshes the access_token if it is expired or within
+ * 5 minutes of expiry, and persists the new token back to Supabase.
+ *
+ * Usage:
+ *   const authClient = await getAuthenticatedClient(session.user.id);
+ *   const gmail = google.gmail({ version: "v1", auth: authClient });
+ */
+export async function getAuthenticatedClient(userId: string) {
+  const supabase = await createClient();
+
+  const { data: row, error } = await supabase
+    .from("google_tokens")
+    .select("access_token, refresh_token, token_expiry")
+    .eq("owner_id", userId)
+    .single();
+
+  if (error || !row) {
+    throw new Error(
+      "Google account not connected. Please connect it in Settings → Integrations."
+    );
+  }
+
+  const oauthClient = getOAuth2Client();
+  oauthClient.setCredentials({
+    access_token:  row.access_token,
+    refresh_token: row.refresh_token,
+  });
+
+  // Refresh if expired or within 5 minutes of expiry
+  const expiryMs   = new Date(row.token_expiry).getTime();
+  const bufferMs   = 5 * 60 * 1000; // 5 minutes
+  if (Date.now() >= expiryMs - bufferMs) {
+    const { credentials } = await oauthClient.refreshAccessToken();
+    oauthClient.setCredentials(credentials);
+
+    // Persist the refreshed access token (refresh_token stays the same)
+    await supabase
+      .from("google_tokens")
+      .update({
+        access_token: credentials.access_token!,
+        token_expiry: new Date(credentials.expiry_date!).toISOString(),
+        updated_at:   new Date().toISOString(),
+      })
+      .eq("owner_id", userId);
+  }
+
+  return oauthClient;
+}
+
+/**
+ * Check whether the current user has connected their Google account.
+ */
+export async function isGoogleConnected(userId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("google_tokens")
+    .select("id")
+    .eq("owner_id", userId)
+    .maybeSingle();
+  return !!data;
+}

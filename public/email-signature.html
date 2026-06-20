@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>JNguyen Co. — Email Signature</title>
+  <style>
+    body { background: #eee; font-family: Arial, sans-serif; padding: 2rem; margin: 0; }
+    .preview-label {
+      font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+      color: #666; margin-bottom: .75rem;
+    }
+    .preview-wrap {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 4px;
+      max-width: 600px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    }
+    .btn-row { margin-top: 1.5rem; display: flex; gap: .75rem; flex-wrap: wrap; }
+    .copy-btn {
+      padding: .6rem 1.4rem;
+      background: #083a4f;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .copy-btn:hover { background: #0b4d68; }
+    .copy-btn.alt { background: #407e8c; }
+    .copy-btn.alt:hover { background: #4e97a8; }
+    .instructions {
+      margin-top: 2rem;
+      max-width: 600px;
+      background: #fff;
+      border-radius: 4px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    }
+    .instructions h3 { font-size: 13px; color: #083a4f; margin: 0 0 .75rem; letter-spacing: .06em; text-transform: uppercase; }
+    .instructions ol { margin: 0; padding-left: 1.2rem; }
+    .instructions li { font-size: 13px; color: #444; margin-bottom: .4rem; line-height: 1.6; }
+    .instructions code { background: #f0f4f6; padding: .1rem .35rem; border-radius: 2px; font-size: 12px; }
+    .tab-btn { padding: .35rem .9rem; border: 1px solid #ccc; background: #f5f5f5; border-radius: 3px; font-size: 12px; cursor: pointer; font-weight: 600; }
+    .tab-btn.active { background: #083a4f; color: #fff; border-color: #083a4f; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+  </style>
+</head>
+<body>
+
+<p class="preview-label">Preview — JNguyen Co. Email Signature</p>
+
+<div class="preview-wrap">
+  <!-- ═══════════════════════════════════════════════════
+       SIGNATURE START — copy everything inside this div
+       ═══════════════════════════════════════════════════ -->
+  <div id="signature">
+
+  <table cellpadding="0" cellspacing="0" border="0" style="font-family:Georgia,'Times New Roman',serif;font-size:0;line-height:1;">
+    <tr>
+      <!-- Profile photo -->
+      <td style="vertical-align:top;padding-right:16px;">
+        <img src="data:image/jpeg;base64,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"
+             width="72" height="72"
+             alt="Johnny Nguyen"
+             style="width:72px;height:72px;border-radius:50%;object-fit:cover;display:block;border:2px solid #a58d66;" />
+      </td>
+
+      <!-- Left accent bar -->
+      <td style="width:3px;background:#a58d66;border-radius:2px;" width="3">&nbsp;</td>
+      <td style="width:18px;" width="18">&nbsp;</td>
+
+      <!-- Main content -->
+      <td style="vertical-align:top;padding:4px 0;">
+
+        <!-- Name -->
+        <table cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="padding-bottom:3px;">
+              <span style="font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:400;color:#083a4f;letter-spacing:-0.01em;line-height:1;">
+                Johnny Nguyen
+              </span>
+            </td>
+          </tr>
+
+          <!-- Title -->
+          <tr>
+            <td style="padding-bottom:10px;">
+              <span style="font-family:Arial,Helvetica,sans-serif;font-size:9.5px;font-weight:700;color:#a58d66;letter-spacing:.18em;text-transform:uppercase;line-height:1;">
+                Photographer &amp; Videographer
+              </span>
+            </td>
+          </tr>
+
+          <!-- Business name + location -->
+          <tr>
+            <td style="padding-bottom:14px;">
+              <span style="font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-weight:600;color:#083a4f;letter-spacing:.06em;line-height:1;">
+                JNguyen Co.
+              </span>
+              <span style="font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:#a58d66;letter-spacing:.06em;line-height:1;">
+                &nbsp;·&nbsp;
+              </span>
+              <span style="font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:#6b8a97;letter-spacing:.04em;line-height:1;">
+                Canberra, ACT
+              </span>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding-bottom:12px;">
+              <table cellpadding="0" cellspacing="0" border="0" width="200">
+                <tr>
+                  <td style="height:1px;background:linear-gradient(90deg,#a58d66,#c0d5d6,transparent);font-size:0;line-height:0;">&nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Contact details -->
+          <tr>
+            <td style="padding-bottom:4px;">
+              <table cellpadding="0" cellspacing="0" border="0">
+
+                <!-- Email -->
+                <tr>
+                  <td style="padding-bottom:5px;vertical-align:middle;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="vertical-align:middle;padding-right:7px;">
+                          <span style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#a58d66;line-height:1;">✉</span>
+                        </td>
+                        <td style="vertical-align:middle;">
+                          <a href="mailto:johnny.nguyen@jnguyen.co"
+                             style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#407e8c;text-decoration:none;letter-spacing:.02em;line-height:1;">
+                            johnny.nguyen@jnguyen.co
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Phone -->
+                <tr>
+                  <td style="padding-bottom:5px;vertical-align:middle;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="vertical-align:middle;padding-right:7px;">
+                          <span style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#a58d66;line-height:1;">✆</span>
+                        </td>
+                        <td style="vertical-align:middle;">
+                          <a href="tel:+61426864865"
+                             style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#407e8c;text-decoration:none;letter-spacing:.02em;line-height:1;">
+                            0426 864 865
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Website -->
+                <tr>
+                  <td style="padding-bottom:5px;vertical-align:middle;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="vertical-align:middle;padding-right:7px;">
+                          <span style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#a58d66;line-height:1;">⊕</span>
+                        </td>
+                        <td style="vertical-align:middle;">
+                          <a href="https://jnguyen.co"
+                             style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#407e8c;text-decoration:none;letter-spacing:.02em;line-height:1;">
+                            jnguyen.co
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Instagram -->
+                <tr>
+                  <td style="padding-bottom:5px;vertical-align:middle;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="vertical-align:middle;padding-right:7px;">
+                          <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#a58d66;line-height:1;">◈</span>
+                        </td>
+                        <td style="vertical-align:middle;">
+                          <a href="https://instagram.com/jnguyen.co"
+                             style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#407e8c;text-decoration:none;letter-spacing:.02em;line-height:1;">
+                            @jnguyen.co
+                          </a>
+                          <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#aaa;letter-spacing:.06em;"> Instagram</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+          <!-- ABN -->
+          <tr>
+            <td style="padding-top:8px;">
+              <span style="font-family:Arial,Helvetica,sans-serif;font-size:9.5px;color:#aabbcc;letter-spacing:.06em;line-height:1;">
+                ABN: 17 806 783 014
+              </span>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  </div>
+  <!-- ═══════════════════════════════════════════════════
+       SIGNATURE END
+       ═══════════════════════════════════════════════════ -->
+</div>
+
+<div class="btn-row">
+  <button class="copy-btn" onclick="copyRendered()">&#128203; Copy Signature (Paste into Gmail)</button>
+  <button class="copy-btn alt" onclick="copyHTML()">Copy Raw HTML</button>
+</div>
+
+<div class="instructions">
+  <div style="display:flex;gap:.5rem;margin-bottom:1rem;">
+    <button class="tab-btn active" onclick="showTab('easy',this)">Easy Way (Recommended)</button>
+    <button class="tab-btn" onclick="showTab('html',this)">Via HTML</button>
+  </div>
+
+  <div id="tab-easy" class="tab-panel active">
+    <h3>Add to Gmail &mdash; Easy</h3>
+    <ol>
+      <li>Click <strong>&#128203; Copy Signature</strong> above &mdash; this copies the formatted signature</li>
+      <li>Open Gmail &rarr; <strong>&#9881; Settings</strong> &rarr; <strong>See all settings</strong></li>
+      <li><strong>General</strong> tab &rarr; scroll to <strong>Signature</strong> &rarr; <strong>Create new</strong> &rarr; name it <code>JNguyen Co.</code></li>
+      <li>Click inside the signature text box and press <strong>Ctrl + V</strong> to paste</li>
+      <li>Set as default for <em>New emails</em> and <em>Replies</em> &rarr; <strong>Save Changes</strong></li>
+    </ol>
+  </div>
+
+  <div id="tab-html" class="tab-panel">
+    <h3>Add to Gmail &mdash; Via HTML</h3>
+    <ol>
+      <li>Click <strong>Copy Raw HTML</strong> above</li>
+      <li>Open Gmail &rarr; <strong>&#9881; Settings</strong> &rarr; <strong>See all settings</strong></li>
+      <li><strong>General</strong> tab &rarr; scroll to <strong>Signature</strong> &rarr; <strong>Create new</strong></li>
+      <li>In the signature editor toolbar, look for the <strong>&lt;/&gt;</strong> icon &mdash; if not visible, try the <strong>&#8942; More options</strong> menu</li>
+      <li>Paste the HTML &rarr; click <strong>OK</strong> &rarr; <strong>Save Changes</strong></li>
+    </ol>
+  </div>
+</div>
+
+<script>
+function copyRendered() {
+  var sig = document.getElementById('signature');
+  var range = document.createRange();
+  range.selectNodeContents(sig);
+  var sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  document.execCommand('copy');
+  sel.removeAllRanges();
+  var btn = document.querySelectorAll('.copy-btn')[0];
+  btn.textContent = 'Copied! Now paste into Gmail';
+  btn.style.background = '#407e8c';
+  setTimeout(function(){ btn.textContent = 'Copy Signature (Paste into Gmail)'; btn.style.background = '#083a4f'; }, 3000);
+}
+function copyHTML() {
+  var sig = document.getElementById('signature').innerHTML;
+  navigator.clipboard.writeText(sig).then(function(){
+    var btn = document.querySelectorAll('.copy-btn')[1];
+    btn.textContent = 'HTML Copied!';
+    setTimeout(function(){ btn.textContent = 'Copy Raw HTML'; }, 2000);
+  });
+}
+function showTab(id, el) {
+  document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('tab-' + id).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

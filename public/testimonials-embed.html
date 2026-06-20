@@ -1,0 +1,466 @@
+<!-- ============================================================
+     JNguyen Co. — Testimonials Section (Squarespace Code Block)
+     Paste this entire block into: Edit Page → Add Block → Code
+     ============================================================ -->
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap');
+
+.jnc-testimonials {
+  --navy:  #083a4f;
+  --sand:  #a58d66;
+  --teal:  #407e8c;
+  --pale:  #c0d5d6;
+  --cream: #f7f4f1;
+  --dark:  #05212d;
+  --muted: rgba(8,58,79,.45);
+  font-family: 'Jost', sans-serif;
+  background: var(--dark);
+  color: #fff;
+  padding: 6rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background glow */
+.jnc-testimonials::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 50% at 20% 0%, rgba(64,126,140,.15), transparent 60%),
+    radial-gradient(ellipse 60% 60% at 80% 100%, rgba(165,141,102,.1), transparent 60%);
+}
+
+/* Section header */
+.jnc-header {
+  text-align: center;
+  margin-bottom: 4rem;
+  position: relative;
+}
+
+.jnc-eyebrow {
+  font-size: .62rem;
+  font-weight: 600;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--sand);
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.jnc-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 300;
+  line-height: 1.05;
+  color: #fff;
+  margin: 0 0 1rem;
+}
+
+.jnc-title em {
+  font-style: italic;
+  color: var(--pale);
+}
+
+/* Rating row */
+.jnc-rating-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 4rem;
+  position: relative;
+}
+
+.jnc-stars {
+  display: flex;
+  gap: .3rem;
+}
+
+.jnc-stars svg {
+  width: 18px;
+  height: 18px;
+  fill: var(--sand);
+  filter: drop-shadow(0 0 5px rgba(165,141,102,.5));
+}
+
+.jnc-rating-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.2rem;
+  font-weight: 300;
+  color: #fff;
+  line-height: 1;
+}
+
+.jnc-rating-label {
+  font-size: .65rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.35);
+}
+
+.jnc-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255,255,255,.12);
+}
+
+.jnc-google-badge {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem .75rem;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 2px;
+  background: rgba(255,255,255,.03);
+}
+
+.jnc-google-badge svg { width: 50px; height: auto; }
+
+.jnc-google-badge span {
+  font-size: .58rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.3);
+}
+
+/* Grid */
+.jnc-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  columns: 3;
+  column-gap: 1.25rem;
+  position: relative;
+}
+
+@media (max-width: 860px) { .jnc-grid { columns: 2; } }
+@media (max-width: 540px) { .jnc-grid { columns: 1; } }
+
+/* Cards */
+.jnc-card {
+  break-inside: avoid;
+  margin-bottom: 1.25rem;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 4px;
+  padding: 1.75rem;
+  position: relative;
+  transition: background .25s, transform .25s, box-shadow .25s;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.jnc-card.jnc-visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity .6s ease, transform .6s ease, background .25s, box-shadow .25s;
+}
+
+.jnc-card:hover {
+  background: rgba(255,255,255,.08);
+  box-shadow: 0 16px 40px rgba(0,0,0,.3);
+  transform: translateY(-2px) !important;
+}
+
+.jnc-card:nth-child(1) { transition-delay: 0s; }
+.jnc-card:nth-child(2) { transition-delay: .08s; }
+.jnc-card:nth-child(3) { transition-delay: .16s; }
+.jnc-card:nth-child(4) { transition-delay: .24s; }
+.jnc-card:nth-child(5) { transition-delay: .32s; }
+.jnc-card:nth-child(6) { transition-delay: .40s; }
+
+.jnc-quote-mark {
+  position: absolute;
+  top: .75rem;
+  right: 1.25rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 5rem;
+  font-weight: 300;
+  color: rgba(165,141,102,.12);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.jnc-card-top {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1rem;
+}
+
+.jnc-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.15);
+}
+
+.jnc-card-meta { flex: 1; min-width: 0; }
+
+.jnc-card-name {
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: rgba(255,255,255,.9);
+  margin-bottom: .2rem;
+}
+
+.jnc-card-time {
+  font-size: .62rem;
+  color: rgba(255,255,255,.3);
+  letter-spacing: .05em;
+}
+
+.jnc-card-stars {
+  display: flex;
+  gap: .2rem;
+  margin-bottom: .85rem;
+}
+
+.jnc-card-stars svg { width: 11px; height: 11px; fill: var(--sand); }
+
+.jnc-card-text {
+  font-size: .82rem;
+  font-weight: 300;
+  line-height: 1.75;
+  color: rgba(255,255,255,.6);
+}
+
+.jnc-card-text.jnc-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.jnc-read-more {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Jost', sans-serif;
+  font-size: .65rem;
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--sand);
+  margin-top: .6rem;
+  padding: 0;
+  display: block;
+}
+
+.jnc-read-more:hover { color: var(--pale); }
+
+/* CTA */
+.jnc-cta {
+  text-align: center;
+  margin-top: 4rem;
+  position: relative;
+}
+
+.jnc-cta-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 300;
+  font-style: italic;
+  color: rgba(255,255,255,.5);
+  margin-bottom: 1.5rem;
+}
+
+.jnc-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .85rem 2rem;
+  background: var(--sand);
+  color: #fff;
+  font-family: 'Jost', sans-serif;
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: background .2s, transform .2s;
+}
+
+.jnc-cta-btn:hover {
+  background: #c0a87a;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.jnc-cta-btn svg { width: 15px; height: 15px; }
+
+/* Google CTA link */
+.jnc-google-link {
+  display: block;
+  margin-top: 1rem;
+  font-size: .65rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.25);
+  text-decoration: none;
+}
+
+.jnc-google-link:hover { color: var(--pale); }
+</style>
+
+<section class="jnc-testimonials">
+
+  <!-- Header -->
+  <div class="jnc-header">
+    <span class="jnc-eyebrow">Client Stories</span>
+    <h2 class="jnc-title">Words from<br /><em>Happy Couples</em></h2>
+  </div>
+
+  <!-- Rating row -->
+  <div class="jnc-rating-row">
+    <div class="jnc-stars">
+      <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    </div>
+    <div class="jnc-rating-num">5.0</div>
+    <div class="jnc-divider"></div>
+    <div class="jnc-rating-label">13 Google Reviews</div>
+    <div class="jnc-divider"></div>
+    <div class="jnc-google-badge">
+      <svg viewBox="0 0 272 92" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#4285F4" d="M115.75 47.18c0 12.77-9.99 22.18-22.25 22.18s-22.25-9.41-22.25-22.18C71.25 34.32 81.24 25 93.5 25s22.25 9.32 22.25 22.18zm-9.74 0c0-7.98-5.79-13.44-12.51-13.44S80.99 39.2 80.99 47.18c0 7.9 5.79 13.44 12.51 13.44s12.51-5.55 12.51-13.44z"/>
+        <path fill="#EA4335" d="M163.75 47.18c0 12.77-9.99 22.18-22.25 22.18s-22.25-9.41-22.25-22.18c0-12.85 9.99-22.18 22.25-22.18s22.25 9.32 22.25 22.18zm-9.74 0c0-7.98-5.79-13.44-12.51-13.44s-12.51 5.46-12.51 13.44c0 7.9 5.79 13.44 12.51 13.44s12.51-5.55 12.51-13.44z"/>
+        <path fill="#FBBC05" d="M209.75 26.34v39.82c0 16.38-9.66 23.07-21.08 23.07-10.75 0-17.22-7.19-19.66-13.07l8.48-3.53c1.51 3.61 5.21 7.87 11.17 7.87 7.31 0 11.84-4.51 11.84-13v-3.19h-.34c-2.18 2.69-6.38 5.04-11.68 5.04-11.09 0-21.25-9.66-21.25-22.09 0-12.52 10.16-22.26 21.25-22.26 5.29 0 9.49 2.35 11.68 4.96h.34v-3.61h9.25zm-8.56 20.92c0-7.81-5.21-13.52-11.84-13.52-6.72 0-12.35 5.71-12.35 13.52 0 7.73 5.63 13.36 12.35 13.36 6.63 0 11.84-5.63 11.84-13.36z"/>
+        <path fill="#4285F4" d="M225 3v65h-9.5V3h9.5z"/>
+        <path fill="#34A853" d="M262.02 54.48l7.56 5.04c-2.44 3.61-8.32 9.83-18.48 9.83-12.6 0-22.01-9.74-22.01-22.18 0-13.19 9.49-22.18 20.92-22.18 11.51 0 17.14 9.16 18.98 14.11l1.01 2.52-29.65 12.28c2.27 4.45 5.8 6.72 10.75 6.72 4.96 0 8.4-2.44 10.92-6.14zm-23.27-7.98l19.82-8.23c-1.09-2.77-4.37-4.7-8.23-4.7-4.95 0-11.84 4.37-11.59 12.93z"/>
+        <path fill="#EA4335" d="M35.29 41.41V32H67c.31 1.64.47 3.58.47 5.68 0 7.06-1.93 15.79-8.15 22.01-6.05 6.3-13.78 9.66-24.02 9.66C16.32 69.35.36 53.89.36 34.91.36 15.93 16.32.47 35.3.47c10.5 0 17.98 4.12 23.6 9.49l-6.64 6.64c-4.03-3.78-9.49-6.72-16.97-6.72-13.86 0-24.7 11.17-24.7 25.03 0 13.86 10.84 25.03 24.7 25.03 8.99 0 14.11-3.61 17.39-6.89 2.66-2.66 4.41-6.46 5.1-11.65l-22.49.01z"/>
+      </svg>
+      <span>Verified Reviews</span>
+    </div>
+  </div>
+
+  <!-- Cards grid (hardcoded — update as new reviews come in) -->
+  <div class="jnc-grid" id="jncGrid"></div>
+
+  <!-- CTA -->
+  <div class="jnc-cta">
+    <p class="jnc-cta-text">"Ready to create your own story?"</p>
+    <a href="/enquire" class="jnc-cta-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      Start Your Enquiry
+    </a>
+    <a class="jnc-google-link"
+       href="https://www.google.com/maps/place/Jnguyen.co"
+       target="_blank" rel="noopener">
+      See all reviews on Google ↗
+    </a>
+  </div>
+
+</section>
+
+<script>
+(function () {
+  /* ── Hardcoded reviews — add / edit here ───────────────
+     To add more: copy a block in the REVIEWS array below.
+     ───────────────────────────────────────────────────── */
+  var REVIEWS = [
+    {
+      name: "Hannah Pham",
+      time: "4 weeks ago",
+      rating: 5,
+      text: "We couldn't be happier with how our photos and video turned out. Johnny has an incredible eye for detail and a real talent for capturing genuine emotion. Every time we look back at our wedding gallery, it takes us right back to that day."
+    },
+    {
+      name: "Vinh Dong",
+      time: "3 weeks ago",
+      rating: 5,
+      text: "The photos were amazing! Johnny has a great eye and made us feel super comfortable throughout the whole shoot. We will definitely be booking again!"
+    },
+    {
+      name: "Anna Marcus",
+      time: "3 weeks ago",
+      rating: 5,
+      text: "Johnny captured our Autumn photos at Weston Park beautifully. He had great ideas for poses and locations, and we felt at ease the entire time. Would highly recommend to anyone looking for a photographer in Canberra."
+    }
+  ];
+
+  /* ── Helpers ─────────────────────────────────────────── */
+  var COLORS = ['#407e8c','#083a4f','#a58d66','#5e8e6e','#7e5c8c'];
+
+  function avatarColor(name) {
+    var h = 0;
+    for (var i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+    return COLORS[Math.abs(h) % COLORS.length];
+  }
+
+  function initials(name) {
+    return name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+  }
+
+  function starSVG() {
+    return '<svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
+  }
+
+  /* ── Render ──────────────────────────────────────────── */
+  var grid = document.getElementById('jncGrid');
+
+  REVIEWS.forEach(function(r) {
+    var card = document.createElement('div');
+    card.className = 'jnc-card';
+
+    var starsHtml = '';
+    for (var i = 0; i < 5; i++) starsHtml += starSVG();
+
+    card.innerHTML =
+      '<span class="jnc-quote-mark">“</span>' +
+      '<div class="jnc-card-top">' +
+        '<div class="jnc-avatar" style="background:' + avatarColor(r.name) + '">' + initials(r.name) + '</div>' +
+        '<div class="jnc-card-meta">' +
+          '<div class="jnc-card-name">' + r.name + '</div>' +
+          '<div class="jnc-card-time">' + r.time + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="jnc-card-stars">' + starsHtml + '</div>' +
+      '<p class="jnc-card-text' + (r.text.length > 200 ? ' jnc-clamped' : '') + '">' + r.text + '</p>';
+
+    if (r.text.length > 200) {
+      var btn = document.createElement('button');
+      btn.className = 'jnc-read-more';
+      btn.textContent = 'Read more';
+      btn.addEventListener('click', function() {
+        var p = card.querySelector('.jnc-card-text');
+        var clamped = p.classList.toggle('jnc-clamped');
+        btn.textContent = clamped ? 'Read more' : 'Read less';
+      });
+      card.appendChild(btn);
+    }
+
+    grid.appendChild(card);
+  });
+
+  /* ── Scroll reveal ───────────────────────────────────── */
+  var cards = document.querySelectorAll('.jnc-card');
+  if ('IntersectionObserver' in window) {
+    var obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) { e.target.classList.add('jnc-visible'); obs.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    cards.forEach(function(c) { obs.observe(c); });
+  } else {
+    cards.forEach(function(c) { c.classList.add('jnc-visible'); });
+  }
+})();
+</script>
