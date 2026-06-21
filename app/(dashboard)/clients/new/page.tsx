@@ -1,6 +1,6 @@
 "use client";
 // app/(dashboard)/clients/new/page.tsx — Add new client from enquiry form
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Check } from "lucide-react";
@@ -80,6 +80,31 @@ export default function NewClientPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
+  const [dbPackages, setDbPackages] = useState<any[]>([]);
+
+  // Fetch real DB package IDs on mount so we can save package_id on the booking
+  useEffect(() => {
+    fetch("/api/packages")
+      .then(r => r.json())
+      .then(d => { if (d.packages) setDbPackages(d.packages); })
+      .catch(() => {});
+  }, []);
+
+  // Match a local package selection to its DB package_id by name keywords
+  function findDbPackageId(localId: string): string | null {
+    if (!localId || !dbPackages.length) return null;
+    const label = PACKAGES.find(p => p.id === localId)?.label.toLowerCase() ?? "";
+    const match = dbPackages.find(dp => {
+      const n = dp.name.toLowerCase();
+      if (label.includes("mini") || label.includes("elopement")) return n.includes("mini") || n.includes("elopement");
+      if (label.includes("essential"))                            return n.includes("essential");
+      if (label.includes("premium"))                             return n.includes("premium");
+      if (label.includes("photo") && label.includes("video"))    return n.includes("photo") && n.includes("video");
+      if (label.includes("hourly"))                              return n.includes("hourly") || n.includes("photo");
+      return false;
+    });
+    return match?.id ?? null;
+  }
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -215,6 +240,7 @@ export default function NewClientPage() {
             event_end_time:    form.event_end_time   || null,
             venue_name:        form.venue_name       || null,
             venue_address:     form.venue_suburb     || null,
+            package_id:        findDbPackageId(form.selected_package),
             quoted_total:      form.quoted_total  ? parseFloat(form.quoted_total)  : (pkg?.quoted ?? null),
             deposit_amount:    form.deposit_amount ? parseFloat(form.deposit_amount) : null,
             special_requests:  form.special_requests || null,
@@ -578,31 +604,30 @@ export default function NewClientPage() {
           </div>
         </div>
 
-        {/* ── 07 ADDITIONAL INFORMATION ────────────────────────────────── */}
-        <div className="card space-y-3">
-          <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
-            07 — Additional Information
-          </h2>
+        {/* ── 07 ADDITIONAL INFORMATION ───────────── */}
+        <div className="card space-y-4">
           <div>
-            <label className="label">Special requests, must-have shots, or anything else to note</label>
+            <h3 className="font-semibold text-brand-navy text-sm mb-0.5">07 — Additional Information</h3>
+            <p className="text-xs text-gray-400">Any special requests or notes for this booking.</p>
+          </div>
+
+          <div>
+            <label className="label">Special Requests / Notes</label>
             <textarea
-              rows={4}
-              className={ic + " resize-none"}
-              placeholder="e.g. First look moment is a must-have, outdoor ceremony…"
+              className={ic + " min-h-[80px]"}
+              placeholder="e.g. Ceremony at 2pm, reception at venue X…"
               value={form.special_requests}
               onChange={e => set("special_requests", e.target.value)}
             />
           </div>
         </div>
 
-        {/* ── Actions ──────────────────────────────────────────────────── */}
-        <div className="flex gap-3">
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading
-              ? <><Loader2 size={15} className="animate-spin" /> Saving…</>
-              : "Save Client"}
-          </button>
+        {/* Submit */}
+        <div className="flex items-center justify-between pt-2 pb-10">
           <Link href="/clients" className="btn-secondary">Cancel</Link>
+          <button type="submit" disabled={loading} className="btn-primary min-w-[140px] justify-center">
+            {loading ? <><Loader2 size={15} className="animate-spin" /> Saving…</> : <><Check size={15} /> Create Client</>}
+          </button>
         </div>
 
       </form>

@@ -29,8 +29,8 @@ function buildNotificationHtml(d: Record<string, string>): string {
 
   return [
     "<div style='font-family:sans-serif;max-width:600px;color:#1a1a1a'>",
-    "<div style='background:#083a4f;padding:20px 24px;border-radius:8px 8px 0 0'>",
-    "<p style='color:#a58d66;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:0 0 4px'>JNguyen Co.</p>",
+    "<div style='background:#083a4f;padding:20px 24px;border-radius:8px 8px 0 0;text-align:left'>",
+    "<img src='https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png' alt='JNguyen Co.' style='height:50px;width:auto;display:block;margin-bottom:10px' />",
     "<h1 style='color:#fff;font-size:18px;margin:0'>New Enquiry Received</h1>",
     "</div>",
     "<div style='background:#fff;border:1px solid #e8e3dd;border-top:none;padding:24px;border-radius:0 0 8px 8px'>",
@@ -72,8 +72,8 @@ function buildNotificationHtml(d: Record<string, string>): string {
 function buildConfirmationHtml(firstName: string, email: string): string {
   return [
     "<div style='font-family:sans-serif;max-width:600px;color:#1a1a1a'>",
-    "<div style='background:#083a4f;padding:20px 24px;border-radius:8px 8px 0 0'>",
-    "<p style='color:#a58d66;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:0 0 4px'>JNguyen Co.</p>",
+    "<div style='background:#083a4f;padding:20px 24px;border-radius:8px 8px 0 0;text-align:left'>",
+    "<img src='https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png' alt='JNguyen Co.' style='height:50px;width:auto;display:block;margin-bottom:10px' />",
     "<h1 style='color:#fff;font-size:18px;margin:0'>We have received your enquiry!</h1>",
     "</div>",
     "<div style='background:#fff;border:1px solid #e8e3dd;border-top:none;padding:24px;border-radius:0 0 8px 8px'>",
@@ -94,6 +94,8 @@ function buildConfirmationHtml(firstName: string, email: string): string {
     "<p style='font-size:12px;color:#888;margin:2px 0'>Canberra, Australia</p>",
     "<p style='font-size:12px;margin:8px 0 0'>",
     "<a href='mailto:johnny.nguyen@jnguyen.co' style='color:#407e8c;text-decoration:none'>johnny.nguyen@jnguyen.co</a>",
+    " &nbsp;·&nbsp; ",
+    "<a href='https://www.jnguyen.co' style='color:#407e8c;text-decoration:none'>www.jnguyen.co</a>",
     "</p>",
     "</div>",
     "</div>",

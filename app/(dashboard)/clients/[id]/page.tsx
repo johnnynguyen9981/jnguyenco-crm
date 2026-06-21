@@ -9,7 +9,7 @@ import {
 } from "@/lib/utils";
 import {
   ArrowLeft, Mail, Phone, MapPin, Instagram,
-  Plus, Edit, CalendarDays, FileText
+  Plus, Edit, CalendarDays, FileText, FolderOpen
 } from "lucide-react";
 import { FillContractButton } from "./FillContractButton";
 import { DeleteClientButton } from "../DeleteClientButton";
@@ -51,7 +51,6 @@ export default async function ClientDetailPage({ params }: Params) {
   const bookings = (client.bookings ?? []).sort(
     (a: any, b: any) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime()
   );
-  // Most recent / upcoming booking used to pre-fill the contract
   const latestBooking: any = bookings[0] ?? null;
   const invoices = client.invoices ?? [];
   const totalRevenue = invoices.filter((i: any) => i.status === "PAID")
@@ -125,6 +124,18 @@ export default async function ClientDetailPage({ params }: Params) {
                       className="hover:text-brand-teal"
                     >
                       @{client.instagram_handle.replace("@", "")}
+                    </a>
+                  </div>
+                )}
+                {client.gdrive_folder_id && (
+                  <div className="flex items-center gap-2.5 text-sm">
+                    <FolderOpen size={14} className="text-brand-teal shrink-0" />
+                    <a
+                      href={`https://drive.google.com/drive/folders/${client.gdrive_folder_id}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="hover:text-brand-teal"
+                    >
+                      Google Drive folder ↗
                     </a>
                   </div>
                 )}
@@ -303,7 +314,6 @@ export default async function ClientDetailPage({ params }: Params) {
                         </td>
                         <td className="table-cell text-right text-sm text-green-600 font-medium">
                           {formatCurrency(inv.amount_paid)}
-                      
                         </td>
                       </tr>
                     ))}

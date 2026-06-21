@@ -30,6 +30,8 @@ export interface Client {
   partner_last?: string;
   partner_email?: string;
   partner_phone?: string;
+  // Google Drive
+  gdrive_folder_id?: string;
   created_at: string;
   updated_at: string;
 }

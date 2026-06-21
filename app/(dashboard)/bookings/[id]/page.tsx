@@ -11,7 +11,7 @@ import {
   getPaymentStatusBadge,
   formatServiceType,
 } from "@/lib/utils";
-import { BookingActions, StatusUpdateForm, QuickPaymentForm, DeleteBookingButton, GenerateDepositInvoiceButton } from "./BookingActions";
+import { BookingActions, StatusUpdateForm, QuickPaymentForm, DeleteBookingButton, GenerateDepositInvoiceButton, EditPaymentModal } from "./BookingActions";
 import { FillContractButton } from "@/app/(dashboard)/clients/[id]/FillContractButton";
 
 type Props = { params: { id: string } };
@@ -344,7 +344,10 @@ export default async function BookingDetailPage({ params }: Props) {
                   return (
                     <div key={p.id} className="flex items-start justify-between text-sm py-1.5 border-b border-gray-50 last:border-0">
                       <div>
-                        <p className="font-medium capitalize">{p.payment_type.replace(/_/g, " ").toLowerCase()}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium capitalize">{p.payment_type.replace(/_/g, " ").toLowerCase()}</p>
+                          <EditPaymentModal payment={p} />
+                        </div>
                         <p className="text-xs text-gray-400">
                           {p.paid_date ? `Paid ${formatDate(p.paid_date)}` : p.due_date ? `Due ${formatDate(p.due_date)}` : ""}
                         </p>

@@ -9,6 +9,7 @@ import { writeFileSync, unlinkSync, existsSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { generateContractPDF, EnquiryData } from "@/lib/generate-contract";
+import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 
 const BUCKET = "documents";
 
@@ -165,11 +166,35 @@ export async function POST(
 
   const clientName = (enquiryData.full_name ?? "Client").replace(/\s+/g, "_");
   const fileName   = "Contract_" + clientName + "_" + Date.now() + ".pdf";
-  const admin      = adminClient();
+
+  // Save to Supabase Storage
+  const admin = adminClient();
   await ensureBucket(admin);
   await admin.storage
     .from(BUCKET)
     .upload(user.id + "/" + fileName, pdfBuffer, { contentType: "application/pdf", upsert: false });
+
+  // Upload to Google Drive (non-fatal)
+  if (isDriveConfigured()) {
+    try {
+      const { data: clientRow } = await supabase
+        .from("clients")
+        .select("id, first_name, last_name, gdrive_folder_id")
+        .eq("id", params.id)
+        .eq("owner_id", user.id)
+        .single();
+
+      if (clientRow) {
+        const displayName = `${clientRow.first_name} ${clientRow.last_name}`.trim();
+        const folderId = clientRow.gdrive_folder_id
+          ? clientRow.gdrive_folder_id
+          : await getOrCreateClientFolder(clientRow.id, displayName);
+        await uploadToDriveFolder(folderId, "Contracts", fileName, pdfBuffer);
+      }
+    } catch (e: any) {
+      console.warn("[drive] Contract upload failed:", e?.message);
+    }
+  }
 
   return new NextResponse(new Uint8Array(pdfBuffer), {
     status: 200,

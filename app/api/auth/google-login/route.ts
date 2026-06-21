@@ -5,13 +5,19 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function POST(_req: NextRequest) {
   const supabase = await createClient();
-  const appUrl   = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  // Always use the actual request origin for the OAuth redirect.
+  // This makes auth work correctly in Electron (127.0.0.1:3001),
+  // local dev (localhost:3000), and Vercel (https://...) without hardcoding.
+  const { origin } = new URL(_req.url);
+  const appUrl = origin;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: `${appUrl}/api/auth/callback`,
       scopes:     "email profile",
+      // Force Google account picker every time — prevents auto-login with old Gmail
+      queryParams: { prompt: "select_account" },
     },
   });
 

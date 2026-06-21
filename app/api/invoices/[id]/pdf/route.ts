@@ -7,6 +7,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { InvoiceTemplate } from "@/lib/pdf/InvoiceTemplate";
 import { createElement } from "react";
 import type { InvoiceWithClient } from "@/lib/supabase/types";
+import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 
 type Params = { params: { id: string } };
 
@@ -44,13 +45,31 @@ export async function GET(_req: NextRequest, { params }: Params) {
       createElement(InvoiceTemplate, { invoice: invoice as InvoiceWithClient }) as any
     );
 
+    // Upload to Google Drive (non-fatal background task)
+    if (isDriveConfigured()) {
+      const clientRow = invoice.clients as any;
+      if (clientRow?.id) {
+        const clientName = `${clientRow.first_name ?? ""} ${clientRow.last_name ?? ""}`.trim();
+        const driveUpload = async () => {
+          try {
+            const folderId = clientRow.gdrive_folder_id
+              ? clientRow.gdrive_folder_id
+              : await getOrCreateClientFolder(clientRow.id, clientName);
+            await uploadToDriveFolder(folderId, "Invoices", `${invoice.invoice_number}.pdf`, pdfBuffer as Buffer);
+          } catch (e: any) {
+            console.warn("[drive] Invoice upload failed:", e?.message);
+          }
+        };
+        driveUpload(); // fire-and-forget
+      }
+    }
+
     return new NextResponse(pdfBuffer as unknown as BodyInit, {
       status: 200,
       headers: {
         "Content-Type":        "application/pdf",
         "Content-Disposition": `attachment; filename="${invoice.invoice_number}.pdf"`,
         "Content-Length":      String(pdfBuffer.length),
-        // Allow inline preview in the browser (change to attachment to force download)
         "Cache-Control":       "no-store",
       },
     });

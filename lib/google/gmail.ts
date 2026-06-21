@@ -105,9 +105,7 @@ export function bookingConfirmationHtml(params: {
   <style>
     body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #083a4f; margin: 0; padding: 0; background: #f8f8f6; }
     .container { max-width: 580px; margin: 40px auto; background: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #c0d5d6; }
-    .header { background: #083a4f; padding: 32px 40px; }
-    .header h1 { color: #ffffff; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
-    .header p  { color: #c0d5d6; margin: 4px 0 0; font-size: 13px; }
+    .header { background: #083a4f; padding: 24px 40px; }
     .body   { padding: 32px 40px; }
     .body p { line-height: 1.7; font-size: 15px; color: #333; }
     .details { background: #e5e1dd; border-radius: 6px; padding: 20px 24px; margin: 20px 0; }
@@ -121,8 +119,7 @@ export function bookingConfirmationHtml(params: {
 <body>
   <div class="container">
     <div class="header">
-      <h1>JNguyen Co.</h1>
-      <p>Photography &amp; Videography · Canberra</p>
+      <img src="https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png" alt="JNguyen Co." style="height:60px;width:auto;display:block;" />
     </div>
     <div class="body">
       <p>Hi ${params.clientName},</p>
@@ -141,7 +138,7 @@ export function bookingConfirmationHtml(params: {
       <p>Warm regards,<br/><strong>Johnny Nguyen</strong><br/>JNguyen Co.</p>
     </div>
     <div class="footer">
-      JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co
+      JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co &nbsp;·&nbsp; <a href="https://www.jnguyen.co" style="color:#666;text-decoration:none;">www.jnguyen.co</a>
     </div>
   </div>
 </body>
@@ -165,9 +162,7 @@ export function invoiceSentHtml(params: {
   <style>
     body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #083a4f; margin: 0; padding: 0; background: #f8f8f6; }
     .container { max-width: 580px; margin: 40px auto; background: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #c0d5d6; }
-    .header { background: #083a4f; padding: 32px 40px; }
-    .header h1 { color: #ffffff; margin: 0; font-size: 22px; font-weight: 700; }
-    .header p  { color: #c0d5d6; margin: 4px 0 0; font-size: 13px; }
+    .header { background: #083a4f; padding: 24px 40px; }
     .body   { padding: 32px 40px; }
     .body p { line-height: 1.7; font-size: 15px; color: #333; }
     .amount-box { background: #083a4f; color: #ffffff; border-radius: 6px; padding: 20px 24px; text-align: center; margin: 20px 0; }
@@ -181,8 +176,7 @@ export function invoiceSentHtml(params: {
 <body>
   <div class="container">
     <div class="header">
-      <h1>JNguyen Co.</h1>
-      <p>Invoice ${params.invoiceNumber}</p>
+      <img src="https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png" alt="JNguyen Co." style="height:60px;width:auto;display:block;" />
     </div>
     <div class="body">
       <p>Hi ${params.clientName},</p>
@@ -199,7 +193,7 @@ export function invoiceSentHtml(params: {
       <p>Thank you,<br/><strong>Johnny Nguyen</strong><br/>JNguyen Co.</p>
     </div>
     <div class="footer">
-      JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co
+      JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co &nbsp;·&nbsp; <a href="https://www.jnguyen.co" style="color:#666;text-decoration:none;">www.jnguyen.co</a>
     </div>
   </div>
 </body>
@@ -220,9 +214,7 @@ export function preEventChecklistHtml(params: {
 <style>
   body{font-family:'Helvetica Neue',Arial,sans-serif;color:#083a4f;margin:0;padding:0;background:#f8f8f6}
   .container{max-width:580px;margin:40px auto;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #c0d5d6}
-  .header{background:#083a4f;padding:32px 40px}
-  .header h1{color:#fff;margin:0;font-size:22px;font-weight:700}
-  .header p{color:#c0d5d6;margin:4px 0 0;font-size:13px}
+  .header{background:#083a4f;padding:24px 40px}
   .body{padding:32px 40px}
   .body p{line-height:1.7;font-size:15px;color:#333}
   .checklist{background:#f7f4f1;border-radius:6px;padding:20px 24px;margin:20px 0}
@@ -234,8 +226,7 @@ export function preEventChecklistHtml(params: {
 <body>
 <div class="container">
   <div class="header">
-    <h1>JNguyen Co.</h1>
-    <p>Photography &amp; Videography · Canberra</p>
+    <img src="https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png" alt="JNguyen Co." style="height:60px;width:auto;display:block;" />
   </div>
   <div class="body">
     <p>Hi ${params.clientName},</p>
@@ -251,7 +242,7 @@ export function preEventChecklistHtml(params: {
     <p>I'll also be in touch shortly to confirm our meeting to go through the run sheet together.</p>
     <p>Can't wait for the big day,<br/><strong>Johnny Nguyen</strong><br/>JNguyen Co.</p>
   </div>
-  <div class="footer">JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co</div>
+  <div class="footer">JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co &nbsp;·&nbsp; <a href="https://www.jnguyen.co" style="color:#666;text-decoration:none;">www.jnguyen.co</a></div>
 </div>
 </body>
 </html>`.trim();
@@ -271,9 +262,7 @@ export function galleryDeliveryHtml(params: {
 <style>
   body{font-family:'Helvetica Neue',Arial,sans-serif;color:#083a4f;margin:0;padding:0;background:#f8f8f6}
   .container{max-width:580px;margin:40px auto;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #c0d5d6}
-  .header{background:#083a4f;padding:32px 40px}
-  .header h1{color:#fff;margin:0;font-size:22px;font-weight:700}
-  .header p{color:#c0d5d6;margin:4px 0 0;font-size:13px}
+  .header{background:#083a4f;padding:24px 40px}
   .body{padding:32px 40px}
   .body p{line-height:1.7;font-size:15px;color:#333}
   .gallery-box{background:#083a4f;border-radius:8px;padding:24px;text-align:center;margin:24px 0}
@@ -286,8 +275,7 @@ export function galleryDeliveryHtml(params: {
 <body>
 <div class="container">
   <div class="header">
-    <h1>JNguyen Co.</h1>
-    <p>Your gallery is ready ✨</p>
+    <img src="https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png" alt="JNguyen Co." style="height:60px;width:auto;display:block;" />
   </div>
   <div class="body">
     <p>Hi ${params.clientName},</p>
@@ -304,7 +292,7 @@ export function galleryDeliveryHtml(params: {
     <p>It was such an honour to be part of your story. Thank you for trusting me with your memories. 🙏</p>
     <p>With love,<br/><strong>Johnny Nguyen</strong><br/>JNguyen Co.</p>
   </div>
-  <div class="footer">JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co</div>
+  <div class="footer">JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co &nbsp;·&nbsp; <a href="https://www.jnguyen.co" style="color:#666;text-decoration:none;">www.jnguyen.co</a></div>
 </div>
 </body>
 </html>`.trim();
@@ -322,9 +310,7 @@ export function reviewRequestHtml(params: {
 <style>
   body{font-family:'Helvetica Neue',Arial,sans-serif;color:#083a4f;margin:0;padding:0;background:#f8f8f6}
   .container{max-width:580px;margin:40px auto;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #c0d5d6}
-  .header{background:#083a4f;padding:32px 40px}
-  .header h1{color:#fff;margin:0;font-size:22px;font-weight:700}
-  .header p{color:#c0d5d6;margin:4px 0 0;font-size:13px}
+  .header{background:#083a4f;padding:24px 40px}
   .body{padding:32px 40px}
   .body p{line-height:1.7;font-size:15px;color:#333}
   .stars{font-size:32px;text-align:center;margin:16px 0}
@@ -337,8 +323,7 @@ export function reviewRequestHtml(params: {
 <body>
 <div class="container">
   <div class="header">
-    <h1>JNguyen Co.</h1>
-    <p>Photography &amp; Videography · Canberra</p>
+    <img src="https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png" alt="JNguyen Co." style="height:60px;width:auto;display:block;" />
   </div>
   <div class="body">
     <p>Hi ${params.clientName},</p>
@@ -353,7 +338,7 @@ export function reviewRequestHtml(params: {
     <p>Thank you again for having me as part of your story.</p>
     <p>With gratitude,<br/><strong>Johnny Nguyen</strong><br/>JNguyen Co.</p>
   </div>
-  <div class="footer">JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co</div>
+  <div class="footer">JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co &nbsp;·&nbsp; <a href="https://www.jnguyen.co" style="color:#666;text-decoration:none;">www.jnguyen.co</a></div>
 </div>
 </body>
 </html>`.trim();
@@ -374,8 +359,7 @@ export function paymentReminderHtml(params: {
   <style>
     body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #083a4f; }
     .container { max-width: 580px; margin: 40px auto; border: 1px solid #c0d5d6; border-radius: 8px; overflow: hidden; }
-    .header { background: #083a4f; padding: 28px 36px; }
-    .header h1 { color: #fff; margin: 0; font-size: 20px; }
+    .header { background: #083a4f; padding: 24px 36px; }
     .body { padding: 28px 36px; }
     .overdue { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 14px 20px; font-weight: 600; color: #856404; }
     .footer { background: #e5e1dd; padding: 16px 36px; text-align: center; font-size: 12px; color: #666; }
@@ -383,14 +367,16 @@ export function paymentReminderHtml(params: {
 </head>
 <body>
 <div class="container">
-  <div class="header"><h1>Payment Reminder — JNguyen Co.</h1></div>
+  <div class="header">
+    <img src="https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png" alt="JNguyen Co." style="height:60px;width:auto;display:block;" />
+  </div>
   <div class="body">
     <p>Hi ${params.clientName},</p>
     <div class="overdue">⚠️ Invoice ${params.invoiceNumber} is ${params.daysOverdue} day(s) overdue. Amount due: <strong>$${params.amountDue.toLocaleString()}</strong></div>
     <p>Please arrange payment at your earliest convenience. Reply if you have any questions.</p>
     <p>Thank you,<br/><strong>Johnny Nguyen</strong> · JNguyen Co.</p>
   </div>
-  <div class="footer">JNguyen Co. · Canberra, ACT · johnny.nguyen@jnguyen.co</div>
+  <div class="footer">JNguyen Co. · Canberra, ACT · johnny.nguyen@jnguyen.co · <a href="https://www.jnguyen.co" style="color:#666;text-decoration:none;">www.jnguyen.co</a></div>
 </div>
 </body>
 </html>

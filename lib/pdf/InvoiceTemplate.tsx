@@ -4,7 +4,21 @@
 import {
   Document, Page, Text, View, StyleSheet, Font, Image,
 } from "@react-pdf/renderer";
+import fs from "fs";
+import path from "path";
 import type { InvoiceWithClient } from "@/lib/supabase/types";
+
+function getLogoDataUri(): string {
+  try {
+    const logoPath = path.join(process.cwd(), "public", "PNG", "LetterHeadNavy.png");
+    const buf = fs.readFileSync(logoPath);
+    return `data:image/png;base64,${buf.toString("base64")}`;
+  } catch {
+    return "";
+  }
+}
+
+const LOGO_DATA_URI = getLogoDataUri();
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const S = StyleSheet.create({
@@ -327,9 +341,13 @@ export function InvoiceTemplate({
         {/* ── HEADER ──────────────────────────────────────── */}
         <View style={S.header}>
           <View style={S.brandBlock}>
-            <Text style={S.brandName}>JNguyen Co.</Text>
-            <Text style={S.brandTagline}>Photography &amp; Videography · Canberra, ACT</Text>
+            {LOGO_DATA_URI ? (
+              <Image src={LOGO_DATA_URI} style={{ width: 75, height: 60, marginBottom: 4 }} />
+            ) : (
+              <Text style={S.brandName}>JNguyen Co.</Text>
+            )}
             <Text style={S.brandContact}>johnny.nguyen@jnguyen.co</Text>
+            <Text style={S.brandContact}>https://www.jnguyen.co</Text>
             {abn && <Text style={S.brandContact}>ABN: {abn}</Text>}
           </View>
           <View style={S.invoiceBlock}>
@@ -461,7 +479,7 @@ export function InvoiceTemplate({
         {/* ── FOOTER ────────────────────────────────────── */}
         <View style={S.footer}>
           <Text style={S.footerText}>
-            Thank you for choosing JNguyen Co. · Canberra, ACT
+            Thank you for choosing JNguyen Co. · Canberra, ACT · johnny.nguyen@jnguyen.co · www.jnguyen.co
           </Text>
           <Text style={S.footerBrand}>JNguyen Co.</Text>
           <Text style={S.footerText}>

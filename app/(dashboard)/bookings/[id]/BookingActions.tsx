@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trash2, Loader2, FileText, Send, ClipboardList, FolderOpen, Star, ListChecks } from "lucide-react";
+import { Trash2, Loader2, FileText, Send, ClipboardList, FolderOpen, Star, ListChecks, Pencil } from "lucide-react";
 
 const BOOKING_STATUSES = ["INQUIRY","QUOTED","CONTRACTED","CONFIRMED","COMPLETED","CANCELLED"];
 
@@ -83,6 +83,164 @@ export function QuickPaymentForm({ bookingId }: { bookingId: string }) {
         {saving ? "Saving…" : "Save Payment"}
       </button>
     </form>
+  );
+}
+
+// ── Edit payment modal ────────────────────────────────────────────────────────
+export function EditPaymentModal({ payment }: { payment: any }) {
+  const [open,          setOpen]          = useState(false);
+  const [saving,        setSaving]        = useState(false);
+  const [deleting,      setDeleting]      = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [error,         setError]         = useState("");
+
+  const [amount,       setAmount]       = useState(String(payment.amount ?? ""));
+  const [type,         setType]         = useState(payment.payment_type ?? "DEPOSIT");
+  const [status,       setStatus]       = useState(payment.status ?? "PENDING");
+  const [dueDate,      setDueDate]      = useState(payment.due_date ?? "");
+  const [paidDate,     setPaidDate]     = useState(payment.paid_date ?? "");
+  const [notes,        setNotes]        = useState(payment.notes ?? "");
+
+  async function handleSave() {
+    if (!amount || isNaN(Number(amount))) { setError("Please enter a valid amount."); return; }
+    setSaving(true); setError("");
+    try {
+      const res = await fetch(`/api/payments/${payment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount:       parseFloat(amount),
+          payment_type: type,
+          status,
+          due_date:     dueDate  || null,
+          paid_date:    paidDate || null,
+          notes:        notes    || null,
+        }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Save failed"); }
+      window.location.reload();
+    } catch (e: any) { setError(e.message); setSaving(false); }
+  }
+
+  async function handleDelete() {
+    setDeleting(true); setError("");
+    try {
+      const res = await fetch(`/api/payments/${payment.id}`, { method: "DELETE" });
+      if (res.status !== 204 && !res.ok) { const d = await res.json(); throw new Error(d.error ?? "Delete failed"); }
+      window.location.reload();
+    } catch (e: any) { setError(e.message); setDeleting(false); }
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="text-gray-400 hover:text-brand-navy transition-colors p-0.5 rounded"
+        title="Edit payment"
+      >
+        <Pencil size={12} />
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={() => !saving && !deleting && setOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-brand-navy">Edit Payment</h3>
+              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
+            </div>
+
+            <div className="space-y-3">
+              {/* Amount */}
+              <div>
+                <label className="label text-xs">Amount ($)</label>
+                <input
+                  type="number" step="0.01" min="0"
+                  value={amount} onChange={e => setAmount(e.target.value)}
+                  className="input w-full text-sm mt-1"
+                />
+              </div>
+
+              {/* Type + Status */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="label text-xs">Type</label>
+                  <select value={type} onChange={e => setType(e.target.value)} className="input text-sm mt-1">
+                    <option value="DEPOSIT">Deposit</option>
+                    <option value="BALANCE">Balance</option>
+                    <option value="EXTRA_SERVICE">Extra Service</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label text-xs">Status</label>
+                  <select value={status} onChange={e => setStatus(e.target.value)} className="input text-sm mt-1">
+                    <option value="PENDING">Pending</option>
+                    <option value="PAID">Paid</option>
+                    <option value="OVERDUE">Overdue</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Due date + Paid date */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="label text-xs">Due Date</label>
+                  <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="input text-sm mt-1" />
+                </div>
+                <div>
+                  <label className="label text-xs">Paid Date</label>
+                  <input type="date" value={paidDate} onChange={e => setPaidDate(e.target.value)} className="input text-sm mt-1" />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="label text-xs">Notes</label>
+                <input
+                  type="text" value={notes} onChange={e => setNotes(e.target.value)}
+                  className="input w-full text-sm mt-1" placeholder="Optional note"
+                />
+              </div>
+            </div>
+
+            {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+
+            {/* Confirm delete sub-view */}
+            {confirmDelete ? (
+              <div className="space-y-3 border-t border-gray-100 pt-3">
+                <p className="text-sm text-gray-600">Delete this payment record permanently?</p>
+                <div className="flex gap-2">
+                  <button onClick={() => setConfirmDelete(false)} className="btn-secondary flex-1 text-sm">
+                    Cancel
+                  </button>
+                  <button onClick={handleDelete} disabled={deleting} className="btn-danger flex-1 text-sm flex items-center justify-center gap-1">
+                    {deleting ? <><Loader2 size={13} className="animate-spin" /> Deleting…</> : <><Trash2 size={13} /> Delete</>}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="text-red-400 hover:text-red-600 text-xs flex items-center gap-1 mr-auto"
+                >
+                  <Trash2 size={12} /> Remove
+                </button>
+                <button onClick={() => setOpen(false)} className="btn-secondary text-sm px-4">Cancel</button>
+                <button onClick={handleSave} disabled={saving} className="btn-primary text-sm px-4 flex items-center gap-1">
+                  {saving ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : "Save"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

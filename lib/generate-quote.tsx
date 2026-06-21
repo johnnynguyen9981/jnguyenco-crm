@@ -3,8 +3,10 @@
  * Branded with JNguyen Co. colours — mirrors the contract PDF style.
  */
 import React from "react";
+import fs from "fs";
+import path from "path";
 import {
-  Document, Page, Text, View, StyleSheet, renderToBuffer, Svg, Path, G,
+  Document, Page, Text, View, StyleSheet, renderToBuffer, Image,
 } from "@react-pdf/renderer";
 
 // ─── Brand colours ─────────────────────────────────────────────────────────────
@@ -15,18 +17,18 @@ const PALE_BLUE = "#c0d5d6";
 const CREAM_BG  = "#f7f4f1";
 const WHITE     = "#ffffff";
 
-// ─── Logo SVG paths (same as contract) ────────────────────────────────────────
-const D_ICON =
-  "M1338.7,590.11c-.3-13.45-1.13-25.89-2.79-38.03l-186.91,186.91-62.06-62.01," +
-  "219.07-219.07c-10.05-20.98-23.11-44.74-39.86-73.15l-235.69,235.69-62.06-62.01," +
-  "251.36-251.36c-11.36-19.06-23.98-40.3-37.21-62.54l-264.02,264.02-62.01-62.06," +
-  "279.82-279.82c-36.82-62.1-72.24-121.81-92.69-156.4-8.14-13.71-27.98-13.71-36.08,0" +
-  "-19.8,33.42-53.48,90.3-88.99,150.09-49.92,84.21-103.35,174.2-126.51,212.67" +
-  "-23.15,38.6-39.78,68.84-51.61,95-22.19,48.96-27.72,83.6-28.16,131.69" +
-  "-.04,2.26-.04,4.53-.04,6.83,0,39.73,0,127.29,93.04,220.33" +
-  ",29.81,29.81,60.71,50.13,89.73,63.97,61.53,29.37,114.5,29.55,129.99,29.03" +
-  "l1.13-.09c15.14.52,66.02.35,125.72-27.02,30.24-13.88,62.75-34.73,94-65.97" +
-  ",93.04-93.04,93.04-180.6,93.04-220.33,0-5.61-.04-11.05-.22-16.36Z";
+// ─── Logo image (PNG from public folder) ──────────────────────────────────────
+function getLogoDataUri(): string {
+  try {
+    const logoPath = path.join(process.cwd(), "public", "PNG", "LetterHeadSand.png");
+    const buf = fs.readFileSync(logoPath);
+    return `data:image/png;base64,${buf.toString("base64")}`;
+  } catch {
+    return "";
+  }
+}
+
+const LOGO_DATA_URI = getLogoDataUri();
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
@@ -108,15 +110,14 @@ function QuoteDoc({ d }: { d: QuoteData }) {
         {/* ── Header ── */}
         <View style={s.header}>
           <View style={s.headerLeft}>
-            <Svg viewBox="790 350 550 650" style={{ width: 28, height: 28 }}>
-              <G>
-                <Path d={D_ICON} fill={SAND} />
-              </G>
-            </Svg>
-            <View>
-              <Text style={s.brandName}>JNguyen Co.</Text>
-              <Text style={s.brandSub}>Photography &amp; Videography · Canberra</Text>
-            </View>
+            {LOGO_DATA_URI ? (
+              <Image src={LOGO_DATA_URI} style={{ width: 75, height: 60 }} />
+            ) : (
+              <View>
+                <Text style={s.brandName}>JNguyen Co.</Text>
+                <Text style={s.brandSub}>Photography &amp; Videography · Canberra</Text>
+              </View>
+            )}
           </View>
           <View style={s.quoteTag}>
             <Text style={s.quoteTagTxt}>QUOTE</Text>

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { apiSuccess, apiError } from "@/lib/utils";
 import { generateQuotePDF, PACKAGE_DELIVERABLES, DEFAULT_DELIVERABLES, type QuoteData } from "@/lib/generate-quote";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
+import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 
 type Params = { params: { id: string } };
 
@@ -90,6 +91,28 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const pdfBase64 = pdfBuffer.toString("base64");
 
+  // Upload quote PDF to Google Drive (non-fatal)
+  if (isDriveConfigured()) {
+    try {
+      const { data: clientRow } = await supabase
+        .from("clients")
+        .select("id, first_name, last_name, gdrive_folder_id")
+        .eq("id", client.id)
+        .single();
+
+      if (clientRow) {
+        const clientName = `${clientRow.first_name} ${clientRow.last_name}`.trim();
+        const folderId = clientRow.gdrive_folder_id
+          ? clientRow.gdrive_folder_id
+          : await getOrCreateClientFolder(clientRow.id, clientName);
+        const filename = `${quoteData.quote_number}_${clientName.replace(/\s+/g, "_")}.pdf`;
+        await uploadToDriveFolder(folderId, "Quotes", filename, pdfBuffer);
+      }
+    } catch (e: any) {
+      console.warn("[drive] Quote upload failed:", e?.message);
+    }
+  }
+
   // If send=true in body, email the quote
   if (body.send !== false) {
     const emailHtml = `
@@ -99,9 +122,8 @@ export async function POST(req: NextRequest, { params }: Params) {
 <style>
   body{font-family:'Helvetica Neue',Arial,sans-serif;color:#083a4f;margin:0;padding:0;background:#f8f8f6}
   .container{max-width:580px;margin:40px auto;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #c0d5d6}
-  .header{background:#083a4f;padding:32px 40px}
-  .header h1{color:#fff;margin:0;font-size:22px;font-weight:700}
-  .header p{color:#c0d5d6;margin:4px 0 0;font-size:13px}
+  .header{background:#083a4f;padding:24px 40px;text-align:left}
+  .header img{height:60px;width:auto;display:block}
   .body{padding:32px 40px}
   .body p{line-height:1.7;font-size:15px;color:#333}
   .highlight{background:#f7f4f1;border-left:3px solid #a58d66;padding:14px 18px;margin:20px 0;border-radius:0 6px 6px 0}
@@ -112,8 +134,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 <body>
 <div class="container">
   <div class="header">
-    <h1>JNguyen Co.</h1>
-    <p>Photography &amp; Videography · Canberra</p>
+    <img src="https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png" alt="JNguyen Co." />
   </div>
   <div class="body">
     <p>Hi ${client.first_name},</p>
@@ -126,7 +147,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     <p>If you have any questions or would like to adjust anything, just hit reply — I'm happy to chat.</p>
     <p>Looking forward to hearing from you,<br/><strong>Johnny Nguyen</strong><br/>JNguyen Co.</p>
   </div>
-  <div class="footer">JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co</div>
+  <div class="footer">JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co &nbsp;·&nbsp; <a href="https://www.jnguyen.co" style="color:#666;text-decoration:none;">www.jnguyen.co</a></div>
 </div>
 </body>
 </html>`.trim();
@@ -143,7 +164,6 @@ export async function POST(req: NextRequest, { params }: Params) {
       });
     } catch (err: any) {
       console.error("[quote/email] Send error:", err);
-      // Return PDF anyway — don't fail silently
       return apiSuccess({ pdf_base64: pdfBase64, emailed: false, email_error: err.message });
     }
   }

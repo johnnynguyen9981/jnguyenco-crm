@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { apiSuccess, apiError } from "@/lib/utils";
 import type { ClientInsert } from "@/lib/supabase/types";
+import { getOrCreateClientFolder, isDriveConfigured } from "@/lib/google/drive";
 
 // ── GET /api/clients ──────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -88,7 +89,15 @@ export async function POST(req: NextRequest) {
     })
     .select()
     .single();
-
   if (error) return apiError(error.message, 500);
+
+  // Create Google Drive folder (non-fatal)
+  if (isDriveConfigured() && data) {
+    const clientName = `${data.first_name} ${data.last_name}`.trim();
+    getOrCreateClientFolder(data.id, clientName).catch((e) =>
+      console.warn("[drive] Could not create client folder:", e?.message)
+    );
+  }
+
   return apiSuccess(data, 201);
 }

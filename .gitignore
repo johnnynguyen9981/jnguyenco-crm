@@ -32,6 +32,10 @@ Thumbs.db
 # Vercel
 .vercel
 
+# Electron
+dist-electron/
+.env.production
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts

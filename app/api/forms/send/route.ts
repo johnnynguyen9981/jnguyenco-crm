@@ -51,13 +51,8 @@ export async function POST(req: NextRequest) {
 
         <!-- Header -->
         <tr>
-          <td style="background:#083a4f;padding:32px 40px;">
-            <p style="margin:0;color:#a58d66;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">
-              JNGUYEN CO.
-            </p>
-            <p style="margin:6px 0 0;color:#fff;font-size:22px;font-weight:300;letter-spacing:-0.3px;">
-              Wedding &amp; Event Photography
-            </p>
+          <td style="background:#083a4f;padding:24px 40px;text-align:left;">
+            <img src="https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png" alt="JNguyen Co." style="height:60px;width:auto;display:block;" />
           </td>
         </tr>
 
@@ -111,7 +106,7 @@ export async function POST(req: NextRequest) {
               Johnny Nguyen
             </p>
             <p style="margin:4px 0 0;color:#c0d5d6;font-size:12px;">
-              JNguyen Co. &middot; johnny.nguyen@jnguyen.co &middot; Canberra, ACT
+              JNguyen Co. &middot; <a href="mailto:johnny.nguyen@jnguyen.co" style="color:#c0d5d6;text-decoration:none;">johnny.nguyen@jnguyen.co</a> &middot; <a href="https://www.jnguyen.co" style="color:#c0d5d6;text-decoration:none;">www.jnguyen.co</a> &middot; Canberra, ACT
             </p>
           </td>
         </tr>
