@@ -17,17 +17,36 @@ export function InvoiceDetailActions({ invoice, client }: Props) {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   async function sendInvoiceEmail() {
+    if (!client?.email) { setMessage({ type: "error", text: "No client email on file." }); return; }
     setSendLoading(true);
     setMessage(null);
     try {
+      // 1. Fetch the invoice PDF and convert to base64
+      const pdfRes = await fetch(`/api/invoices/${invoice.id}/pdf`);
+      if (!pdfRes.ok) throw new Error("Could not generate invoice PDF.");
+      const pdfBlob   = await pdfRes.blob();
+      const pdfBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => resolve((reader.result as string).split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(pdfBlob);
+      });
+
+      // 2. Send email with PDF attached
       const res = await fetch("/api/google/gmail/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "invoice_sent", invoice_id: invoice.id }),
+        body: JSON.stringify({
+          template:     "invoice_sent",
+          to:           client.email,
+          invoice_id:   invoice.id,
+          pdf_base64:   pdfBase64,
+          from_account: "godaddy",
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send invoice");
-      setMessage({ type: "success", text: `Invoice sent to ${client?.email} ✓` });
+      setMessage({ type: "success", text: `Invoice sent to ${client.email} ✓` });
       router.refresh();
     } catch (err: any) {
       setMessage({ type: "error", text: err.message });
@@ -80,7 +99,7 @@ export function InvoiceDetailActions({ invoice, client }: Props) {
               disabled={sendLoading}
               className="btn-secondary text-sm py-1.5"
             >
-              {sendLoading ? "Sending…" : "Send via Email"}
+              {sendLoading ? "Sending…" : "📧 Send Invoice to Client"}
             </button>
             <button
               onClick={markAsPaid}

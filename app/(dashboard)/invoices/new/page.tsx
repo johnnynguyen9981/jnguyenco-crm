@@ -195,11 +195,13 @@ export default function NewInvoicePage() {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          client_id:  selectedClient.id,
-          booking_id: selectedBookingId || undefined,
-          due_date:   dueDate,
-          include_gst: includeGst,
-          notes,
+          invoice: {
+            client_id:  selectedClient.id,
+            booking_id: selectedBookingId || undefined,
+            due_date:   dueDate,
+            apply_gst:  includeGst,
+            notes,
+          },
           line_items: lineItems.map((li, i) => ({
             description: li.description,
             quantity:    Number(li.quantity),
@@ -353,10 +355,10 @@ export default function NewInvoicePage() {
             {/* Quick-fill buttons */}
             <div className="flex flex-wrap gap-2 pt-1 border-t border-brand-pale-blue">
               <span className="text-xs text-gray-400 self-center mr-1">Fill as:</span>
-              {balanceDue != null && balanceDue > 0 && (
+              {quotedTotal != null && quotedTotal > 0 && (
                 <button type="button" onClick={fillFinalInvoice}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-teal text-white text-xs font-semibold hover:bg-brand-navy transition-colors">
-                  <Check size={11} /> Final Invoice (balance {formatCurrency(balanceDue)})
+                  <Check size={11} /> {balanceDue != null && balanceDue > 0 ? `Final Invoice (balance ${formatCurrency(balanceDue)})` : "Final Invoice (paid in full)"}
                 </button>
               )}
               {quotedTotal != null && quotedTotal > 0 && (
