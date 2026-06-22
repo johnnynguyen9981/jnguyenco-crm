@@ -20,7 +20,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       clients (id, first_name, last_name, email, phone, address, instagram_handle,
                partner_first, partner_last, partner_email, partner_phone),
       packages (id, name, base_price, max_hours, includes_photography, includes_videography,
-                photo_count_min, photo_count_max, film_duration_min, film_duration_max, description),
+                photo_count_min, photo_count_max, description),
       payments (id, payment_type, amount, due_date, paid_date, status, method, reference, notes),
       deliverables (id, type, status, image_count, film_duration_sec,
                     delivery_url, delivery_platform, due_date, delivered_at, client_viewed_at, notes),
