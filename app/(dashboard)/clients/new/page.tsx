@@ -4,70 +4,25 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Check } from "lucide-react";
-import type { ReferralSource, ServiceType } from "@/lib/supabase/types";
+import type { ServiceType } from "@/lib/supabase/types";
 
-// ── Package options (mirrors enquiry form section 03) ─────────────────────────
-const PACKAGES = [
-  {
-    id: "mini_wedding",
-    label: "Mini Wedding / Elopement",
-    price: "$1,600",
-    quoted: 1600,
-    desc: "Up to 4 hrs · 1 Photographer + 1 Videographer · 200–350 images · 3–5 min film",
-  },
-  {
-    id: "full_day_essential",
-    label: "Full Day Essential",
-    price: "$3,200",
-    quoted: 3200,
-    desc: "Up to 8 hrs · 400–600 images · 5–7 min highlight film",
-  },
-  {
-    id: "full_day_premium",
-    label: "Full Day Premium",
-    price: "$4,800",
-    quoted: 4800,
-    desc: "Up to 13 hrs · 2 Photographers + 2 Videographers · 700–1,000 images",
-  },
-  {
-    id: "hourly_photo",
-    label: "Hourly Photography",
-    price: "$200/hr",
-    quoted: null,
-    desc: "60+ professionally edited images per hour · Online gallery delivery · 4–8 week turnaround",
-  },
-  {
-    id: "hourly_photo_video",
-    label: "Hourly Photo + Video",
-    price: "$350/hr",
-    quoted: null,
-    desc: "60+ edited images/hr · 2–3 min highlight reel + full event video · Online gallery · 4–8 week turnaround",
-  },
-  {
-    id: "not_sure",
-    label: "Not sure — please advise me",
-    price: null,
-    quoted: null,
-    desc: "",
-  },
+// ── Service type options (mirrors Edit Booking) ───────────────────────────────
+const SERVICE_TYPES = [
+  { value: "WEDDING",  label: "Wedding / Elopement", icon: "💍" },
+  { value: "EVENT",    label: "Event",                icon: "🎉" },
+  { value: "PORTRAIT", label: "Portrait Session",     icon: "📷" },
 ];
 
-// ── Event type → service_type mapping ────────────────────────────────────────
-const EVENT_TYPE_OPTIONS: { label: string; serviceType: ServiceType }[] = [
-  { label: "Wedding / Elopement", serviceType: "WEDDING" },
-  { label: "Birthday",            serviceType: "EVENT"   },
-  { label: "Baptism",             serviceType: "EVENT"   },
-  { label: "Party / Celebration", serviceType: "EVENT"   },
-  { label: "Corporate Event",     serviceType: "EVENT"   },
-  { label: "Portrait Session",    serviceType: "PORTRAIT"},
-  { label: "Other",               serviceType: "EVENT"   },
+// Sub-types shown only when EVENT is selected
+const EVENT_SUB_TYPES = [
+  "Birthday", "Baptism", "Party / Celebration", "Corporate Event", "Other",
 ];
 
 const BUDGET_OPTIONS = [
-  { id: "under_1k",  label: "Under $1,000"     },
-  { id: "1k_2.5k",   label: "$1,000 – $2,500"  },
-  { id: "2.5k_4.5k", label: "$2,500 – $4,500"  },
-  { id: "4.5k_plus", label: "$4,500+"           },
+  { id: "under_1k",  label: "Under $1,000"    },
+  { id: "1k_2.5k",  label: "$1,000 – $2,500" },
+  { id: "2.5k_4.5k",label: "$2,500 – $4,500" },
+  { id: "4.5k_plus", label: "$4,500+"          },
 ];
 
 const SERVICES_OPTIONS = [
@@ -76,61 +31,105 @@ const SERVICES_OPTIONS = [
   { id: "BOTH",  label: "Both"        },
 ];
 
+const REFERRAL_OPTIONS = [
+  { value: "INSTAGRAM",    label: "Instagram"      },
+  { value: "GOOGLE",       label: "Google Search"  },
+  { value: "WORD_OF_MOUTH",label: "Word of Mouth"  },
+  { value: "WEDDING_WIRE", label: "Wedding Wire"   },
+  { value: "FACEBOOK",     label: "Facebook"       },
+  { value: "OTHER",        label: "Other"          },
+];
+
+// ── Package description helper (same as Edit Booking) ────────────────────────
+function getPkgDesc(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes("mini") || n.includes("elopement"))
+    return "Up to 4 hrs · 1 Photographer + 1 Videographer · 200–350 images · 3–5 min film";
+  if (n.includes("essential"))
+    return "Up to 8 hrs · 1 Photographer + 1 Videographer · 400–600 images · 5–7 min film";
+  if (n.includes("premium"))
+    return "Up to 13 hrs · 2 Photographers + 2 Videographers · 700–1,000 images · 6–8 min film";
+  if ((n.includes("photo") && n.includes("video")) || n.includes("combo"))
+    return "Combined photography & videography per hour";
+  if (n.includes("hourly") || n.includes("photo"))
+    return "Events: birthdays, baptisms, parties · photography only";
+  return "";
+}
+
+function fmtPkgPrice(pkg: any): string {
+  if (pkg.base_price == null) return "";
+  const amt = `$${Number(pkg.base_price).toLocaleString("en-AU")}`;
+  return pkg.max_hours ? amt : `${amt}/hr`;
+}
+
+// ── Shared OptionCard component (same style as Edit Booking) ─────────────────
+function OptionCard({ selected, onSelect, label, sub, icon, price }: {
+  selected: boolean; onSelect: () => void;
+  label: string; sub?: string; icon?: string; price?: string;
+}) {
+  return (
+    <button type="button" onClick={onSelect}
+      className={`text-left w-full rounded-lg border px-4 py-3 transition-colors ${
+        selected
+          ? "border-brand-teal bg-brand-teal/5 text-brand-navy"
+          : "border-gray-200 bg-white text-gray-700 hover:border-brand-teal/50"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <span className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center ${
+          selected ? "bg-brand-teal border-brand-teal" : "border-gray-300"
+        }`}>
+          {selected && <Check size={11} className="text-white" strokeWidth={3} />}
+        </span>
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {icon && <span>{icon}</span>}
+            <span className="font-medium text-sm">{label}</span>
+            {price && <span className="text-xs font-semibold text-brand-teal">{price}</span>}
+          </div>
+          {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 export default function NewClientPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState("");
   const [dbPackages, setDbPackages] = useState<any[]>([]);
 
-  // Fetch real DB package IDs on mount so we can save package_id on the booking
-  useEffect(() => {
-    fetch("/api/packages")
-      .then(r => r.json())
-      .then(d => { if (d.packages) setDbPackages(d.packages); })
-      .catch(() => {});
-  }, []);
+  // ── Section 02: Service type (drives package filter) ─────────────────────
+  const [serviceType,     setServiceType]     = useState<ServiceType>("WEDDING");
 
-  // Match a local package selection to its DB package_id by name keywords
-  function findDbPackageId(localId: string): string | null {
-    if (!localId || !dbPackages.length) return null;
-    const label = PACKAGES.find(p => p.id === localId)?.label.toLowerCase() ?? "";
-    const match = dbPackages.find(dp => {
-      const n = dp.name.toLowerCase();
-      if (label.includes("mini") || label.includes("elopement")) return n.includes("mini") || n.includes("elopement");
-      if (label.includes("essential"))                            return n.includes("essential");
-      if (label.includes("premium"))                             return n.includes("premium");
-      if (label.includes("photo") && label.includes("video"))    return n.includes("photo") && n.includes("video");
-      if (label.includes("hourly"))                              return n.includes("hourly") || n.includes("photo");
-      return false;
-    });
-    return match?.id ?? null;
-  }
+  // ── Section 03: Package (from DB, filtered by service type) ──────────────
+  const [packageId,       setPackageId]       = useState("");
+  const [discountPercent, setDiscountPercent] = useState("");
+  const [quotedTotal,     setQuotedTotal]     = useState("");
+  const [depositAmount,   setDepositAmount]   = useState("");
+  const [hoursBooked,     setHoursBooked]     = useState("");
 
-  // ── Form state ────────────────────────────────────────────────────────────
+  // ── Rest of form ──────────────────────────────────────────────────────────
   const [form, setForm] = useState({
     // 01 — Your Details
     first_name: "", last_name: "", email: "", phone: "",
     instagram_handle: "",
-    referral_source: "" as ReferralSource | "",
+    referral_source: "",
     referral_notes: "",
-    // Partner / Spouse (optional, weddings)
+    // Partner / Spouse (optional)
     partner_first: "", partner_last: "", partner_email: "", partner_phone: "",
-    // 02 — Event Details
-    event_type_label: "",    // human label from select
+    // 04 — Event Details
+    event_sub_type: "",   // Birthday, Baptism, etc. (only for EVENT)
     event_date: "", event_start_time: "", event_end_time: "",
-    guest_count: "", venue_name: "", venue_suburb: "",
-    hours_booked: "",
-    // 03 — Package Selection
-    selected_package: "",
-    // 04 — Services Required
+    venue_name: "", venue_address: "",
+    guest_count: "",
+    // 05 — Services Required
     services_required: "",
-    // 05 — Budget
+    // 06 — Budget
     budget_range: "",
-    // 06 — Quote & Deposit
-    quoted_total: "",
-    discount_percent: "",   // % off the package list price
-    deposit_amount: "",
-    // 07 — Additional Information
+    // 08 — Additional Information
     shot_list: "",
     special_requests: "",
   });
@@ -139,40 +138,65 @@ export default function NewClientPage() {
     setForm(prev => ({ ...prev, [field]: value }));
   }
 
-  // ── Derived values for discount UI ───────────────────────────────────────
-  const selectedPkg   = PACKAGES.find(p => p.id === form.selected_package) ?? null;
-  const discountPct   = Math.min(100, Math.max(0, parseFloat(form.discount_percent) || 0));
-  const basePrice     = selectedPkg?.quoted ?? null;
+  // Fetch DB packages on mount
+  useEffect(() => {
+    fetch("/api/packages")
+      .then(r => r.json())
+      .then(d => { if (d.packages) setDbPackages(d.packages); })
+      .catch(() => {});
+  }, []);
+
+  // ── Derived values (mirrors Edit Booking) ─────────────────────────────────
+  const visiblePackages = dbPackages.filter(p =>
+    !p.service_type || p.service_type.toUpperCase() === serviceType
+  );
+
+  const selectedDbPkg = dbPackages.find(p => p.id === packageId) ?? null;
+  const basePrice     = selectedDbPkg?.base_price != null ? Number(selectedDbPkg.base_price) : null;
+  const isHourly      = selectedDbPkg != null && !selectedDbPkg.max_hours;
+  const discountPct   = Math.min(100, Math.max(0, parseFloat(discountPercent) || 0));
+  const hrs           = parseFloat(hoursBooked) || 0;
+  const listTotal     = isHourly && hrs > 0 ? hrs * (basePrice ?? 0) : (basePrice ?? 0);
   const savingsAmt    = basePrice != null && discountPct > 0
-    ? Math.round(basePrice * discountPct / 100)
+    ? Math.round(listTotal * discountPct / 100)
     : 0;
 
-  // When discount % changes: recalculate quoted total and 30% deposit
-  function handleDiscountChange(raw: string) {
-    const pct  = Math.min(100, Math.max(0, parseFloat(raw) || 0));
-    if (basePrice != null) {
-      const discounted = Math.round(basePrice * (1 - pct / 100));
-      const deposit    = Math.round(discounted * 0.30);
-      setForm(prev => ({
-        ...prev,
-        discount_percent: raw,
-        quoted_total:     String(discounted),
-        deposit_amount:   String(deposit),
-      }));
-    } else {
-      set("discount_percent", raw);
+  // ── Pricing handlers (mirrors Edit Booking) ───────────────────────────────
+  function handleHoursChange(raw: string) {
+    setHoursBooked(raw);
+    if (isHourly && basePrice != null) {
+      const h = parseFloat(raw) || 0;
+      if (h > 0) {
+        const total   = Math.round(h * basePrice * (1 - discountPct / 100));
+        const deposit = Math.round(total * 0.30);
+        setQuotedTotal(String(total));
+        setDepositAmount(String(deposit));
+      } else {
+        setQuotedTotal("");
+        setDepositAmount("");
+      }
     }
   }
 
-  // When quoted total is changed manually: keep 30% deposit in sync
+  function handleDiscountChange(raw: string) {
+    const pct = Math.min(100, Math.max(0, parseFloat(raw) || 0));
+    if (basePrice != null) {
+      const base       = isHourly && hrs > 0 ? hrs * basePrice : basePrice;
+      const discounted = Math.round(base * (1 - pct / 100));
+      const deposit    = Math.round(discounted * 0.30);
+      setDiscountPercent(raw);
+      setQuotedTotal(String(discounted));
+      setDepositAmount(String(deposit));
+    } else {
+      setDiscountPercent(raw);
+    }
+  }
+
   function handleQuotedTotalChange(raw: string) {
     const total   = parseFloat(raw) || 0;
     const deposit = Math.round(total * 0.30);
-    setForm(prev => ({
-      ...prev,
-      quoted_total:  raw,
-      deposit_amount: total > 0 ? String(deposit) : prev.deposit_amount,
-    }));
+    setQuotedTotal(raw);
+    if (total > 0) setDepositAmount(String(deposit));
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -216,17 +240,11 @@ export default function NewClientPage() {
 
       // 2. If event date provided, create an INQUIRY booking
       if (form.event_date) {
-        const eventOption = EVENT_TYPE_OPTIONS.find(o => o.label === form.event_type_label);
-        const serviceType: ServiceType = eventOption?.serviceType ?? "EVENT";
-
-        const pkg = PACKAGES.find(p => p.id === form.selected_package);
-
-        // Build internal_notes from enquiry extras
         const noteParts: string[] = [];
-        if (form.event_type_label)  noteParts.push(`Event type: ${form.event_type_label}`);
+        if (form.event_sub_type)    noteParts.push(`Event type: ${form.event_sub_type}`);
         if (form.guest_count)        noteParts.push(`Est. guests: ${form.guest_count}`);
-        if (form.selected_package && pkg) noteParts.push(`Package interest: ${pkg.label}${pkg.price ? ` (${pkg.price})` : ""}`);
-        if (discountPct > 0 && basePrice != null) noteParts.push(`Discount applied: ${discountPct}% off list price ($${basePrice.toLocaleString("en-AU")}) → $${savingsAmt.toLocaleString("en-AU")} saving`);
+        if (selectedDbPkg)           noteParts.push(`Package interest: ${selectedDbPkg.name}${basePrice ? ` ($${basePrice.toLocaleString("en-AU")}${isHourly ? "/hr" : ""})` : ""}`);
+        if (discountPct > 0 && basePrice != null) noteParts.push(`Discount applied: ${discountPct}% → $${savingsAmt.toLocaleString("en-AU")} saving`);
         if (form.services_required)  noteParts.push(`Services: ${form.services_required}`);
         if (form.budget_range)       noteParts.push(`Budget: ${BUDGET_OPTIONS.find(b => b.id === form.budget_range)?.label ?? form.budget_range}`);
 
@@ -234,21 +252,21 @@ export default function NewClientPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            client_id:         clientId,
-            service_type:      serviceType,
-            status:            "INQUIRY",
-            event_date:        form.event_date,
-            event_start_time:  form.event_start_time || null,
-            event_end_time:    form.event_end_time   || null,
-            venue_name:        form.venue_name       || null,
-            venue_address:     form.venue_suburb     || null,
-            package_id:        findDbPackageId(form.selected_package),
-            quoted_total:      form.quoted_total  ? parseFloat(form.quoted_total)  : (pkg?.quoted ?? null),
-            deposit_amount:    form.deposit_amount ? parseFloat(form.deposit_amount) : null,
-            hours_booked:      form.hours_booked  ? parseFloat(form.hours_booked)  : null,
-            shot_list:         form.shot_list     || null,
-            special_requests:  form.special_requests || null,
-            internal_notes:    noteParts.length ? noteParts.join("\n") : null,
+            client_id:        clientId,
+            service_type:     serviceType,
+            status:           "INQUIRY",
+            event_date:       form.event_date,
+            event_start_time: form.event_start_time || null,
+            event_end_time:   form.event_end_time   || null,
+            venue_name:       form.venue_name        || null,
+            venue_address:    form.venue_address     || null,
+            package_id:       packageId              || null,
+            quoted_total:     quotedTotal  ? parseFloat(quotedTotal)  : null,
+            deposit_amount:   depositAmount ? parseFloat(depositAmount) : null,
+            hours_booked:     hoursBooked  ? parseFloat(hoursBooked)  : null,
+            shot_list:        form.shot_list          || null,
+            special_requests: form.special_requests   || null,
+            internal_notes:   noteParts.length ? noteParts.join("\n") : null,
           }),
         });
         // Booking errors are non-fatal — client is already created
@@ -263,42 +281,7 @@ export default function NewClientPage() {
     }
   }
 
-  const ic = "input"; // input className shorthand
-
-  // ── Helpers for card-style checkbox/radio selectors ───────────────────────
-  function OptionCard({
-    selected, onSelect, label, sub, price,
-  }: {
-    selected: boolean; onSelect: () => void;
-    label: string; sub?: string; price?: string | null;
-  }) {
-    return (
-      <button
-        type="button"
-        onClick={onSelect}
-        className={`text-left w-full rounded-md border px-4 py-3 transition-colors ${
-          selected
-            ? "border-brand-teal bg-brand-teal/5 text-brand-navy"
-            : "border-gray-200 bg-white text-gray-700 hover:border-brand-teal/50"
-        }`}
-      >
-        <div className="flex items-start gap-3">
-          <span className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center ${
-            selected ? "bg-brand-teal border-brand-teal" : "border-gray-300"
-          }`}>
-            {selected && <Check size={11} className="text-white" strokeWidth={3} />}
-          </span>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium text-sm">{label}</span>
-              {price && <span className="text-xs font-semibold text-brand-teal">{price}</span>}
-            </div>
-            {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-          </div>
-        </div>
-      </button>
-    );
-  }
+  const ic = "input w-full";
 
   return (
     <div className="flex-1 overflow-auto">
@@ -316,12 +299,10 @@ export default function NewClientPage() {
       <form onSubmit={handleSubmit} className="p-6 max-w-2xl space-y-6">
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-4 py-3">
-            {error}
-          </div>
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">{error}</div>
         )}
 
-        {/* ── 01 YOUR DETAILS ───────────────────────────────────────────── */}
+        {/* ── 01 YOUR DETAILS ──────────────────────────────────────────── */}
         <div className="card space-y-4">
           <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
             01 — Your Details
@@ -356,14 +337,11 @@ export default function NewClientPage() {
             <label className="label">How did you hear about us?</label>
             <div className="grid grid-cols-2 gap-3">
               <select className={ic} value={form.referral_source}
-                onChange={e => set("referral_source", e.target.value as ReferralSource | "")}>
+                onChange={e => set("referral_source", e.target.value)}>
                 <option value="">Select source…</option>
-                <option value="INSTAGRAM">Instagram</option>
-                <option value="GOOGLE">Google Search</option>
-                <option value="WORD_OF_MOUTH">Word of Mouth</option>
-                <option value="WEDDING_WIRE">Wedding Wire</option>
-                <option value="FACEBOOK">Facebook</option>
-                <option value="OTHER">Other</option>
+                {REFERRAL_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
               </select>
               <input className={ic} placeholder="e.g. Referred by Sarah & Tom"
                 value={form.referral_notes}
@@ -378,10 +356,11 @@ export default function NewClientPage() {
           </div>
         </div>
 
-        {/* ── Partner / Spouse ─────────────────────────────────────────── */}
+        {/* ── PARTNER / SPOUSE ─────────────────────────────────────────── */}
         <div className="card space-y-4">
           <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
-            Partner / Spouse <span className="text-gray-400 font-normal normal-case">(optional — for weddings)</span>
+            Partner / Spouse{" "}
+            <span className="text-gray-400 font-normal normal-case">(optional — for weddings)</span>
           </h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -407,25 +386,102 @@ export default function NewClientPage() {
           </div>
         </div>
 
-        {/* ── 02 EVENT DETAILS ─────────────────────────────────────────── */}
+        {/* ── 02 SERVICE TYPE ──────────────────────────────────────────── */}
+        <div className="card space-y-3">
+          <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
+            02 — Service Type
+          </h2>
+          <div className="grid grid-cols-3 gap-3">
+            {SERVICE_TYPES.map(s => (
+              <OptionCard key={s.value} selected={serviceType === s.value}
+                onSelect={() => { setServiceType(s.value as ServiceType); setPackageId(""); setDiscountPercent(""); setQuotedTotal(""); setDepositAmount(""); }}
+                label={s.label} icon={s.icon} />
+            ))}
+          </div>
+
+          {/* Sub-type for events only */}
+          {serviceType === "EVENT" && (
+            <div className="pt-1">
+              <label className="label">Event Type</label>
+              <select className={ic} value={form.event_sub_type}
+                onChange={e => set("event_sub_type", e.target.value)}>
+                <option value="">Select event type…</option>
+                {EVENT_SUB_TYPES.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* ── 03 PACKAGE ───────────────────────────────────────────────── */}
+        <div className="card space-y-3">
+          <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
+            03 — Package
+          </h2>
+          <p className="text-xs text-gray-400 -mt-1">
+            Select a package to auto-fill pricing. Final package confirmed in the quote.
+          </p>
+
+          {visiblePackages.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3">
+              {visiblePackages.map((pkg: any) => (
+                <OptionCard
+                  key={pkg.id}
+                  selected={packageId === pkg.id}
+                  onSelect={() => {
+                    const isDeselecting = packageId === pkg.id;
+                    setPackageId(isDeselecting ? "" : pkg.id);
+                    setDiscountPercent("0");
+                    if (!isDeselecting && pkg.base_price != null) {
+                      const pkgIsHourly = !pkg.max_hours;
+                      const curHrs      = parseFloat(hoursBooked) || 0;
+                      if (!pkgIsHourly) {
+                        const full    = Math.round(Number(pkg.base_price));
+                        const deposit = Math.round(full * 0.30);
+                        setQuotedTotal(String(full));
+                        setDepositAmount(String(deposit));
+                      } else if (curHrs > 0) {
+                        const total   = Math.round(curHrs * Number(pkg.base_price));
+                        const deposit = Math.round(total * 0.30);
+                        setQuotedTotal(String(total));
+                        setDepositAmount(String(deposit));
+                      } else {
+                        setQuotedTotal("");
+                        setDepositAmount("");
+                      }
+                    } else if (isDeselecting) {
+                      setQuotedTotal("");
+                      setDepositAmount("");
+                    }
+                  }}
+                  label={pkg.name}
+                  price={fmtPkgPrice(pkg)}
+                  sub={pkg.description || getPkgDesc(pkg.name) || (pkg.max_hours ? `Up to ${pkg.max_hours} hrs` : undefined)}
+                />
+              ))}
+              <OptionCard
+                selected={!packageId}
+                onSelect={() => { setPackageId(""); setDiscountPercent(""); setQuotedTotal(""); setDepositAmount(""); }}
+                label="Custom / No Package"
+                sub="Enter quoted total manually"
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 py-2">
+              Loading packages… or no packages found for this service type.
+            </p>
+          )}
+        </div>
+
+        {/* ── 04 EVENT DETAILS ─────────────────────────────────────────── */}
         <div className="card space-y-4">
           <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
-            02 — Event Details
+            04 — Event Details
           </h2>
           <p className="text-xs text-gray-400 -mt-2">
             Fill in if you have event details — creates an Inquiry booking automatically.
           </p>
-
-          <div>
-            <label className="label">Event Type</label>
-            <select className={ic} value={form.event_type_label}
-              onChange={e => set("event_type_label", e.target.value)}>
-              <option value="">Select type…</option>
-              {EVENT_TYPE_OPTIONS.map(o => (
-                <option key={o.label} value={o.label}>{o.label}</option>
-              ))}
-            </select>
-          </div>
 
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -448,67 +504,27 @@ export default function NewClientPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">Venue Name</label>
-              <input className={ic} placeholder="e.g. Old Parliament House" value={form.venue_name}
-                onChange={e => set("venue_name", e.target.value)} />
+              <input className={ic} placeholder="e.g. Old Parliament House"
+                value={form.venue_name} onChange={e => set("venue_name", e.target.value)} />
             </div>
             <div>
               <label className="label">Venue Address</label>
-              <input className={ic} placeholder="e.g. Barton ACT 2600" value={form.venue_suburb}
-                onChange={e => set("venue_suburb", e.target.value)} />
+              <input className={ic} placeholder="e.g. Barton ACT 2600"
+                value={form.venue_address} onChange={e => set("venue_address", e.target.value)} />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">Estimated Guest Count</label>
-              <input type="number" min="0" className={ic} placeholder="e.g. 80"
-                value={form.guest_count}
-                onChange={e => set("guest_count", e.target.value)} />
-            </div>
-            <div>
-              <label className="label">Hours Booked <span className="text-gray-400 font-normal">(events/portraits)</span></label>
-              <input type="number" min="0.5" step="0.5" className={ic} placeholder="e.g. 3"
-                value={form.hours_booked}
-                onChange={e => set("hours_booked", e.target.value)} />
-            </div>
+          <div>
+            <label className="label">Estimated Guest Count</label>
+            <input type="number" min="0" className={ic} placeholder="e.g. 80"
+              value={form.guest_count} onChange={e => set("guest_count", e.target.value)} />
           </div>
         </div>
 
-        {/* ── 03 PACKAGE SELECTION ─────────────────────────────────────── */}
+        {/* ── 05 SERVICES REQUIRED ─────────────────────────────────────── */}
         <div className="card space-y-3">
           <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
-            03 — Package Selection
-          </h2>
-          <p className="text-xs text-gray-400 -mt-1">Tick all that apply. Final package confirmed in the quote.</p>
-          <div className="grid grid-cols-2 gap-3">
-            {PACKAGES.map(pkg => (
-              <OptionCard
-                key={pkg.id}
-                selected={form.selected_package === pkg.id}
-                onSelect={() => {
-                  const isDeselecting = form.selected_package === pkg.id;
-                  const newTotal   = (!isDeselecting && pkg.quoted != null) ? pkg.quoted : null;
-                  const newDeposit = newTotal != null ? Math.round(newTotal * 0.30) : null;
-                  setForm(prev => ({
-                    ...prev,
-                    selected_package: isDeselecting ? "" : pkg.id,
-                    discount_percent: isDeselecting ? "" : "0",
-                    quoted_total:     isDeselecting ? "" : (newTotal != null ? String(newTotal) : prev.quoted_total),
-                    deposit_amount:   isDeselecting ? "" : (newDeposit != null ? String(newDeposit) : prev.deposit_amount),
-                  }));
-                }}
-                label={pkg.label}
-                price={pkg.price ?? undefined}
-                sub={pkg.desc || undefined}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* ── 04 SERVICES REQUIRED ─────────────────────────────────────── */}
-        <div className="card space-y-3">
-          <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
-            04 — Services Required
+            05 — Services Required
           </h2>
           <div className="grid grid-cols-3 gap-3">
             {SERVICES_OPTIONS.map(s => (
@@ -522,10 +538,10 @@ export default function NewClientPage() {
           </div>
         </div>
 
-        {/* ── 05 APPROXIMATE BUDGET ────────────────────────────────────── */}
+        {/* ── 06 APPROXIMATE BUDGET ────────────────────────────────────── */}
         <div className="card space-y-3">
           <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
-            05 — Approximate Budget
+            06 — Approximate Budget
           </h2>
           <div className="grid grid-cols-2 gap-3">
             {BUDGET_OPTIONS.map(b => (
@@ -539,47 +555,45 @@ export default function NewClientPage() {
           </div>
         </div>
 
-        {/* ── 06 QUOTE & DEPOSIT ───────────────────────────────────────── */}
+        {/* ── 07 PRICING ───────────────────────────────────────────────── */}
         <div className="card space-y-4">
           <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
-            06 — Quote &amp; Deposit
+            07 — Pricing
           </h2>
           <p className="text-xs text-gray-400 -mt-2">
             Auto-filled from the package above. Apply a discount % to reduce the price — deliverables stay the same.
           </p>
 
-          {/* Discount row — only shown when a fixed-price package is selected */}
+          {/* Discount strip — same as Edit Booking */}
           {basePrice != null && (
             <div className="rounded-md border border-brand-pale-blue bg-brand-cream/50 px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
               <div className="text-sm text-gray-600">
-                List price:{" "}
-                <span className="font-bold text-brand-navy">${basePrice.toLocaleString("en-AU")}</span>
+                {isHourly ? (
+                  <>Rate: <span className="font-bold text-brand-navy">${basePrice.toLocaleString("en-AU")}/hr</span></>
+                ) : (
+                  <>List price: <span className="font-bold text-brand-navy">${basePrice.toLocaleString("en-AU")}</span></>
+                )}
               </div>
 
-              {/* Discount % input */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-semibold text-brand-teal whitespace-nowrap">Discount</label>
                 <div className="relative w-24">
                   <input
-                    type="number"
-                    min="0" max="100" step="0.5"
+                    type="number" min="0" max="100" step="0.5"
                     className={ic + " pr-7 text-sm"}
                     placeholder="0"
-                    value={form.discount_percent === "0" ? "" : form.discount_percent}
+                    value={discountPercent === "0" ? "" : discountPercent}
                     onChange={e => handleDiscountChange(e.target.value)}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">%</span>
                 </div>
               </div>
 
-              {/* Savings badge */}
               {savingsAmt > 0 && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold px-2.5 py-1">
                   −${savingsAmt.toLocaleString("en-AU")} off
                 </span>
               )}
-
-              {/* Note that deliverables are unchanged */}
               {discountPct > 0 && (
                 <span className="text-xs text-gray-400 italic">Package deliverables remain the same</span>
               )}
@@ -591,56 +605,59 @@ export default function NewClientPage() {
               <label className="label">Quoted Total (AUD)</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                <input
-                  type="number" step="0.01" min="0"
-                  className={ic + " pl-7"}
-                  placeholder="0.00"
-                  value={form.quoted_total}
-                  onChange={e => handleQuotedTotalChange(e.target.value)}
-                />
+                <input type="number" step="0.01" min="0" className={ic + " pl-7"}
+                  placeholder="0.00" value={quotedTotal}
+                  onChange={e => handleQuotedTotalChange(e.target.value)} />
               </div>
             </div>
             <div>
               <label className="label">Deposit Amount (AUD) <span className="text-gray-400 font-normal">30% auto</span></label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                <input
-                  type="number" step="0.01" min="0"
-                  className={ic + " pl-7"}
-                  placeholder="0.00"
-                  value={form.deposit_amount}
-                  onChange={e => set("deposit_amount", e.target.value)}
-                />
+                <input type="number" step="0.01" min="0" className={ic + " pl-7"}
+                  placeholder="0.00" value={depositAmount}
+                  onChange={e => setDepositAmount(e.target.value)} />
               </div>
             </div>
+
+            {/* Hours booked — shown for EVENT/PORTRAIT, especially useful for hourly packages */}
+            {(serviceType === "EVENT" || serviceType === "PORTRAIT") && (
+              <div>
+                <label className="label">
+                  Hours Booked
+                  {isHourly && basePrice != null && (
+                    <span className="text-gray-400 font-normal ml-1">× ${basePrice}/hr = quoted total</span>
+                  )}
+                </label>
+                <input type="number" step="0.5" min="0.5" className={ic}
+                  placeholder="e.g. 3" value={hoursBooked}
+                  onChange={e => handleHoursChange(e.target.value)} />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ── 07 ADDITIONAL INFORMATION ───────────── */}
+        {/* ── 08 ADDITIONAL INFORMATION ────────────────────────────────── */}
         <div className="card space-y-4">
-          <div>
-            <h3 className="font-semibold text-brand-navy text-sm mb-0.5">07 — Additional Information</h3>
-            <p className="text-xs text-gray-400">Any special requests or notes for this booking.</p>
-          </div>
+          <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
+            08 — Additional Information
+          </h2>
+          <p className="text-xs text-gray-400 -mt-2">Any special requests or notes for this booking.</p>
 
           <div>
             <label className="label">Shot List / Must-have Moments</label>
-            <textarea
-              className={ic + " min-h-[80px]"}
+            <textarea rows={3} className={ic + " resize-y"}
               placeholder="Key people, moments, or shots the client has requested…"
               value={form.shot_list}
-              onChange={e => set("shot_list", e.target.value)}
-            />
+              onChange={e => set("shot_list", e.target.value)} />
           </div>
 
           <div>
             <label className="label">Special Requests / Notes</label>
-            <textarea
-              className={ic + " min-h-[80px]"}
+            <textarea rows={2} className={ic + " resize-y"}
               placeholder="e.g. Ceremony at 2pm, reception at venue X…"
               value={form.special_requests}
-              onChange={e => set("special_requests", e.target.value)}
-            />
+              onChange={e => set("special_requests", e.target.value)} />
           </div>
         </div>
 
@@ -648,7 +665,10 @@ export default function NewClientPage() {
         <div className="flex items-center justify-between pt-2 pb-10">
           <Link href="/clients" className="btn-secondary">Cancel</Link>
           <button type="submit" disabled={loading} className="btn-primary min-w-[140px] justify-center">
-            {loading ? <><Loader2 size={15} className="animate-spin" /> Saving…</> : <><Check size={15} /> Create Client</>}
+            {loading
+              ? <><Loader2 size={15} className="animate-spin" /> Saving…</>
+              : <><Check size={15} /> Create Client</>
+            }
           </button>
         </div>
 
