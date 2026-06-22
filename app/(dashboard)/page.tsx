@@ -12,10 +12,12 @@ export default async function DashboardPage() {
   const supabase = await createClient();
 
   // Run all queries in parallel for performance
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+
   const [
     { data: upcomingBookings },
     { data: overdueInvoices },
-    { data: clients },
+    { count: clientCount },
     { data: allPayments },
   ] = await Promise.all([
     supabase
@@ -38,16 +40,17 @@ export default async function DashboardPage() {
       .from("clients")
       .select("id", { count: "exact", head: true }),
 
+    // Use created_at as fallback since paid_date may not be set on all records
     supabase
       .from("payments")
-      .select("amount, status, paid_date")
+      .select("amount")
       .eq("status", "PAID")
-      .gte("paid_date", `${new Date().getFullYear()}-01-01`),
+      .gte("created_at", yearStart),
   ]);
 
   // Compute stats
   const revenueThisYear = allPayments?.reduce((sum, p) => sum + (p.amount ?? 0), 0) ?? 0;
-  const totalClients    = clients ?? 0;
+  const totalClients    = clientCount ?? 0;
   const overdueCount    = overdueInvoices?.length ?? 0;
   const overdueAmount   = overdueInvoices?.reduce(
     (sum, inv) => sum + ((inv.total_amount ?? 0) - (inv.amount_paid ?? 0)), 0
