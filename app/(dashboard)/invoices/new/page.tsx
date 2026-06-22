@@ -394,8 +394,25 @@ export default function NewInvoicePage() {
 
           {lineItems.map(li => (
             <div key={li.id} className="grid grid-cols-12 gap-2 items-center group">
-              <input className="input col-span-6 py-1.5 text-sm" placeholder="Description"
-                value={li.description} onChange={e => updateLi(li.id, "description", e.target.value)} required />
+              <div className="col-span-6 relative">
+                <input list={`desc-list-${li.id}`} className="input w-full py-1.5 text-sm" placeholder="Select or type description…"
+                  value={li.description} onChange={e => updateLi(li.id, "description", e.target.value)} required />
+                <datalist id={`desc-list-${li.id}`}>
+                  {pkg?.name && <option value={`${pkg.name}${discountPct > 0 ? ` (${discountPct}% discount applied)` : ""}`} />}
+                  <option value="Wedding Photography &amp; Videography Package" />
+                  <option value="Event Photography Package" />
+                  <option value="Portrait Session" />
+                  <option value="Mini Wedding / Elopement Package" />
+                  <option value="Full Day Essential Package" />
+                  <option value="Full Day Premium Package" />
+                  <option value="Less: Deposit already paid" />
+                  <option value="Deposit Payment" />
+                  <option value="Videography Add-on" />
+                  <option value="Travel Fee" />
+                  <option value="Rush Editing Fee" />
+                  <option value="Additional Edited Photos" />
+                </datalist>
+              </div>
               <input type="number" min="0.5" step="0.5" className="input col-span-2 py-1.5 text-sm text-center"
                 value={li.quantity} onChange={e => updateLi(li.id, "quantity", parseFloat(e.target.value) || 0)} />
               <div className="col-span-3 relative">
