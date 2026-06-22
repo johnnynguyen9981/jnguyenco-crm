@@ -37,6 +37,7 @@ export default function NewInvoicePage() {
   const [selectedBookingId,setSelectedBookingId]= useState(prefillBookingId);
   const [fullBooking,      setFullBooking]       = useState<any | null>(null);
   const [bookingLoading,   setBookingLoading]    = useState(false);
+  const [bookingFetchError,setBookingFetchError] = useState<string | null>(null);
 
   // ── Invoice fields ────────────────────────────────────────────────────────
   const [lineItems,  setLineItems]  = useState<LineItem[]>([blank()]);
@@ -72,7 +73,7 @@ export default function NewInvoicePage() {
     if (!prefillClientId) return;
     fetch(`/api/clients/${prefillClientId}`)
       .then(r => r.json())
-      .then(d => { if (d.client) setSelectedClient(d.client); })
+      .then(d => { if (d.data) setSelectedClient(d.data); })
       .catch(() => {});
   }, [prefillClientId]);
 
@@ -87,12 +88,17 @@ export default function NewInvoicePage() {
 
   // ── Load full booking detail (with payments) when booking selected ─────────
   useEffect(() => {
-    if (!selectedBookingId) { setFullBooking(null); return; }
+    if (!selectedBookingId) { setFullBooking(null); setBookingFetchError(null); return; }
     setBookingLoading(true);
+    setBookingFetchError(null);
     fetch(`/api/bookings/${selectedBookingId}`)
-      .then(r => r.json())
-      .then(d => setFullBooking(d.data ?? null))
-      .catch(() => {})
+      .then(async r => {
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || `Error ${r.status}`);
+        setFullBooking(d.data ?? null);
+        if (!d.data) setBookingFetchError("Booking data not found in response.");
+      })
+      .catch(err => { setBookingFetchError(err.message || "Failed to load booking."); setFullBooking(null); })
       .finally(() => setBookingLoading(false));
   }, [selectedBookingId]);
 
@@ -288,6 +294,13 @@ export default function NewInvoicePage() {
         {bookingLoading && (
           <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
             <Loader2 size={14} className="animate-spin" /> Loading booking details…
+          </div>
+        )}
+
+        {bookingFetchError && !bookingLoading && (
+          <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+            <AlertCircle size={15} className="mt-0.5 shrink-0" />
+            Could not load booking details: {bookingFetchError}
           </div>
         )}
 
