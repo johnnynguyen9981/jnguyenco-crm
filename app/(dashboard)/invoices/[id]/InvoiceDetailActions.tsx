@@ -92,23 +92,21 @@ export function InvoiceDetailActions({ invoice, client }: Props) {
         <button onClick={downloadPdf} className="btn-secondary text-sm py-1.5">
           ↓ Download PDF
         </button>
+        <button
+          onClick={sendInvoiceEmail}
+          disabled={sendLoading}
+          className="btn-secondary text-sm py-1.5"
+        >
+          {sendLoading ? "Sending…" : "📧 Send Invoice to Client"}
+        </button>
         {!isPaid && (
-          <>
-            <button
-              onClick={sendInvoiceEmail}
-              disabled={sendLoading}
-              className="btn-secondary text-sm py-1.5"
-            >
-              {sendLoading ? "Sending…" : "📧 Send Invoice to Client"}
-            </button>
-            <button
-              onClick={markAsPaid}
-              disabled={paidLoading}
-              className="btn-sand text-sm py-1.5"
-            >
-              {paidLoading ? "Saving…" : "Mark as Paid"}
-            </button>
-          </>
+          <button
+            onClick={markAsPaid}
+            disabled={paidLoading}
+            className="btn-sand text-sm py-1.5"
+          >
+            {paidLoading ? "Saving…" : "Mark as Paid"}
+          </button>
         )}
         {isPaid && (
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg">
