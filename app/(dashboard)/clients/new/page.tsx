@@ -119,6 +119,7 @@ export default function NewClientPage() {
     event_type_label: "",    // human label from select
     event_date: "", event_start_time: "", event_end_time: "",
     guest_count: "", venue_name: "", venue_suburb: "",
+    hours_booked: "",
     // 03 — Package Selection
     selected_package: "",
     // 04 — Services Required
@@ -130,6 +131,7 @@ export default function NewClientPage() {
     discount_percent: "",   // % off the package list price
     deposit_amount: "",
     // 07 — Additional Information
+    shot_list: "",
     special_requests: "",
   });
 
@@ -243,6 +245,8 @@ export default function NewClientPage() {
             package_id:        findDbPackageId(form.selected_package),
             quoted_total:      form.quoted_total  ? parseFloat(form.quoted_total)  : (pkg?.quoted ?? null),
             deposit_amount:    form.deposit_amount ? parseFloat(form.deposit_amount) : null,
+            hours_booked:      form.hours_booked  ? parseFloat(form.hours_booked)  : null,
+            shot_list:         form.shot_list     || null,
             special_requests:  form.special_requests || null,
             internal_notes:    noteParts.length ? noteParts.join("\n") : null,
           }),
@@ -443,22 +447,30 @@ export default function NewClientPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Venue / Location</label>
-              <input className={ic} placeholder="Venue name" value={form.venue_name}
+              <label className="label">Venue Name</label>
+              <input className={ic} placeholder="e.g. Old Parliament House" value={form.venue_name}
                 onChange={e => set("venue_name", e.target.value)} />
             </div>
             <div>
-              <label className="label">Suburb / City</label>
-              <input className={ic} placeholder="e.g. Canberra, ACT" value={form.venue_suburb}
+              <label className="label">Venue Address</label>
+              <input className={ic} placeholder="e.g. Barton ACT 2600" value={form.venue_suburb}
                 onChange={e => set("venue_suburb", e.target.value)} />
             </div>
           </div>
 
-          <div>
-            <label className="label">Estimated Guest Count</label>
-            <input type="number" min="0" className={ic} placeholder="e.g. 80"
-              value={form.guest_count}
-              onChange={e => set("guest_count", e.target.value)} />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Estimated Guest Count</label>
+              <input type="number" min="0" className={ic} placeholder="e.g. 80"
+                value={form.guest_count}
+                onChange={e => set("guest_count", e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Hours Booked <span className="text-gray-400 font-normal">(events/portraits)</span></label>
+              <input type="number" min="0.5" step="0.5" className={ic} placeholder="e.g. 3"
+                value={form.hours_booked}
+                onChange={e => set("hours_booked", e.target.value)} />
+            </div>
           </div>
         </div>
 
@@ -609,6 +621,16 @@ export default function NewClientPage() {
           <div>
             <h3 className="font-semibold text-brand-navy text-sm mb-0.5">07 — Additional Information</h3>
             <p className="text-xs text-gray-400">Any special requests or notes for this booking.</p>
+          </div>
+
+          <div>
+            <label className="label">Shot List / Must-have Moments</label>
+            <textarea
+              className={ic + " min-h-[80px]"}
+              placeholder="Key people, moments, or shots the client has requested…"
+              value={form.shot_list}
+              onChange={e => set("shot_list", e.target.value)}
+            />
           </div>
 
           <div>
