@@ -66,7 +66,7 @@ function buildNotificationHtml(d: Record<string, string>): string {
     d.special_requests ? "<tr><td style='padding:8px 0;color:#666;vertical-align:top'>Special Requests</td><td style='padding:8px 0'>" + d.special_requests + "</td></tr>" : "",
     "</table>",
     "<div style='margin-top:20px;padding-top:16px;border-top:1px solid #e8e3dd'>",
-    "<a href='" + stripBOM(process.env.NEXT_PUBLIC_APP_URL ?? "https://jnguyenco-crm.vercel.app") + "/clients' style='display:inline-block;background:#083a4f;color:#fff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none'>View in CRM</a>",
+    "<a href='https://jnguyenco-crm.vercel.app/clients' style='display:inline-block;background:#083a4f;color:#fff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none'>View in CRM</a>",
     "</div>",
     "</div>",
     "</div>",
