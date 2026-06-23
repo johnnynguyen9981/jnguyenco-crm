@@ -4,10 +4,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 
+function stripBOM(s: string | undefined): string {
+  if (!s) return "";
+  return s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
+}
+
 function adminClient() {
   return createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    stripBOM(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    stripBOM(process.env.SUPABASE_SERVICE_ROLE_KEY)
   );
 }
 
