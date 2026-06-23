@@ -11,8 +11,10 @@ import { createClient } from "@/lib/supabase/server";
 import { exchangeCodeAndSaveTokens } from "@/lib/google/auth";
 
 export async function GET(req: NextRequest) {
-  const { searchParams, origin } = new URL(req.url);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? origin;
+  const { searchParams } = new URL(req.url);
+  const host  = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "jnguyenco-crm.vercel.app";
+  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  const appUrl = `${proto}://${host}`;
 
   // ── 1. Google OAuth token exchange (state=google_connect) ───────────────
   const state = searchParams.get("state");
