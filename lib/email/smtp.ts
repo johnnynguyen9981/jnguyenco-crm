@@ -14,11 +14,16 @@ interface EmailOptions {
   };
 }
 
+function stripBOM(s: string | undefined): string | undefined {
+  if (!s) return s;
+  return s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
+}
+
 function createTransporter() {
-  const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT ?? "465", 10);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const host = stripBOM(process.env.SMTP_HOST);
+  const port = parseInt(stripBOM(process.env.SMTP_PORT) ?? "465", 10);
+  const user = stripBOM(process.env.SMTP_USER);
+  const pass = stripBOM(process.env.SMTP_PASS);
 
   if (!host || !user || !pass) {
     throw new Error(
