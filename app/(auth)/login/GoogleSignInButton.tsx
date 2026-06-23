@@ -1,31 +1,8 @@
-"use client";
-
-import { createClient } from "@/lib/supabase/client";
-
 export default function GoogleSignInButton() {
-  async function handleSignIn() {
-    const supabase = createClient();
-    const appUrl   = typeof window !== "undefined"
-      ? window.location.origin
-      : "https://jnguyenco-crm.vercel.app";
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${appUrl}/api/auth/callback`,
-        scopes: "email profile",
-      },
-    });
-
-    if (error) {
-      console.error("[GoogleSignIn] error:", error.message);
-    }
-  }
-
   return (
+    <form action="/api/auth/google-login" method="POST">
     <button
-      type="button"
-      onClick={handleSignIn}
+      type="submit"
       className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-md
                  border-2 border-brand-navy bg-white text-brand-navy font-semibold
                  hover:bg-brand-navy hover:text-white transition-colors duration-200"
@@ -38,5 +15,6 @@ export default function GoogleSignInButton() {
       </svg>
       Continue with Google
     </button>
+    </form>
   );
 }
