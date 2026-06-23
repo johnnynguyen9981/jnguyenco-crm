@@ -7,8 +7,9 @@ export async function POST(_req: NextRequest) {
     const supabase = await createClient();
     // Always use the actual request origin for the OAuth redirect.
   // This makes auth work correctly in Electron, local dev, and Vercel.
-  const { origin } = new URL(_req.url);
-    const appUrl = origin;
+  const host  = _req.headers.get("x-forwarded-host") ?? _req.headers.get("host") ?? "jnguyenco-crm.vercel.app";
+  const proto = _req.headers.get("x-forwarded-proto") ?? "https";
+  const appUrl = `${proto}://${host}`;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
