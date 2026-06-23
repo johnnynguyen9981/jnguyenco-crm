@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 export default function GoogleSignInButton() {
   async function handleSignIn() {
     const supabase = createClient();
-    const appUrl   = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const appUrl   = typeof window !== "undefined"
+      ? window.location.origin
+      : "https://jnguyenco-crm.vercel.app";
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
