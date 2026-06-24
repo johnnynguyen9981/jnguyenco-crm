@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/TopBar";
 import { notFound } from "next/navigation";
 import { formatDate } from "@/lib/utils";
@@ -30,7 +30,8 @@ export default async function EnquiryDetailPage({ params }: { params: { id: stri
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: enq } = await supabase
+  const admin = createServiceClient();
+  const { data: enq } = await admin
     .from("clients")
     .select(`
       id, first_name, last_name, email, phone, instagram_handle,

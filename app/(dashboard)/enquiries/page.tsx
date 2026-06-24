@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/TopBar";
 import Link from "next/link";
 import { ArrowRight, Inbox } from "lucide-react";
@@ -7,10 +7,15 @@ import { formatDate } from "@/lib/utils";
 export const metadata = { title: "Enquiries — JNguyen Co. CRM" };
 
 export default async function EnquiriesPage() {
+  // Auth check with regular client
   const supabase = await createClient();
+  await supabase.auth.getUser();
+
+  // Use service role to bypass RLS and see null owner_id records
+  const admin = createServiceClient();
 
   // Fetch clients with no owner_id — these are public form submissions
-  const { data: enquiries } = await supabase
+  const { data: enquiries } = await admin
     .from("clients")
     .select(`
       id, first_name, last_name, email, phone, created_at, referral_source,
