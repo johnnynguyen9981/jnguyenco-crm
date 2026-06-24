@@ -192,10 +192,16 @@ export default function EnquirePage() {
           <p className="text-[#a58d66] text-xs font-semibold uppercase tracking-widest">JNguyen Co.</p>
           <p className="text-white text-sm font-medium">Wedding & Event Photography · Canberra</p>
         </div>
-        <div className="hidden sm:block text-right">
-          <p className="text-[#c0d5d6] text-xs">Got questions?</p>
-          <a href="mailto:johnny.nguyen@jnguyen.co" className="text-[#a58d66] text-xs hover:text-white transition-colors">
-            johnny.nguyen@jnguyen.co
+        <div className="flex items-center gap-4">
+          <div className="hidden sm:block text-right">
+            <p className="text-[#c0d5d6] text-xs">Got questions?</p>
+            <a href="mailto:johnny.nguyen@jnguyen.co" className="text-[#a58d66] text-xs hover:text-white transition-colors">
+              johnny.nguyen@jnguyen.co
+            </a>
+          </div>
+          <a href="https://www.jnguyen.co" className="flex items-center gap-1.5 text-xs text-[#c0d5d6] hover:text-white transition-colors border border-white/20 rounded-md px-3 py-1.5">
+            <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Back to website
           </a>
         </div>
       </header>
