@@ -10,6 +10,11 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@/lib/supabase/server";
 import { exchangeCodeAndSaveTokens } from "@/lib/google/auth";
 
+function stripBOM(s: string | undefined): string {
+  if (!s) return "";
+  return s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const host  = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "jnguyenco-crm.vercel.app";
@@ -43,8 +48,8 @@ export async function GET(req: NextRequest) {
     const successResponse = NextResponse.redirect(`${appUrl}/`);
 
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      stripBOM(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      stripBOM(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
       {
         cookies: {
           get(name: string) {
