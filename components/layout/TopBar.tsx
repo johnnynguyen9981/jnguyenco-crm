@@ -1,6 +1,7 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, ChevronLeft } from "lucide-react";
+import Link from "next/link";
 
 // Flame mark for topbar avatar
 function FlameMark({ size = 16, color = "#a58d66" }: { size?: number; color?: string }) {
@@ -18,9 +19,11 @@ function FlameMark({ size = 16, color = "#a58d66" }: { size?: number; color?: st
 interface TopBarProps {
   title: string;
   subtitle?: string;
+  backHref?: string;
+  backLabel?: string;
 }
 
-export function TopBar({ title, subtitle }: TopBarProps) {
+export function TopBar({ title, subtitle, backHref, backLabel }: TopBarProps) {
   return (
     <header
       className="h-16 px-6 flex items-center justify-between shrink-0"
@@ -31,6 +34,12 @@ export function TopBar({ title, subtitle }: TopBarProps) {
     >
       {/* Left: page title */}
       <div className="flex items-center gap-3">
+        {backHref && (
+          <Link href={backHref} className="flex items-center gap-1 text-xs text-brand-teal hover:text-brand-navy transition-colors mr-1">
+            <ChevronLeft size={14} />
+            {backLabel ?? "Back"}
+          </Link>
+        )}
         {/* Thin gold accent */}
         <div className="h-6 w-0.5 rounded-full" style={{ background: "#a58d66" }} />
         <div>

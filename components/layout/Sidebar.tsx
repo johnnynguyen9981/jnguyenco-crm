@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, CalendarDays,
-  FileText, FolderOpen, Settings, LogOut, ClipboardList,
+  FileText, FolderOpen, Settings, LogOut, ClipboardList, Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -23,9 +23,10 @@ function FlameMark({ size = 40, color = "#a58d66" }: { size?: number; color?: st
 }
 
 const navItems = [
-  { href: "/",         label: "Dashboard", icon: LayoutDashboard },
-  { href: "/clients",  label: "Clients",   icon: Users },
-  { href: "/bookings", label: "Bookings",  icon: CalendarDays },
+  { href: "/",            label: "Dashboard",  icon: LayoutDashboard },
+  { href: "/enquiries",   label: "Enquiries",  icon: Inbox },
+  { href: "/clients",     label: "Clients",    icon: Users },
+  { href: "/bookings",    label: "Bookings",   icon: CalendarDays },
   { href: "/invoices",   label: "Invoices",       icon: FileText },
   { href: "/documents",  label: "Documents",      icon: FolderOpen },
   { href: "/forms",      label: "Forms / Templates", icon: ClipboardList },
