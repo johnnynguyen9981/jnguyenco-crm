@@ -1,13 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+function stripBOM(s: string | undefined): string {
+  if (!s) return "";
+  return s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   // @supabase/ssr 0.3.0: createServerClient uses get/set/remove (not getAll/setAll)
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    stripBOM(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    stripBOM(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
     {
       cookies: {
         get(name: string) {

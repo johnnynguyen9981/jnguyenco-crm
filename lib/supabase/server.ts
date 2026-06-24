@@ -3,12 +3,17 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+function stripBOM(s: string | undefined): string {
+  if (!s) return "";
+  return s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
+}
+
 export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    stripBOM(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    stripBOM(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
     {
       cookies: {
         // @supabase/ssr 0.3.0 calls cookies.get(name) internally (not getAll).
@@ -39,7 +44,7 @@ export async function createClient() {
 export function createServiceClient() {
   const { createClient: createSupabaseClient } = require("@supabase/supabase-js");
   return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    stripBOM(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    stripBOM(process.env.SUPABASE_SERVICE_ROLE_KEY)
   );
 }
