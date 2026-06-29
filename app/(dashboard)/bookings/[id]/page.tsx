@@ -13,6 +13,7 @@ import {
 } from "@/lib/utils";
 import { BookingActions, StatusUpdateForm, QuickPaymentForm, DeleteBookingButton, GenerateDepositInvoiceButton, EditPaymentModal } from "./BookingActions";
 import { FillContractButton } from "@/app/(dashboard)/clients/[id]/FillContractButton";
+import { ContractCard } from "./ContractCard";
 
 type Props = { params: { id: string } };
 
@@ -181,12 +182,6 @@ export default async function BookingDetailPage({ params }: Props) {
                 </div>
               )}
             </dl>
-
-            {booking.contract_signed_at && (
-              <p className="text-xs text-green-600">
-                ✓ Contract signed {formatDate(booking.contract_signed_at)}
-              </p>
-            )}
 
             <StatusUpdateForm bookingId={booking.id} currentStatus={booking.status} />
           </div>
@@ -385,33 +380,45 @@ export default async function BookingDetailPage({ params }: Props) {
 
           </div>
 
-          {/* Generate Contract */}
+          {/* Contract status + signed copy management */}
+          <ContractCard
+            bookingId={booking.id}
+            contractSentAt={booking.contract_sent_at ?? null}
+            contractSignedAt={booking.contract_signed_at ?? null}
+            contractSignedUrl={(booking as any).contract_signed_url ?? null}
+            driveFolderUrl={client?.gdrive_folder_id ? `https://drive.google.com/drive/folders/${client.gdrive_folder_id}` : null}
+          />
+
+          {/* Generate Contract PDF */}
           {client && (() => {
             const qt = booking.quoted_total ?? 0;
-            // Pass the actual recorded deposit (including 0); let the contract generator handle defaults
             const contractDeposit   = depositAmount != null ? depositAmount : undefined;
             const contractRemaining = qt > 0 && contractDeposit != null ? qt - contractDeposit : undefined;
             return (
-              <FillContractButton
-                clientId={client.id}
-                clientName={`${client.first_name ?? ""} ${client.last_name ?? ""}`.trim()}
-                clientEmail={client.email ?? ""}
-                clientPhone={client.phone ?? ""}
-                eventDate={booking.event_date ?? ""}
-                startTime={booking.event_start_time?.slice(0, 5) ?? ""}
-                endTime={booking.event_end_time?.slice(0, 5) ?? ""}
-                venueName={booking.venue_name ?? ""}
-                venueSuburb={booking.venue_address ?? ""}
-                eventType={
-                  booking.service_type === "WEDDING"  ? "Wedding" :
-                  booking.service_type === "EVENT"    ? "Event" :
-                  booking.service_type === "PORTRAIT" ? "Portrait Session" :
-                  booking.service_type ?? ""
-                }
-                totalFee={qt > 0 ? qt : undefined}
-                depositAmount={contractDeposit}
-                remainingBalance={contractRemaining}
-              />
+              <div className="card space-y-2">
+                <h2 className="text-sm font-semibold text-brand-navy uppercase tracking-wide">Generate Contract</h2>
+                <p className="text-xs text-gray-400">Generate the PDF contract to send to your client.</p>
+                <FillContractButton
+                  clientId={client.id}
+                  clientName={`${client.first_name ?? ""} ${client.last_name ?? ""}`.trim()}
+                  clientEmail={client.email ?? ""}
+                  clientPhone={client.phone ?? ""}
+                  eventDate={booking.event_date ?? ""}
+                  startTime={booking.event_start_time?.slice(0, 5) ?? ""}
+                  endTime={booking.event_end_time?.slice(0, 5) ?? ""}
+                  venueName={booking.venue_name ?? ""}
+                  venueSuburb={booking.venue_address ?? ""}
+                  eventType={
+                    booking.service_type === "WEDDING"  ? "Wedding" :
+                    booking.service_type === "EVENT"    ? "Event" :
+                    booking.service_type === "PORTRAIT" ? "Portrait Session" :
+                    booking.service_type ?? ""
+                  }
+                  totalFee={qt > 0 ? qt : undefined}
+                  depositAmount={contractDeposit}
+                  remainingBalance={contractRemaining}
+                />
+              </div>
             );
           })()}
         </div>

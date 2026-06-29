@@ -81,6 +81,7 @@ export interface Booking {
   internal_notes?: string;
   contract_sent_at?: string;
   contract_signed_at?: string;
+  contract_signed_url?: string;
   gcal_event_id?: string;
   created_at: string;
   updated_at: string;
