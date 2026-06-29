@@ -363,7 +363,12 @@ const SummaryCard = ({ d, pkg, svc, total, deposit, remaining, listPrice, discou
 );
 
 // ─── Contract document ─────────────────────────────────────
-const ContractDoc = ({ d, signatureDataUri }: { d: EnquiryData; signatureDataUri: string | null }) => {
+const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSignedAt }: {
+  d: EnquiryData;
+  signatureDataUri: string | null;
+  clientSignatureDataUri?: string | null;
+  clientSignedAt?: string | null;
+}) => {
   const pkg       = resolvePackage(d);
   const svc       = resolveServices(d);
 
@@ -807,11 +812,11 @@ const ContractDoc = ({ d, signatureDataUri }: { d: EnquiryData; signatureDataUri
         </View>
         <View style={s.bankRow}>
           <Text style={s.bankLabel}>BSB:</Text>
-          <Text style={s.bankValue}>062 924</Text>
+          <Text style={s.bankValue}>082-902</Text>
         </View>
         <View style={s.bankRow}>
           <Text style={s.bankLabel}>Account Number:</Text>
-          <Text style={s.bankValue}>10141719</Text>
+          <Text style={s.bankValue}>890398777</Text>
         </View>
         <View style={s.bankRow}>
           <Text style={s.bankLabel}>Deposit Amount:</Text>
@@ -828,14 +833,25 @@ const ContractDoc = ({ d, signatureDataUri }: { d: EnquiryData; signatureDataUri
           By signing below, both parties confirm they have read and agree to this Agreement.
         </Text>
         <View style={s.sigRow}>
-          {/* ── Client block — blank lines for manual signing ── */}
+          {/* ── Client block ── */}
           <View style={s.sigBlock}>
             <Text style={[s.sigName, { color: TEAL }]}>Client</Text>
             <Text style={s.body}>{"Name: " + clientName}</Text>
+            {clientSignatureDataUri ? (
+              <Image
+                src={clientSignatureDataUri}
+                style={{ width: 110, height: 50, objectFit: "contain", marginTop: 2 }}
+              />
+            ) : null}
             <View style={s.sigLine} />
             <Text style={s.sigLabel}>Signature</Text>
-            <View style={{ marginTop: 14 }} />
-            <View style={s.sigLine} />
+            <View style={{ marginTop: 6 }} />
+            {clientSignedAt ? (
+              <Text style={{ fontSize: 8.5, color: NAVY, marginBottom: 3 }}>
+                {new Date(clientSignedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+              </Text>
+            ) : null}
+            <View style={[s.sigLine, { marginTop: clientSignedAt ? 0 : 14 }]} />
             <Text style={s.sigLabel}>Date</Text>
           </View>
 
@@ -861,16 +877,4 @@ const ContractDoc = ({ d, signatureDataUri }: { d: EnquiryData; signatureDataUri
         </View>
 
       </Page>
-    </Document>
-  );
-};
-
-// ─── Export ────────────────────────────────────────────────
-export async function generateContractPDF(data: EnquiryData): Promise<Buffer> {
-  // Load signature as base64 data URI so react-pdf can embed it reliably
-  const sigPath = path.join(process.cwd(), "public", "signature.png");
-  const sigDataUri = fs.existsSync(sigPath)
-    ? "data:image/png;base64," + fs.readFileSync(sigPath).toString("base64")
-    : null;
-  return renderToBuffer(<ContractDoc d={data} signatureDataUri={sigDataUri} />) as Promise<Buffer>;
-}
+    </Documen

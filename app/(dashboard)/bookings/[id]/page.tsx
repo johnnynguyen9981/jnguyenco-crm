@@ -386,6 +386,8 @@ export default async function BookingDetailPage({ params }: Props) {
             contractSentAt={booking.contract_sent_at ?? null}
             contractSignedAt={booking.contract_signed_at ?? null}
             contractSignedUrl={(booking as any).contract_signed_url ?? null}
+            contractSignToken={(booking as any).contract_sign_token ?? null}
+            clientEmail={client?.email ?? null}
             driveFolderUrl={client?.gdrive_folder_id ? `https://drive.google.com/drive/folders/${client.gdrive_folder_id}` : null}
           />
 
@@ -406,24 +408,4 @@ export default async function BookingDetailPage({ params }: Props) {
                   eventDate={booking.event_date ?? ""}
                   startTime={booking.event_start_time?.slice(0, 5) ?? ""}
                   endTime={booking.event_end_time?.slice(0, 5) ?? ""}
-                  venueName={booking.venue_name ?? ""}
-                  venueSuburb={booking.venue_address ?? ""}
-                  eventType={
-                    booking.service_type === "WEDDING"  ? "Wedding" :
-                    booking.service_type === "EVENT"    ? "Event" :
-                    booking.service_type === "PORTRAIT" ? "Portrait Session" :
-                    booking.service_type ?? ""
-                  }
-                  totalFee={qt > 0 ? qt : undefined}
-                  depositAmount={contractDeposit}
-                  remainingBalance={contractRemaining}
-                />
-              </div>
-            );
-          })()}
-        </div>
-      </div>
-    </div>
-  );
-}
-
+                  venueName={booking.venue_na

@@ -10,6 +10,8 @@ type Props = {
   contractSentAt:     string | null;
   contractSignedAt:   string | null;
   contractSignedUrl:  string | null;
+  contractSignToken:  string | null;
+  clientEmail:        string | null;
   driveFolderUrl:     string | null; // client's Google Drive folder
 };
 
@@ -26,16 +28,20 @@ export function ContractCard({
   contractSentAt,
   contractSignedAt,
   contractSignedUrl,
+  contractSignToken,
+  clientEmail,
   driveFolderUrl,
 }: Props) {
   const router = useRouter();
 
   const status: Status = contractSignedAt ? "SIGNED" : contractSentAt ? "SENT" : "NOT_SENT";
 
-  const [loading,    setLoading]    = useState<string | null>(null);
-  const [signedUrl,  setSignedUrl]  = useState(contractSignedUrl ?? "");
-  const [urlSaved,   setUrlSaved]   = useState(false);
-  const [message,    setMessage]    = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [loading,      setLoading]      = useState<string | null>(null);
+  const [signedUrl,    setSignedUrl]    = useState(contractSignedUrl ?? "");
+  const [urlSaved,     setUrlSaved]     = useState(false);
+  const [message,      setMessage]      = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [sigLinkSent,  setSigLinkSent]  = useState(false);
+  const [sigLinkToken, setSigLinkToken] = useState(contractSignToken);
 
   async function patch(fields: Record<string, string | null>) {
     const key = Object.keys(fields)[0];
@@ -61,6 +67,25 @@ export function ContractCard({
     setUrlSaved(false);
     await patch({ contract_signed_url: signedUrl || null });
     setUrlSaved(true);
+  }
+
+  async function sendSigningLink() {
+    if (!clientEmail) { setMessage({ type: "error", text: "Client has no email address on file." }); return; }
+    setLoading("esign");
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/sign-request`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send signing link");
+      setSigLinkSent(true);
+      setSigLinkToken(data.data?.signing_url?.split("/sign/")[1] ?? sigLinkToken);
+      setMessage({ type: "success", text: `Signing link sent to ${clientEmail}` });
+      router.refresh();
+    } catch (err: any) {
+      setMessage({ type: "error", text: err.message });
+    } finally {
+      setLoading(null);
+    }
   }
 
   const STATUS_CONFIG = {
@@ -98,14 +123,44 @@ export function ContractCard({
       {/* ── NOT SENT actions ── */}
       {status === "NOT_SENT" && (
         <div className="space-y-2">
-          <p className="text-xs text-gray-400">Generate and email the contract to your client, then mark it as sent.</p>
+          {/* Primary: send e-signature link */}
+          <button
+            onClick={sendSigningLink}
+            disabled={loading !== null || !clientEmail}
+            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-brand-teal text-white text-sm font-semibold hover:bg-brand-navy transition-colors disabled:opacity-50"
+          >
+            {loading === "esign" ? "Sending…" : sigLinkSent ? "✅ Link Sent — Resend?" : "✍️ Send for E-Signature"}
+          </button>
+          {sigLinkSent && (
+            <p className="text-xs text-green-600 text-center">
+              Client received a link to sign electronically. This page will update automatically when they sign.
+            </p>
+          )}
+          {sigLinkToken && !sigLinkSent && (
+            <p className="text-xs text-amber-600 text-center">
+              A signing link was previously sent and is pending.
+            </p>
+          )}
+          {!clientEmail && (
+            <p className="text-xs text-red-400 text-center">Add an email address to this client first.</p>
+          )}
+          {/* Divider */}
+          <div className="flex items-center gap-2 pt-1">
+            <div className="flex-1 border-t border-gray-100" />
+            <span className="text-[10px] text-gray-300 uppercase tracking-wider">or</span>
+            <div className="flex-1 border-t border-gray-100" />
+          </div>
+          {/* Manual fallback */}
           <button
             onClick={() => patch({ contract_sent_at: new Date().toISOString() })}
             disabled={loading !== null}
             className="btn-secondary text-xs py-1.5 w-full"
           >
-            {loading === "contract_sent_at" ? "Saving…" : "📤 Mark as Sent"}
+            {loading === "contract_sent_at" ? "Saving…" : "📤 Mark as Manually Sent"}
           </button>
+          <p className="text-xs text-gray-400 text-center">
+            If you emailed the PDF manually, mark it sent here.
+          </p>
         </div>
       )}
 

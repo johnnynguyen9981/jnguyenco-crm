@@ -82,6 +82,8 @@ export interface Booking {
   contract_sent_at?: string;
   contract_signed_at?: string;
   contract_signed_url?: string;
+  contract_sign_token?: string;
+  contract_sign_expires_at?: string;
   gcal_event_id?: string;
   created_at: string;
   updated_at: string;
@@ -222,6 +224,4 @@ export interface BookingWithClient extends Booking {
 }
 
 export interface InvoiceWithClient extends Invoice {
-  clients: Pick<Client, 'first_name' | 'last_name' | 'email' | 'address'>;
-  invoice_line_items: InvoiceLineItem[];
-}
+  clients: Pick<C

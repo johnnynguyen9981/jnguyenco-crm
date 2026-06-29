@@ -14,12 +14,13 @@ import {
   preEventChecklistHtml,
   galleryDeliveryHtml,
   reviewRequestHtml,
+  contractSigningRequestHtml,
 } from "@/lib/google/gmail";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 import { apiSuccess, apiError } from "@/lib/utils";
 import { formatDate } from "@/lib/utils";
 
-type EmailTemplate   = "booking_confirmation" | "invoice_sent" | "payment_reminder" | "pre_event_checklist" | "gallery_delivery" | "review_request" | "custom";
+type EmailTemplate   = "booking_confirmation" | "invoice_sent" | "payment_reminder" | "pre_event_checklist" | "gallery_delivery" | "review_request" | "contract_signing_request" | "custom";
 type FromAccount     = "gmail" | "godaddy";
 
 export async function POST(req: NextRequest) {
@@ -205,6 +206,36 @@ export async function POST(req: NextRequest) {
         break;
       }
 
+      // ── Contract signing request ────────────────────────────────────────
+      case "contract_signing_request": {
+        const { booking_id, signing_url } = body;
+        if (!booking_id)  return apiError("booking_id required for contract_signing_request");
+        if (!signing_url) return apiError("signing_url required for contract_signing_request");
+
+        const { data: booking } = await supabase
+          .from("bookings")
+          .select(`*, clients(first_name, last_name), packages(name), contract_sign_expires_at`)
+          .eq("id", booking_id)
+          .eq("owner_id", user.id)
+          .single();
+
+        if (!booking) return apiError("Booking not found", 404);
+
+        const expiresDate = booking.contract_sign_expires_at
+          ? new Date(booking.contract_sign_expires_at).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })
+          : "30 days";
+
+        emailHtml = contractSigningRequestHtml({
+          clientName:  `${booking.clients.first_name} ${booking.clients.last_name}`,
+          eventDate:   formatDate(booking.event_date),
+          packageName: booking.packages?.name ?? "Photography & Videography Package",
+          signingUrl:  signing_url,
+          expiresDate,
+        });
+        emailSubject = emailSubject || `Please Sign Your Contract — JNguyen Co.`;
+        break;
+      }
+
       // ── Custom HTML email ───────────────────────────────────────────────
       case "custom": {
         const { html } = body;
@@ -219,43 +250,4 @@ export async function POST(req: NextRequest) {
         return apiError(`Unknown template: ${template}`);
     }
 
-    // ── Route to the correct sending method ────────────────────────────────
-    let messageId: string;
-
-    if (from_account === "gmail") {
-      // Send via Gmail API (johnny.nguyen9981@gmail.com)
-      const result = await sendEmail(user.id, {
-        to:           to,
-        subject:      emailSubject,
-        html:         emailHtml,
-        pdfAttachment,
-      });
-      messageId = result.messageId;
-    } else {
-      // Send via GoDaddy SMTP (johnny.nguyen@jnguyen.co) — default
-      const result = await sendEmailViaSMTP({
-        to:           to,
-        subject:      emailSubject,
-        html:         emailHtml,
-        pdfAttachment,
-      });
-      messageId = result.messageId;
-    }
-
-    const sentFrom = from_account === "gmail"
-      ? (process.env.NEXT_PUBLIC_BUSINESS_EMAIL ?? "johnny.nguyen9981@gmail.com")
-      : (process.env.SMTP_USER ?? "johnny.nguyen@jnguyen.co");
-
-    return apiSuccess({ messageId, sent_to: to, sent_from: sentFrom, subject: emailSubject });
-
-  } catch (err: any) {
-    if (err.message?.includes("not connected")) {
-      return apiError("Google account not connected. Please connect it in Settings → Integrations.", 403);
-    }
-    if (err.message?.includes("not configured")) {
-      return apiError("GoDaddy SMTP not configured. Add your SMTP_PASS to .env.local and restart the server.", 503);
-    }
-    console.error("[gmail/send] Error:", err);
-    return apiError(`Failed to send email: ${err.message}`, 500);
-  }
-}
+    // ── Route to the correct sending 
