@@ -9,7 +9,7 @@ import {
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Expense, ExpenseCategory } from "@/lib/supabase/types";
 import { Receipt, ExternalLink, RefreshCw, FolderOpen } from "lucide-react";
-import { AddExpenseButton, EditExpenseButton, DeleteExpenseButton } from "./ExpenseActions";
+import { AddExpenseButton, BulkImportButton, EditExpenseButton, DeleteExpenseButton } from "./ExpenseActions";
 
 export const metadata = { title: "Expenses — JNguyen Co. CRM" };
 
@@ -168,7 +168,10 @@ export default async function ExpensesPage({ searchParams }: Props) {
             </form>
           </div>
 
-          <AddExpenseButton />
+          <div className="flex items-center gap-2">
+            <BulkImportButton />
+            <AddExpenseButton />
+          </div>
         </div>
 
         {/* Active category filter chip */}
@@ -307,7 +310,7 @@ export default async function ExpensesPage({ searchParams }: Props) {
           <p className="text-sm font-semibold text-amber-800 mb-1">💡 Tax time tip</p>
           <p className="text-xs text-amber-700">
             All receipts are stored in your Google Drive under <strong>Business Expenses / FY {fy}</strong>.
-            Share that folder with your accountant at tax time. The totals above reflect the full financial
+            Share that folder with your accountant at tax time. The totals above r            Share that folder with your accountant at tax time. The totals above reflect the full financial
             year (1 Jul – 30 Jun).
           </p>
         </div>

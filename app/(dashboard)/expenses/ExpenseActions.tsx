@@ -1,11 +1,12 @@
 "use client";
 // app/(dashboard)/expenses/ExpenseActions.tsx
-// Add Expense button + slide-in form panel + Edit/Delete per row
+// Add Expense button + slide-in form panel + Edit/Delete per row + Bulk Import
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, X, Pencil, Trash2, Loader2, Layers } from "lucide-react";
 import { ExpenseForm } from "./ExpenseForm";
+import { BulkImportModal } from "./BulkImportModal";
 import type { Expense } from "@/lib/supabase/types";
 
 // ── Add Expense button + panel ───────────────────────────────────────────────
@@ -37,6 +38,21 @@ export function AddExpenseButton() {
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+// ── Bulk Import button ───────────────────────────────────────────────────────
+
+export function BulkImportButton() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)} className="btn-secondary">
+        <Layers size={15} /> Bulk Import
+      </button>
+      {open && <BulkImportModal onClose={() => setOpen(false)} />}
     </>
   );
 }
