@@ -250,4 +250,43 @@ export async function POST(req: NextRequest) {
         return apiError(`Unknown template: ${template}`);
     }
 
-    // ── Route to the correct sending 
+    // ── Route to the correct sending method ────────────────────────────────
+    let messageId: string;
+
+    if (from_account === "gmail") {
+      // Send via Gmail API (johnny.nguyen9981@gmail.com)
+      const result = await sendEmail(user.id, {
+        to:           to,
+        subject:      emailSubject,
+        html:         emailHtml,
+        pdfAttachment,
+      });
+      messageId = result.messageId;
+    } else {
+      // Send via GoDaddy SMTP (johnny.nguyen@jnguyen.co) — default
+      const result = await sendEmailViaSMTP({
+        to:           to,
+        subject:      emailSubject,
+        html:         emailHtml,
+        pdfAttachment,
+      });
+      messageId = result.messageId;
+    }
+
+    const sentFrom = from_account === "gmail"
+      ? (process.env.NEXT_PUBLIC_BUSINESS_EMAIL ?? "johnny.nguyen9981@gmail.com")
+      : (process.env.SMTP_USER ?? "johnny.nguyen@jnguyen.co");
+
+    return apiSuccess({ messageId, sent_to: to, sent_from: sentFrom, subject: emailSubject });
+
+  } catch (err: any) {
+    if (err.message?.includes("not connected")) {
+      return apiError("Google account not connected. Please connect it in Settings → Integrations.", 403);
+    }
+    if (err.message?.includes("not configured")) {
+      return apiError("GoDaddy SMTP not configured. Add your SMTP_PASS to .env.local and restart the server.", 503);
+    }
+    console.error("[gmail/send] Error:", err);
+    return apiError(`Failed to send email: ${err.message}`, 500);
+  }
+}

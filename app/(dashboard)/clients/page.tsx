@@ -1,5 +1,6 @@
 // app/(dashboard)/clients/page.tsx — Client list page
 import { createClient } from "@/lib/supabase/server";
+import { getOwnerUserId } from "@/lib/team";
 import { TopBar } from "@/components/layout/TopBar";
 import { formatDate, formatPhone } from "@/lib/utils";
 import Link from "next/link";
@@ -15,6 +16,7 @@ export default async function ClientsPage({
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const ownerUserId = await getOwnerUserId();
 
   const search = searchParams.search?.trim() ?? "";
   const page   = Math.max(1, parseInt(searchParams.page ?? "1", 10));
@@ -28,7 +30,7 @@ export default async function ClientsPage({
       instagram_handle, created_at,
       bookings(id, status, event_date, service_type)
     `, { count: "exact" })
-    .eq("owner_id", user!.id)
+    .eq("owner_id", ownerUserId)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 

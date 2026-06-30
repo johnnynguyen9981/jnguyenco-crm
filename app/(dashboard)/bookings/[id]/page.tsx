@@ -1,6 +1,7 @@
 // app/(dashboard)/bookings/[id]/page.tsx
 // Booking detail page — server-rendered with client-side action buttons.
 import { createClient } from "@/lib/supabase/server";
+import { getOwnerUserId, getCurrentTeamMember } from "@/lib/team";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
@@ -35,10 +36,14 @@ const DELIVERABLE_STATUS_COLORS: Record<string, string> = {
 
 export default async function BookingDetailPage({ params }: Props) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
+
+  const [ownerUserId, teamMember] = await Promise.all([
+    getOwnerUserId(),
+    getCurrentTeamMember(),
+  ]);
+  const showFinancials = teamMember?.role === "FOUNDER";
 
   const { data: booking, error } = await supabase
     .from("bookings")
@@ -51,7 +56,7 @@ export default async function BookingDetailPage({ params }: Props) {
       invoices (id, invoice_number, status, total_amount, due_date, created_at)
     `)
     .eq("id", params.id)
-    .eq("owner_id", user.id)
+    .eq("owner_id", ownerUserId)
     .single();
 
   if (error || !booking) notFound();
@@ -95,12 +100,14 @@ export default async function BookingDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Action buttons — client component */}
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <Link href={`/bookings/${booking.id}/edit`} className="btn-secondary text-sm py-1.5">Edit</Link>
-          <BookingActions booking={booking} client={client} />
-          <DeleteBookingButton bookingId={booking.id} clientId={booking.client_id} />
-        </div>
+        {/* Action buttons — founder only */}
+        {showFinancials && (
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <Link href={`/bookings/${booking.id}/edit`} className="btn-secondary text-sm py-1.5">Edit</Link>
+            <BookingActions booking={booking} client={client} />
+            <DeleteBookingButton bookingId={booking.id} clientId={booking.client_id} />
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -137,13 +144,15 @@ export default async function BookingDetailPage({ params }: Props) {
                 <dt className="text-gray-400">Package</dt>
                 <dd className="font-medium mt-0.5">{pkg?.name ?? "Custom"}</dd>
               </div>
-              <div>
-                <dt className="text-gray-400">Quoted Total</dt>
-                <dd className="font-medium mt-0.5">
-                  {booking.quoted_total ? formatCurrency(booking.quoted_total) : "TBD"}
-                </dd>
-              </div>
-              {depositAmount > 0 && (
+              {showFinancials && (
+                <div>
+                  <dt className="text-gray-400">Quoted Total</dt>
+                  <dd className="font-medium mt-0.5">
+                    {booking.quoted_total ? formatCurrency(booking.quoted_total) : "TBD"}
+                  </dd>
+                </div>
+              )}
+              {showFinancials && depositAmount > 0 && (
                 <div>
                   <dt className="text-gray-400">Deposit</dt>
                   <dd className={`font-medium mt-0.5 ${depositPaid >= depositAmount ? "text-green-600" : ""}`}>
@@ -152,7 +161,7 @@ export default async function BookingDetailPage({ params }: Props) {
                   </dd>
                 </div>
               )}
-              {booking.quoted_total > 0 && (
+              {showFinancials && booking.quoted_total > 0 && (
                 <div>
                   <dt className="text-gray-400">Remaining</dt>
                   <dd className={`font-medium mt-0.5 ${balanceDue > 0 ? "text-red-600" : "text-green-600"}`}>
@@ -237,8 +246,8 @@ export default async function BookingDetailPage({ params }: Props) {
             </div>
           )}
 
-          {/* Invoices */}
-          {invoices.length > 0 && (
+          {/* Invoices — founder only */}
+          {showFinancials && invoices.length > 0 && (
             <div className="card space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-brand-navy uppercase tracking-wide">Invoices</h2>
@@ -292,8 +301,8 @@ export default async function BookingDetailPage({ params }: Props) {
             </div>
           )}
 
-          {/* Payment milestones */}
-          <div className="card space-y-3">
+          {/* Payment milestones — founder only */}
+          {showFinancials && <div className="card space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-brand-navy uppercase tracking-wide">Payments</h2>
             </div>
@@ -378,34 +387,54 @@ export default async function BookingDetailPage({ params }: Props) {
               ) : null;
             })()}
 
-          </div>
+          </div>}
 
-          {/* Contract status + signed copy management */}
-          <ContractCard
-            bookingId={booking.id}
-            contractSentAt={booking.contract_sent_at ?? null}
-            contractSignedAt={booking.contract_signed_at ?? null}
-            contractSignedUrl={(booking as any).contract_signed_url ?? null}
-            contractSignToken={(booking as any).contract_sign_token ?? null}
-            clientEmail={client?.email ?? null}
-            driveFolderUrl={client?.gdrive_folder_id ? `https://drive.google.com/drive/folders/${client.gdrive_folder_id}` : null}
-          />
+          {/* Contract + Generate Contract — founder only */}
+          {showFinancials && <>
+            <ContractCard
+              bookingId={booking.id}
+              contractSentAt={booking.contract_sent_at ?? null}
+              contractSignedAt={booking.contract_signed_at ?? null}
+              contractSignedUrl={(booking as any).contract_signed_url ?? null}
+              contractSignToken={(booking as any).contract_sign_token ?? null}
+              clientEmail={client?.email ?? null}
+              driveFolderUrl={client?.gdrive_folder_id ? `https://drive.google.com/drive/folders/${client.gdrive_folder_id}` : null}
+            />
 
-          {/* Generate Contract PDF */}
-          {client && (() => {
-            const qt = booking.quoted_total ?? 0;
-            const contractDeposit   = depositAmount != null ? depositAmount : undefined;
-            const contractRemaining = qt > 0 && contractDeposit != null ? qt - contractDeposit : undefined;
-            return (
-              <div className="card space-y-2">
-                <h2 className="text-sm font-semibold text-brand-navy uppercase tracking-wide">Generate Contract</h2>
-                <p className="text-xs text-gray-400">Generate the PDF contract to send to your client.</p>
-                <FillContractButton
-                  clientId={client.id}
-                  clientName={`${client.first_name ?? ""} ${client.last_name ?? ""}`.trim()}
-                  clientEmail={client.email ?? ""}
-                  clientPhone={client.phone ?? ""}
-                  eventDate={booking.event_date ?? ""}
-                  startTime={booking.event_start_time?.slice(0, 5) ?? ""}
-                  endTime={booking.event_end_time?.slice(0, 5) ?? ""}
-                  venueName={booking.venue_na
+            {client && (() => {
+              const qt = booking.quoted_total ?? 0;
+              const contractDeposit   = depositAmount != null ? depositAmount : undefined;
+              const contractRemaining = qt > 0 && contractDeposit != null ? qt - contractDeposit : undefined;
+              return (
+                <div className="card space-y-2">
+                  <h2 className="text-sm font-semibold text-brand-navy uppercase tracking-wide">Generate Contract</h2>
+                  <p className="text-xs text-gray-400">Generate the PDF contract to send to your client.</p>
+                  <FillContractButton
+                    clientId={client.id}
+                    clientName={`${client.first_name ?? ""} ${client.last_name ?? ""}`.trim()}
+                    clientEmail={client.email ?? ""}
+                    clientPhone={client.phone ?? ""}
+                    eventDate={booking.event_date ?? ""}
+                    startTime={booking.event_start_time?.slice(0, 5) ?? ""}
+                    endTime={booking.event_end_time?.slice(0, 5) ?? ""}
+                    venueName={booking.venue_name ?? ""}
+                    venueSuburb={booking.venue_address ?? ""}
+                    eventType={
+                      booking.service_type === "WEDDING"  ? "Wedding" :
+                      booking.service_type === "EVENT"    ? "Event" :
+                      booking.service_type === "PORTRAIT" ? "Portrait Session" :
+                      booking.service_type ?? ""
+                    }
+                    totalFee={qt > 0 ? qt : undefined}
+                    depositAmount={contractDeposit}
+                    remainingBalance={contractRemaining}
+                  />
+                </div>
+              );
+            })()}
+          </>}
+        </div>
+      </div>
+    </div>
+  );
+}

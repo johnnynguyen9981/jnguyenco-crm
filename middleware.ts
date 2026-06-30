@@ -34,13 +34,17 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Forward pathname so server components (layout) can check it for role-based redirects
+  supabaseResponse.headers.set("x-pathname", request.nextUrl.pathname);
+
   if (
     !user &&
     !request.nextUrl.pathname.startsWith("/login") &&
     !request.nextUrl.pathname.startsWith("/auth/callback") &&
     !request.nextUrl.pathname.startsWith("/api/auth") &&
     !request.nextUrl.pathname.startsWith("/enquire") &&
-    !request.nextUrl.pathname.startsWith("/api/enquire")
+    !request.nextUrl.pathname.startsWith("/api/enquire") &&
+    !request.nextUrl.pathname.startsWith("/sign")
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -52,6 +56,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

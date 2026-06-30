@@ -9,6 +9,16 @@ import {
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+interface TeamMember {
+  full_name: string;
+  title: string | null;
+  role: string;
+}
+
+// Nav items only the FOUNDER (owner) can see
+const FOUNDER_ONLY_HREFS = new Set(["/enquiries", "/invoices", "/documents", "/forms", "/settings"]);
 
 function FlameMark({ size = 40, color = "#a58d66" }: { size?: number; color?: string }) {
   return (
@@ -33,9 +43,30 @@ const navItems = [
   { href: "/settings",   label: "Settings",       icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ role: roleProp }: { role?: string }) {
   const pathname = usePathname();
   const router   = useRouter();
+  const [member, setMember] = useState<TeamMember | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("team_members")
+        .select("full_name, title, role")
+        .eq("user_id", user.id)
+        .single();
+      if (data) setMember(data);
+    })();
+  }, []);
+
+  const role = roleProp ?? member?.role ?? "FOUNDER";
+  const isFounder = role === "FOUNDER";
+  const visibleNavItems = navItems.filter(
+    ({ href }) => isFounder || !FOUNDER_ONLY_HREFS.has(href)
+  );
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -63,7 +94,7 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-1 space-y-0.5">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {visibleNavItems.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link
@@ -105,6 +136,23 @@ export function Sidebar() {
           ))}
         </div>
       </div>
+
+      {/* Logged-in user */}
+      {member && (
+        <div className="mx-3 mb-2 rounded-lg px-3 py-2.5 bg-white/5 border border-white/10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-brand-sand/20 border border-brand-sand/30 flex items-center justify-center shrink-0">
+              <span className="text-brand-sand text-xs font-bold">
+                {member.full_name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-white text-xs font-semibold truncate">{member.full_name}</p>
+              <p className="text-white/40 text-[10px] truncate">{member.title ?? member.role}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Divider + Sign out */}
       <div className="border-t border-white/10 px-3 py-3">

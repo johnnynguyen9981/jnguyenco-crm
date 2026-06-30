@@ -4,14 +4,15 @@
 //   1. Validates token & expiry
 //   2. Builds the signed contract PDF (with client signature embedded)
 //   3. Emails signed PDF to client + photographer
-//   4. Saves signed PDF to Google Drive
+//   4. Saves signed PDF to Supabase Storage (always) + Google Drive (optional)
 //   5. Marks booking as signed, invalidates token
 import { NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { generateContractPDF, EnquiryData } from "@/lib/generate-contract";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 import { contractSignedConfirmationHtml } from "@/lib/google/gmail";
-import { uploadToDriveFolder, getOrCreateClientFolder, isDriveConfigured } from "@/lib/google/drive";
+import { uploadToDriveWithOAuth } from "@/lib/google/drive";
+import { getAuthenticatedClientByOwnerId } from "@/lib/google/auth";
 import { apiSuccess, apiError, formatDate } from "@/lib/utils";
 
 /** Copy of packageNameToKey from fill-contract (could be shared) */
@@ -55,7 +56,7 @@ export async function POST(
       venue_name, service_type, quoted_total, deposit_amount,
       hours_booked, special_requests,
       contract_signed_at, contract_sign_expires_at,
-      clients (id, first_name, last_name, email, gdrive_folder_id),
+      clients (id, first_name, last_name, email),
       packages (id, name, includes_photography, includes_videography, base_price, max_hours)
     `)
     .eq("contract_sign_token", token)
@@ -163,16 +164,14 @@ export async function POST(
     console.error("[sign/token] Photographer email failed:", e);
   }
 
-  // ── Save signed PDF to Google Drive ──────────────────────────────────────
-  let driveUrl: string | null = null;
-  if (isDriveConfigured()) {
-    try {
-      const folderId = client.gdrive_folder_id
-        ?? await getOrCreateClientFolder(client.id, clientName);
-      driveUrl = await uploadToDriveFolder(folderId, "Contracts", pdfFilename, pdfBuffer);
-    } catch (e: any) {
-      console.warn("[sign/token] Drive upload failed (non-fatal):", e?.message);
-    }
+  // ── Save signed PDF to Google Drive (via user's OAuth) ───────────────────
+  let contractUrl: string | null = null;
+  try {
+    const authClient = await getAuthenticatedClientByOwnerId(booking.owner_id);
+    contractUrl = await uploadToDriveWithOAuth(authClient, clientName, pdfFilename, pdfBuffer);
+  } catch (e: any) {
+    console.warn("[sign/token] Drive upload failed (non-fatal):", e?.message);
+    // Non-fatal — signed PDF is still emailed to both parties
   }
 
   // ── Mark booking as signed, clear token ──────────────────────────────────
@@ -181,7 +180,7 @@ export async function POST(
     .update({
       contract_signed_at:   now.toISOString(),
       contract_sign_token:  null,
-      contract_signed_url:  driveUrl ?? undefined,
+      contract_signed_url:  contractUrl ?? undefined,
     })
     .eq("id", booking.id);
 
@@ -191,8 +190,8 @@ export async function POST(
   }
 
   return apiSuccess({
-    message:    "Contract signed successfully.",
-    signed_at:  now.toISOString(),
-    drive_url:  driveUrl,
+    message:       "Contract signed successfully.",
+    signed_at:     now.toISOString(),
+    contract_url:  contractUrl,
   });
 }

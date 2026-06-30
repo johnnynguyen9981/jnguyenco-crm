@@ -224,4 +224,6 @@ export interface BookingWithClient extends Booking {
 }
 
 export interface InvoiceWithClient extends Invoice {
-  clients: Pick<C
+  clients: Pick<Client, 'first_name' | 'last_name' | 'email' | 'address'>;
+  invoice_line_items: InvoiceLineItem[];
+}

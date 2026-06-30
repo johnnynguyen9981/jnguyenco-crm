@@ -1,6 +1,7 @@
 // app/(dashboard)/bookings/page.tsx
 // Server component — bookings list with status filter tabs and search.
 import { createClient } from "@/lib/supabase/server";
+import { getOwnerUserId } from "@/lib/team";
 import Link from "next/link";
 import {
   formatCurrency,
@@ -31,10 +32,11 @@ type Props = {
 
 export default async function BookingsPage({ searchParams }: Props) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
+
+  // Use the FOUNDER's owner_id so staff members see the same bookings
+  const ownerUserId = await getOwnerUserId();
 
   const activeStatus = (searchParams.status as BookingStatus) || "ALL";
   const activeService = (searchParams.service as ServiceType) || "ALL";
@@ -50,7 +52,7 @@ export default async function BookingsPage({ searchParams }: Props) {
        packages (name)`,
       { count: "exact" }
     )
-    .eq("owner_id", user.id)
+    .eq("owner_id", ownerUserId)
     .order("event_date", { ascending: false })
     .range((page - 1) * pageSize, page * pageSize - 1);
 
@@ -65,7 +67,7 @@ export default async function BookingsPage({ searchParams }: Props) {
   const { data: counts } = await supabase
     .from("bookings")
     .select("status")
-    .eq("owner_id", user.id);
+    .eq("owner_id", ownerUserId);
 
   const statusCounts = (counts || []).reduce<Record<string, number>>((acc, b) => {
     acc[b.status] = (acc[b.status] || 0) + 1;

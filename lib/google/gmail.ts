@@ -382,3 +382,112 @@ export function paymentReminderHtml(params: {
 </html>
 `.trim();
 }
+
+/** E-signature request — sent to client with signing link */
+export function contractSigningRequestHtml(params: {
+  clientName:  string;
+  eventDate:   string;
+  packageName: string;
+  signingUrl:  string;
+  expiresDate: string;
+}): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #083a4f; margin: 0; padding: 0; background: #f8f8f6; }
+    .container { max-width: 580px; margin: 40px auto; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #c0d5d6; }
+    .header { background: #083a4f; padding: 24px 40px; }
+    .body   { padding: 32px 40px; }
+    .body p { line-height: 1.7; font-size: 15px; color: #333; }
+    .details { background: #f0f4f4; border-left: 3px solid #407e8c; border-radius: 4px; padding: 14px 20px; margin: 16px 0; font-size: 14px; color: #083a4f; }
+    .details div { margin: 4px 0; }
+    .details strong { display: inline-block; min-width: 110px; color: #407e8c; }
+    .cta-wrap { text-align: center; margin: 28px 0; }
+    .cta { display: inline-block; background: #407e8c; color: #fff !important; text-decoration: none; padding: 14px 36px; border-radius: 6px; font-weight: 700; font-size: 16px; letter-spacing: 0.3px; }
+    .note { font-size: 12px; color: #999; margin-top: 10px; }
+    .footer { background: #e5e1dd; padding: 20px 40px; text-align: center; font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png" alt="JNguyen Co." style="height:60px;width:auto;display:block;" />
+    </div>
+    <div class="body">
+      <p>Hi ${params.clientName},</p>
+      <p>Thank you so much for choosing JNguyen Co.! Your photography &amp; videography contract is ready for your review and signature.</p>
+      <p>Please take a moment to read through the agreement and sign electronically — no printing or scanning required.</p>
+      <div class="details">
+        <div><strong>Event Date:</strong> ${params.eventDate}</div>
+        <div><strong>Package:</strong> ${params.packageName}</div>
+        <div><strong>Link expires:</strong> ${params.expiresDate}</div>
+      </div>
+      <div class="cta-wrap">
+        <a href="${params.signingUrl}" class="cta">✍️ Review &amp; Sign Contract</a>
+        <p class="note">Link expires ${params.expiresDate}. Reply to this email if you need a new one.</p>
+      </div>
+      <p>If you have any questions before signing, just reply to this email.</p>
+      <p>Warm regards,<br/><strong>Johnny Nguyen</strong><br/>JNguyen Co.</p>
+    </div>
+    <div class="footer">JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co &nbsp;·&nbsp; <a href="https://www.jnguyen.co" style="color:#666;text-decoration:none;">www.jnguyen.co</a></div>
+  </div>
+</body>
+</html>`.trim();
+}
+
+/** Contract signed — confirmation sent to client (signed PDF attached) */
+export function contractSignedConfirmationHtml(params: {
+  clientName:  string;
+  eventDate:   string;
+  packageName: string;
+  signedAt:    string;
+}): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #083a4f; margin: 0; padding: 0; background: #f8f8f6; }
+    .container { max-width: 580px; margin: 40px auto; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #c0d5d6; }
+    .header { background: #083a4f; padding: 24px 40px; }
+    .body   { padding: 32px 40px; }
+    .body p { line-height: 1.7; font-size: 15px; color: #333; }
+    .success { background: #f0faf4; border: 1px solid #6fcf97; border-radius: 6px; padding: 18px 24px; text-align: center; margin: 20px 0; }
+    .success .tick { font-size: 32px; line-height: 1; }
+    .success p { color: #27ae60; font-weight: 700; margin: 8px 0 0; font-size: 16px; }
+    .details { background: #f0f4f4; border-left: 3px solid #407e8c; border-radius: 4px; padding: 14px 20px; margin: 16px 0; font-size: 14px; color: #083a4f; }
+    .details div { margin: 4px 0; }
+    .details strong { display: inline-block; min-width: 110px; color: #407e8c; }
+    .footer { background: #e5e1dd; padding: 20px 40px; text-align: center; font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png" alt="JNguyen Co." style="height:60px;width:auto;display:block;" />
+    </div>
+    <div class="body">
+      <p>Hi ${params.clientName},</p>
+      <div class="success">
+        <div class="tick">✅</div>
+        <p>Your contract has been signed successfully!</p>
+      </div>
+      <p>A signed copy of your contract is attached to this email for your records.</p>
+      <div class="details">
+        <div><strong>Event Date:</strong> ${params.eventDate}</div>
+        <div><strong>Package:</strong> ${params.packageName}</div>
+        <div><strong>Signed:</strong> ${params.signedAt}</div>
+      </div>
+      <p>The next step is to pay your deposit to officially secure your date — you'll receive a separate invoice shortly.</p>
+      <p>I can't wait to be a part of your special day! 🎉</p>
+      <p>Warm regards,<br/><strong>Johnny Nguyen</strong><br/>JNguyen Co.</p>
+    </div>
+    <div class="footer">JNguyen Co. &nbsp;·&nbsp; Canberra, ACT &nbsp;·&nbsp; johnny.nguyen@jnguyen.co &nbsp;·&nbsp; <a href="https://www.jnguyen.co" style="color:#666;text-decoration:none;">www.jnguyen.co</a></div>
+  </div>
+</body>
+</html>`.trim();
+}

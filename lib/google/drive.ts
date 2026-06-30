@@ -144,3 +144,47 @@ export async function uploadToDriveFolder(
 export function getDriveFolderUrl(folderId: string): string {
   return `https://drive.google.com/drive/folders/${folderId}`;
 }
+
+/**
+ * Uploads a PDF buffer to Google Drive using the user's personal OAuth client
+ * (no service account required). Creates a "JNguyen Co. CRM / [clientName] / Contracts"
+ * folder structure automatically. Returns the file's webViewLink.
+ *
+ * Used by public routes (e.g. /api/sign/[token]) via getAuthenticatedClientByOwnerId().
+ */
+export async function uploadToDriveWithOAuth(
+  authClient: any,
+  clientName: string,
+  filename: string,
+  buffer: Buffer
+): Promise<string> {
+  const drive = google.drive({ version: "v3", auth: authClient });
+
+  // Find or create root CRM folder
+  async function findOrCreate(name: string, parentId?: string): Promise<string> {
+    const parentQ = parentId ? ` and '${parentId}' in parents` : ` and 'root' in parents`;
+    const { data } = await drive.files.list({
+      q: `name = '${name.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false${parentQ}`,
+      fields: "files(id)",
+      spaces: "drive",
+    });
+    if (data.files && data.files.length > 0) return data.files[0].id!;
+    const { data: f } = await drive.files.create({
+      requestBody: { name, mimeType: "application/vnd.google-apps.folder", ...(parentId ? { parents: [parentId] } : {}) },
+      fields: "id",
+    });
+    return f.id!;
+  }
+
+  const rootId      = await findOrCreate("JNguyen Co. CRM");
+  const clientId    = await findOrCreate(clientName, rootId);
+  const contractsId = await findOrCreate("Contracts", clientId);
+
+  const { data: file } = await drive.files.create({
+    requestBody: { name: filename, parents: [contractsId] },
+    media: { mimeType: "application/pdf", body: Readable.from(buffer) },
+    fields: "id, webViewLink",
+  });
+
+  return file.webViewLink ?? `https://drive.google.com/file/d/${file.id}/view`;
+}

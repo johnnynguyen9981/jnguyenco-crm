@@ -3,12 +3,13 @@
 // All token handling is SERVER-SIDE ONLY. Tokens never touch the browser.
 // ─────────────────────────────────────────────────────────────────────────────
 import { google } from "googleapis";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 /** Scopes we request from the user during OAuth consent */
 export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/gmail.send",       // Send email as johnny.nguyen@jnguyen.co
   "https://www.googleapis.com/auth/calendar.events",  // Create/update calendar events
+  "https://www.googleapis.com/auth/drive",             // Upload files to Google Drive (full access needed for folder listing)
 ];
 
 /** Build an OAuth2 client from environment credentials */
@@ -116,6 +117,47 @@ export async function getAuthenticatedClient(userId: string) {
         updated_at:   new Date().toISOString(),
       })
       .eq("owner_id", userId);
+  }
+
+  return oauthClient;
+}
+
+/**
+ * Same as getAuthenticatedClient but uses the service-role Supabase client.
+ * Use this in public API routes that have no user session (e.g. /api/sign/[token]).
+ * Pass the booking's owner_id so we can look up their stored OAuth tokens.
+ */
+export async function getAuthenticatedClientByOwnerId(ownerId: string) {
+  const supabase = createServiceClient();
+
+  const { data: row, error } = await supabase
+    .from("google_tokens")
+    .select("access_token, refresh_token, token_expiry")
+    .eq("owner_id", ownerId)
+    .single();
+
+  if (error || !row) {
+    throw new Error("Google account not connected for this owner.");
+  }
+
+  const oauthClient = getOAuth2Client();
+  oauthClient.setCredentials({
+    access_token:  row.access_token,
+    refresh_token: row.refresh_token,
+  });
+
+  const expiryMs = new Date(row.token_expiry).getTime();
+  if (Date.now() >= expiryMs - 5 * 60 * 1000) {
+    const { credentials } = await oauthClient.refreshAccessToken();
+    oauthClient.setCredentials(credentials);
+    await supabase
+      .from("google_tokens")
+      .update({
+        access_token: credentials.access_token!,
+        token_expiry: new Date(credentials.expiry_date!).toISOString(),
+        updated_at:   new Date().toISOString(),
+      })
+      .eq("owner_id", ownerId);
   }
 
   return oauthClient;

@@ -1,5 +1,6 @@
 // app/(dashboard)/clients/[id]/page.tsx — Client detail page
 import { createClient } from "@/lib/supabase/server";
+import { getOwnerUserId, getCurrentTeamMember } from "@/lib/team";
 import { notFound } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
 import Link from "next/link";
@@ -26,6 +27,12 @@ export default async function ClientDetailPage({ params }: Params) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  const [ownerUserId, teamMember] = await Promise.all([
+    getOwnerUserId(),
+    getCurrentTeamMember(),
+  ]);
+  const showFinancials = teamMember?.role === "FOUNDER";
+
   const { data: client, error } = await supabase
     .from("clients")
     .select(`
@@ -40,7 +47,7 @@ export default async function ClientDetailPage({ params }: Params) {
       )
     `)
     .eq("id", params.id)
-    .eq("owner_id", user!.id)
+    .eq("owner_id", ownerUserId)
     .single();
 
   if (error || !client) {
@@ -167,14 +174,18 @@ export default async function ClientDetailPage({ params }: Params) {
                   <span className="text-gray-600">Total bookings</span>
                   <span className="font-semibold">{bookings.length}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Invoices</span>
-                  <span className="font-semibold">{invoices.length}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Revenue (paid)</span>
-                  <span className="font-semibold text-green-600">{formatCurrency(totalRevenue)}</span>
-                </div>
+                {showFinancials && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Invoices</span>
+                    <span className="font-semibold">{invoices.length}</span>
+                  </div>
+                )}
+                {showFinancials && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Revenue (paid)</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(totalRevenue)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Client since</span>
                   <span className="font-semibold">{formatDate(client.created_at)}</span>
@@ -182,8 +193,8 @@ export default async function ClientDetailPage({ params }: Params) {
               </div>
             </div>
 
-            {/* Generate Contract — pre-filled from most recent booking */}
-            <FillContractButton
+            {/* Generate Contract — founder only */}
+            {showFinancials && <FillContractButton
               clientId={client.id}
               clientName={`${client.first_name ?? ""} ${client.last_name ?? ""}`.trim()}
               clientEmail={client.email ?? ""}
@@ -197,17 +208,17 @@ export default async function ClientDetailPage({ params }: Params) {
               totalFee={latestBooking?.quoted_total ?? undefined}
               depositAmount={latestBooking?.deposit_amount ?? undefined}
               packageName={latestBooking?.packages?.name ?? ""}
-            />
+            />}
 
-            {/* Delete client */}
-            <div className="card p-4">
+            {/* Delete client — founder only */}
+            {showFinancials && <div className="card p-4">
               <p className="text-xs text-gray-400 mb-3">Danger zone — this cannot be undone.</p>
               <DeleteClientButton
                 clientId={client.id}
                 clientName={`${client.first_name ?? ""} ${client.last_name ?? ""}`.trim()}
                 variant="button"
               />
-            </div>
+            </div>}
           </div>
 
           {/* ── Right column: bookings + invoices ────────── */}
@@ -233,7 +244,7 @@ export default async function ClientDetailPage({ params }: Params) {
                       <th className="table-header">Service</th>
                       <th className="table-header hidden sm:table-cell">Venue</th>
                       <th className="table-header">Status</th>
-                      <th className="table-header text-right">Quoted</th>
+                      {showFinancials && <th className="table-header text-right">Quoted</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -258,9 +269,11 @@ export default async function ClientDetailPage({ params }: Params) {
                             {getBookingStatusBadge(b.status).label}
                           </span>
                         </td>
-                        <td className="table-cell text-right font-semibold text-sm">
-                          {formatCurrency(b.quoted_total)}
-                        </td>
+                        {showFinancials && (
+                          <td className="table-cell text-right font-semibold text-sm">
+                            {formatCurrency(b.quoted_total)}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -268,8 +281,8 @@ export default async function ClientDetailPage({ params }: Params) {
               )}
             </div>
 
-            {/* Invoices */}
-            <div className="card p-0 overflow-hidden">
+            {/* Invoices — founder only */}
+            {showFinancials && <div className="card p-0 overflow-hidden">
               <div className="flex items-center justify-between px-5 py-3 border-b border-brand-pale-blue">
                 <h3 className="font-semibold text-brand-navy flex items-center gap-2">
                   <FileText size={16} className="text-brand-teal" /> Invoices
@@ -320,7 +333,7 @@ export default async function ClientDetailPage({ params }: Params) {
                   </tbody>
                 </table>
               )}
-            </div>
+            </div>}
 
           </div>
         </div>

@@ -190,13 +190,29 @@ export function ContractCard({
       {/* ── SIGNED actions ── */}
       {status === "SIGNED" && (
         <div className="space-y-3">
-          {/* Signed copy link */}
+          {/* Download button — auto-populated from Supabase Storage after e-signing */}
+          {(contractSignedUrl || signedUrl) ? (
+            <a
+              href={contractSignedUrl || signedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-brand-teal text-white text-sm font-semibold hover:bg-brand-navy transition-colors"
+            >
+              📄 Download Signed Contract
+            </a>
+          ) : (
+            <p className="text-xs text-gray-400 text-center">
+              Signed PDF was emailed to both parties. Paste a link below to store it here.
+            </p>
+          )}
+
+          {/* Manual URL fallback */}
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-gray-600">Signed copy (Drive link)</p>
+            <p className="text-xs font-medium text-gray-500">Store a link manually</p>
             <div className="flex gap-2">
               <input
                 className="input flex-1 py-1.5 text-xs"
-                placeholder="Paste Google Drive URL of signed PDF…"
+                placeholder="Paste a URL to the signed PDF…"
                 value={signedUrl}
                 onChange={e => { setSignedUrl(e.target.value); setUrlSaved(false); }}
               />
@@ -208,16 +224,6 @@ export function ContractCard({
                 {loading === "contract_signed_url" ? "…" : urlSaved ? "Saved ✓" : "Save"}
               </button>
             </div>
-            {(contractSignedUrl || signedUrl) && (
-              <a
-                href={contractSignedUrl || signedUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-brand-teal hover:underline font-medium"
-              >
-                📄 View Signed Contract ↗
-              </a>
-            )}
           </div>
 
           <button

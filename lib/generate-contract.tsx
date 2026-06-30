@@ -363,12 +363,13 @@ const SummaryCard = ({ d, pkg, svc, total, deposit, remaining, listPrice, discou
 );
 
 // ─── Contract document ─────────────────────────────────────
-const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSignedAt }: {
+interface ContractDocProps {
   d: EnquiryData;
   signatureDataUri: string | null;
   clientSignatureDataUri?: string | null;
   clientSignedAt?: string | null;
-}) => {
+}
+const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSignedAt }: ContractDocProps) => {
   const pkg       = resolvePackage(d);
   const svc       = resolveServices(d);
 
@@ -877,4 +878,25 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         </View>
 
       </Page>
-    </Documen
+    </Document>
+  );
+};
+
+// ─── Export ────────────────────────────────────────────────
+export async function generateContractPDF(
+  data: EnquiryData,
+  opts?: { clientSignatureDataUri?: string; clientSignedAt?: string }
+): Promise<Buffer> {
+  const sigPath = path.join(process.cwd(), "public", "signature.png");
+  const sigDataUri = fs.existsSync(sigPath)
+    ? "data:image/png;base64," + fs.readFileSync(sigPath).toString("base64")
+    : null;
+  return renderToBuffer(
+    <ContractDoc
+      d={data}
+      signatureDataUri={sigDataUri}
+      clientSignatureDataUri={opts?.clientSignatureDataUri}
+      clientSignedAt={opts?.clientSignedAt}
+    />
+  ) as Promise<Buffer>;
+}
