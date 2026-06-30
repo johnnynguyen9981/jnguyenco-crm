@@ -241,11 +241,15 @@ function QuoteDoc({ d }: { d: QuoteData }) {
             <Text style={s.bankTitle}>Bank Transfer Details</Text>
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>Account Name</Text>
-              <Text style={s.bankValue}>JNguyen Co.</Text>
+              <Text style={s.bankValue}>Thanh Nhan Nguyen</Text>
             </View>
             <View style={s.bankRow}>
-              <Text style={s.bankLabel}>Bank</Text>
-              <Text style={s.bankValue}>Please request BSB &amp; Account via email</Text>
+              <Text style={s.bankLabel}>BSB</Text>
+              <Text style={s.bankValue}>082-902</Text>
+            </View>
+            <View style={s.bankRow}>
+              <Text style={s.bankLabel}>Account Number</Text>
+              <Text style={s.bankValue}>890398777</Text>
             </View>
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>Reference</Text>

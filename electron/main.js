@@ -87,18 +87,23 @@ function startServer() {
 
 // ── 3. Poll until the server responds ────────────────────────────────────────
 function waitForServer(callback, attempts = 0) {
-  const req = http.get(`http://127.0.0.1:${PORT}`, (res) => {
+  const req = http.get(`http://localhost:${PORT}`, (res) => {
     res.destroy();
     callback();
   });
-  req.on("error", () => {
+  let done = false;
+  const next = () => {
+    if (done) return;
+    done = true;
     if (attempts < 80) {
       setTimeout(() => waitForServer(callback, attempts + 1), 500);
     } else {
       console.error("[electron] Server did not start within 40s — loading anyway");
       callback();
     }
-  });
+  };
+  req.on("error", next);
+  req.on("close", next); // Node 18+: destroy() emits close, not always error
   req.setTimeout(1000, () => req.destroy());
 }
 
@@ -180,8 +185,21 @@ function createWindow() {
 
   // Navigation handler:
   // - Auth/OAuth URLs → stay in Electron window (cookies set here)
+  // - Vercel OAuth callback → rewrite to localhost so local server handles it
+  //   (happens when localhost isn't whitelisted in Supabase redirect URLs)
   // - Everything else (Drive, Instagram, external sites) → open in system browser
   mainWindow.webContents.on("will-navigate", (event, url) => {
+    // If Supabase sent the OAuth callback to the Vercel deployment instead of
+    // localhost (because localhost isn't in the Supabase allowed-redirect list),
+    // intercept and rewrite the origin so the local server handles the session.
+    const VERCEL_ORIGIN = "https://jnguyenco-crm.vercel.app";
+    if (url.startsWith(VERCEL_ORIGIN + "/api/auth/callback") ||
+        url.startsWith(VERCEL_ORIGIN + "/auth/callback")) {
+      event.preventDefault();
+      const localUrl = url.replace(VERCEL_ORIGIN, APP_ORIGIN);
+      mainWindow.loadURL(localUrl);
+      return;
+    }
     if (!isAuthUrl(url)) {
       event.preventDefault();
       shell.openExternal(url);

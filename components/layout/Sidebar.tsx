@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, CalendarDays,
-  FileText, FolderOpen, Settings, LogOut, ClipboardList, Inbox,
+  FileText, FolderOpen, Settings, LogOut, ClipboardList, Inbox, Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -18,7 +18,7 @@ interface TeamMember {
 }
 
 // Nav items only the FOUNDER (owner) can see
-const FOUNDER_ONLY_HREFS = new Set(["/enquiries", "/invoices", "/documents", "/forms", "/settings"]);
+const FOUNDER_ONLY_HREFS = new Set(["/enquiries", "/invoices", "/expenses", "/documents", "/forms", "/settings"]);
 
 function FlameMark({ size = 40, color = "#a58d66" }: { size?: number; color?: string }) {
   return (
@@ -33,14 +33,15 @@ function FlameMark({ size = 40, color = "#a58d66" }: { size?: number; color?: st
 }
 
 const navItems = [
-  { href: "/",            label: "Dashboard",  icon: LayoutDashboard },
-  { href: "/enquiries",   label: "Enquiries",  icon: Inbox },
-  { href: "/clients",     label: "Clients",    icon: Users },
-  { href: "/bookings",    label: "Bookings",   icon: CalendarDays },
-  { href: "/invoices",   label: "Invoices",       icon: FileText },
-  { href: "/documents",  label: "Documents",      icon: FolderOpen },
+  { href: "/",           label: "Dashboard",         icon: LayoutDashboard },
+  { href: "/enquiries",  label: "Enquiries",         icon: Inbox },
+  { href: "/clients",    label: "Clients",           icon: Users },
+  { href: "/bookings",   label: "Bookings",          icon: CalendarDays },
+  { href: "/invoices",   label: "Invoices",          icon: FileText },
+  { href: "/expenses",   label: "Expenses",          icon: Receipt },
+  { href: "/documents",  label: "Documents",         icon: FolderOpen },
   { href: "/forms",      label: "Forms / Templates", icon: ClipboardList },
-  { href: "/settings",   label: "Settings",       icon: Settings },
+  { href: "/settings",   label: "Settings",          icon: Settings },
 ];
 
 export function Sidebar({ role: roleProp }: { role?: string }) {
@@ -158,9 +159,7 @@ export function Sidebar({ role: roleProp }: { role?: string }) {
       <div className="border-t border-white/10 px-3 py-3">
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg
-                     text-sm font-medium text-white/45 hover:bg-white/[0.07] hover:text-white/85
-                     transition-all duration-150"
+          className={cn("flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-white/45 hover:bg-white/[0.07] hover:text-white/85 transition-all duration-150")}
         >
           <LogOut size={16} className="shrink-0" />
           Sign out

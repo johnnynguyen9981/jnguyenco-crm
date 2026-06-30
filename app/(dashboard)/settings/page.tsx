@@ -1,8 +1,15 @@
 // app/(dashboard)/settings/page.tsx
-// Settings page — Google integration status, connect/disconnect, business info.
+// Settings page — Google integration status, connect/disconnect, business info, team.
 import { createClient } from "@/lib/supabase/server";
 import { isGoogleConnected } from "@/lib/google/auth";
 import { GoogleConnectButton } from "./GoogleConnectButton";
+
+const ROLE_LABEL: Record<string, string> = {
+  FOUNDER:      "Founder",
+  PHOTOGRAPHER: "Photographer",
+  VIDEOGRAPHER: "Videographer",
+  BOTH:         "Photographer & Videographer",
+};
 
 export default async function SettingsPage({ searchParams }: { searchParams: { google?: string; reason?: string } }) {
   const supabase = await createClient();
@@ -12,6 +19,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: { g
   if (!user) return null;
 
   const googleConnected = await isGoogleConnected(user.id);
+
+  // Team members
+  const { data: teamMembers } = await supabase
+    .from("team_members")
+    .select("id, full_name, title, role, email, user_id, is_active")
+    .order("created_at");
   const googleStatus = searchParams.google;  // "connected" | "denied" | "error"
   const googleReason = searchParams.reason ?? "";
 
@@ -136,6 +149,48 @@ export default async function SettingsPage({ searchParams }: { searchParams: { g
             </p>
           </div>
         </div>
+      </div>
+
+      {/* ── Team Members ── */}
+      <div className="card space-y-4">
+        <div>
+          <h2 className="text-base font-semibold text-brand-navy">Team</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Team members can log in and access all CRM data. Run the migration first to enable multi-user access.
+          </p>
+        </div>
+        <div className="divide-y divide-gray-100">
+          {(teamMembers ?? []).map((m) => (
+            <div key={m.id} className="flex items-center justify-between py-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-brand-navy/10 flex items-center justify-center shrink-0">
+                  <span className="text-brand-navy text-sm font-bold">
+                    {m.full_name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-brand-navy">{m.full_name}</p>
+                  <p className="text-xs text-gray-500">{m.title ?? ROLE_LABEL[m.role] ?? m.role}</p>
+                  <p className="text-xs text-gray-400">{m.email}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {m.user_id
+                  ? <span className="text-xs font-medium text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">Active</span>
+                  : <span className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Pending login</span>
+                }
+                {m.role === "FOUNDER" && (
+                  <span className="text-xs font-medium text-brand-navy/60 bg-brand-navy/5 border border-brand-navy/10 px-2 py-0.5 rounded-full">Founder</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400">
+          To add team members, update their emails in{" "}
+          <code className="bg-gray-100 px-1 py-0.5 rounded">supabase/migrations/20260625_add_team_support.sql</code>{" "}
+          and run it in the Supabase SQL Editor. Team members show as <strong>Active</strong> once they sign in.
+        </p>
       </div>
 
       {/* ── Business Info ── */}

@@ -25,12 +25,10 @@ export interface Client {
   instagram_handle?: string;
   referral_source?: ReferralSource;
   referral_notes?: string;
-  // Wedding partner
   partner_first?: string;
   partner_last?: string;
   partner_email?: string;
   partner_phone?: string;
-  // Google Drive
   gdrive_folder_id?: string;
   created_at: string;
   updated_at: string;
@@ -66,8 +64,8 @@ export interface Booking {
   package_id?: string;
   service_type: ServiceType;
   status: BookingStatus;
-  event_date: string;           // 'YYYY-MM-DD'
-  event_start_time?: string;    // 'HH:MM'
+  event_date: string;
+  event_start_time?: string;
   event_end_time?: string;
   venue_name?: string;
   venue_address?: string;
@@ -178,7 +176,7 @@ export interface Deliverable {
   updated_at: string;
 }
 
-// ── Google Token (server-only, never exposed to client) ───────────────────────
+// ── Google Token ──────────────────────────────────────────────────────────────
 export interface GoogleToken {
   id: string;
   owner_id: string;
@@ -189,7 +187,7 @@ export interface GoogleToken {
   updated_at: string;
 }
 
-// ── View types (returned from Supabase views) ─────────────────────────────────
+// ── View types ────────────────────────────────────────────────────────────────
 export interface DashboardBooking {
   id: string;
   event_date: string;
@@ -217,13 +215,51 @@ export interface InvoiceAging {
   client_email: string;
 }
 
+// ── Expenses ──────────────────────────────────────────────────────────────────
+export type ExpenseCategory =
+  | 'SOFTWARE_SUBSCRIPTIONS'
+  | 'EQUIPMENT_GEAR'
+  | 'VEHICLE_TRAVEL'
+  | 'MARKETING_PROFESSIONAL';
+
+export type RecurringFrequency = 'MONTHLY' | 'ANNUAL';
+
+export interface Expense {
+  id: string;
+  owner_id: string;
+  title: string;
+  vendor?: string;
+  category: ExpenseCategory;
+  amount: number;
+  date: string;
+  notes?: string;
+  is_recurring: boolean;
+  recurring_frequency?: RecurringFrequency;
+  last_generated_date?: string;
+  gdrive_file_id?: string;
+  gdrive_file_name?: string;
+  gdrive_file_url?: string;
+  financial_year: string;
+  parent_expense_id?: string;
+  created_at: string;
+}
+
+export type ExpenseInsert = Omit<Expense, 'id' | 'owner_id' | 'created_at'>;
+export type ExpenseUpdate = Partial<ExpenseInsert>;
+
 // ── Joined/enriched types for UI ──────────────────────────────────────────────
 export interface BookingWithClient extends Booking {
   clients: Pick<Client, 'first_name' | 'last_name' | 'email' | 'phone'>;
-  packages?: Pick<Package, 'name' | 'base_price'>;
 }
 
 export interface InvoiceWithClient extends Invoice {
+  clients: Pick<Client, 'first_name' | 'last_name' | 'email'>;
+  bookings: Pick<Booking, 'event_date' | 'service_type'>;
+}
+
+// Extended version used by PDF templates
+export interface InvoiceWithDetails extends Invoice {
   clients: Pick<Client, 'first_name' | 'last_name' | 'email' | 'address'>;
+  bookings: Pick<Booking, 'event_date' | 'service_type'>;
   invoice_line_items: InvoiceLineItem[];
 }

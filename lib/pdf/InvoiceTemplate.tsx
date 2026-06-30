@@ -6,7 +6,7 @@ import {
 } from "@react-pdf/renderer";
 import fs from "fs";
 import path from "path";
-import type { InvoiceWithClient } from "@/lib/supabase/types";
+import type { InvoiceWithClient, InvoiceWithDetails } from "@/lib/supabase/types";
 
 function getLogoDataUri(): string {
   try {
@@ -290,7 +290,7 @@ const S = StyleSheet.create({
 
 // ── Component ─────────────────────────────────────────────────────────────────
 interface InvoiceTemplateProps {
-  invoice:  InvoiceWithClient;
+  invoice:  InvoiceWithDetails;
   abn?:     string;
   bankName?:    string;
   bsb?:         string;
@@ -302,9 +302,9 @@ export function InvoiceTemplate({
   invoice,
   abn           = process.env.NEXT_PUBLIC_BUSINESS_ABN ?? "",
   bankName      = "Commonwealth Bank",
-  bsb           = "XXX-XXX",
-  accountNumber = "XXXXXXXXXX",
-  accountName   = "JNguyen Co.",
+  bsb           = "082-902",
+  accountNumber = "890398777",
+  accountName   = "Thanh Nhan Nguyen",
 }: InvoiceTemplateProps) {
   const client    = invoice.clients;
   const lineItems = invoice.invoice_line_items ?? [];

@@ -54,11 +54,21 @@ const inputCls = [
 
 const labelCls = "block text-xs font-semibold text-gray-600 mb-1";
 
+const TODAY = new Date().toISOString().split("T")[0];
+
+const WEDDING_PACKAGES  = new Set(["mini_wedding", "full_day_essential", "full_day_premium"]);
+const NEEDS_PARTNER     = (eventType: string, pkg: string) =>
+  eventType.toLowerCase().includes("wedding") || eventType.toLowerCase().includes("elopement") ||
+  WEDDING_PACKAGES.has(pkg);
+const SERVICES_INFERRED = (pkg: string) => WEDDING_PACKAGES.has(pkg);
+const BUDGET_NEEDED     = (pkg: string) => !pkg || pkg === "not_sure";
+const REFERRAL_HAS_NOTES = (src: string) => src === "WORD_OF_MOUTH" || src === "OTHER";
+
 function SectionHeader({ num, title, note }: { num: string; title: string; note?: string }) {
   return (
     <div className="border-b border-[#c0d5d6] pb-2 mb-4">
       <h2 className="text-xs font-bold text-[#407e8c] uppercase tracking-widest">
-        {num} — {title}
+        {num ? `${num} — ${title}` : title}
       </h2>
       {note && <p className="text-xs text-gray-400 mt-0.5">{note}</p>}
     </div>
@@ -256,17 +266,20 @@ export default function EnquirePage() {
 
           <div>
             <label className={labelCls}>How did you hear about me?</label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className={REFERRAL_HAS_NOTES(form.referral_source) ? "grid grid-cols-2 gap-3" : ""}>
               <select className={inputCls} value={form.referral_source} onChange={e => set("referral_source", e.target.value)}>
                 <option value="">Select source...</option>
                 {REFERRAL_OPTIONS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
               </select>
-              <input className={inputCls} value={form.referral_notes} onChange={e => set("referral_notes", e.target.value)} placeholder="e.g. Referred by Sarah & Tom" />
+              {REFERRAL_HAS_NOTES(form.referral_source) && (
+                <input className={inputCls} value={form.referral_notes} onChange={e => set("referral_notes", e.target.value)} placeholder="e.g. Referred by Sarah & Tom" />
+              )}
             </div>
           </div>
         </div>
 
-        {/* Partner / Spouse */}
+        {/* Partner / Spouse — only for weddings / couples */}
+        {NEEDS_PARTNER(form.event_type, form.selected_package) && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <SectionHeader num="" title="Partner / Spouse" note="Optional — fill in for weddings or couples sessions" />
           <div className="grid grid-cols-2 gap-4">
@@ -288,6 +301,7 @@ export default function EnquirePage() {
             </div>
           </div>
         </div>
+        )}
 
         {/* 02 — Event Details */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
@@ -304,7 +318,7 @@ export default function EnquirePage() {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className={labelCls}>Event Date</label>
-              <input type="date" className={inputCls} value={form.event_date} onChange={e => set("event_date", e.target.value)} />
+              <input type="date" min={TODAY} className={inputCls} value={form.event_date} onChange={e => set("event_date", e.target.value)} />
             </div>
             <div>
               <label className={labelCls}>Start Time</label>
@@ -350,7 +364,8 @@ export default function EnquirePage() {
           </div>
         </div>
 
-        {/* 04 — Services */}
+        {/* 04 — Services (hidden for wedding packages — photo+video already included) */}
+        {!SERVICES_INFERRED(form.selected_package) && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
           <SectionHeader num="04" title="Services Required" />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -364,8 +379,10 @@ export default function EnquirePage() {
             ))}
           </div>
         </div>
+        )}
 
-        {/* 05 — Budget */}
+        {/* 05 — Budget (only shown when no specific package selected) */}
+        {BUDGET_NEEDED(form.selected_package) && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
           <SectionHeader num="05" title="Approximate Budget" note="Helps me tailor the right package for you." />
           <div className="grid grid-cols-2 gap-3">
@@ -379,6 +396,7 @@ export default function EnquirePage() {
             ))}
           </div>
         </div>
+        )}
 
         {/* 06 — Message */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">

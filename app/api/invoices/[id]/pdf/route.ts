@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { InvoiceTemplate } from "@/lib/pdf/InvoiceTemplate";
 import { createElement } from "react";
-import type { InvoiceWithClient } from "@/lib/supabase/types";
+import type { InvoiceWithDetails } from "@/lib/supabase/types";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 
 type Params = { params: { id: string } };
@@ -42,7 +42,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   try {
     // Render PDF to a Node.js Buffer using renderToBuffer
     const pdfBuffer = await renderToBuffer(
-      createElement(InvoiceTemplate, { invoice: invoice as InvoiceWithClient }) as any
+      createElement(InvoiceTemplate, { invoice: invoice as unknown as InvoiceWithDetails }) as any
     );
 
     // Upload to Google Drive (non-fatal background task)

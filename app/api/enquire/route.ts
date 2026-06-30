@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function stripBOM(s: string | undefined): string {
   if (!s) return "";
   return s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
@@ -25,7 +27,7 @@ function toServiceType(label: string): "WEDDING" | "EVENT" | "PORTRAIT" {
 }
 
 // Notification email to photographer
-function buildNotificationHtml(d: Record<string, string>): string {
+function buildNotificationHtml(d: Record<string, string>, emailFailed?: boolean): string {
   const name    = (d.first_name + " " + d.last_name).trim();
   const partner = d.partner_first ? (d.partner_first + " " + d.partner_last).trim() : null;
   const pkg     = d.selected_package ? d.selected_package.replace(/_/g, " ") : "Not selected";
@@ -34,7 +36,8 @@ function buildNotificationHtml(d: Record<string, string>): string {
 
   return [
     "<div style='font-family:sans-serif;max-width:600px;color:#1a1a1a'>",
-    "<div style='background:#083a4f;padding:20px 24px;border-radius:8px 8px 0 0;text-align:left'>",
+    emailFailed ? "<div style='background:#c0392b;color:#fff;font-size:12px;padding:8px 24px;border-radius:8px 8px 0 0;text-align:center'>⚠️ Client confirmation email failed to send — follow up manually</div>" : "",
+    "<div style='background:#1F2A44;padding:20px 24px;border-radius:" + (emailFailed ? "0" : "8px 8px") + " 0 0;text-align:left'>",
     "<img src='https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png' alt='JNguyen Co.' style='height:50px;width:auto;display:block;margin-bottom:10px' />",
     "<h1 style='color:#fff;font-size:18px;margin:0'>New Enquiry Received</h1>",
     "</div>",
@@ -77,7 +80,7 @@ function buildNotificationHtml(d: Record<string, string>): string {
 function buildConfirmationHtml(firstName: string, email: string): string {
   return [
     "<div style='font-family:sans-serif;max-width:600px;color:#1a1a1a'>",
-    "<div style='background:#083a4f;padding:20px 24px;border-radius:8px 8px 0 0;text-align:left'>",
+    "<div style='background:#1F2A44;padding:20px 24px;border-radius:8px 8px 0 0;text-align:left'>",
     "<img src='https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png' alt='JNguyen Co.' style='height:50px;width:auto;display:block;margin-bottom:10px' />",
     "<h1 style='color:#fff;font-size:18px;margin:0'>We have received your enquiry!</h1>",
     "</div>",
@@ -122,72 +125,69 @@ export async function POST(req: NextRequest) {
   if (!firstName || !lastName || !email) {
     return NextResponse.json({ error: "First name, last name and email are required." }, { status: 400 });
   }
+  if (!EMAIL_RE.test(email)) {
+    return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
+  }
 
   const admin = adminClient();
 
-  // 1. Create client record
+  // 1. Upsert client — avoid duplicates on resubmit
   const { data: client, error: clientErr } = await admin
     .from("clients")
-    .insert({
-      first_name:       firstName,
-      last_name:        lastName,
-      email,
-      phone:            body.phone            || null,
-      instagram_handle: body.instagram_handle || null,
-      referral_source:  body.referral_source  || null,
-      referral_notes:   body.referral_notes   || null,
-      partner_first:    body.partner_first    || null,
-      partner_last:     body.partner_last     || null,
-      partner_email:    body.partner_email    || null,
-      partner_phone:    body.partner_phone    || null,
-      // Public enquiries get no owner_id — will be claimed by photographer on first view
-    })
+    .upsert(
+      {
+        first_name:       firstName,
+        last_name:        lastName,
+        email,
+        phone:            body.phone            || null,
+        instagram_handle: body.instagram_handle || null,
+        referral_source:  body.referral_source  || null,
+        referral_notes:   body.referral_notes   || null,
+        partner_first:    body.partner_first    || null,
+        partner_last:     body.partner_last     || null,
+        partner_email:    body.partner_email    || null,
+        partner_phone:    body.partner_phone    || null,
+      },
+      { onConflict: "email", ignoreDuplicates: false }
+    )
     .select("id")
     .single();
 
   if (clientErr || !client) {
-    console.error("Client insert error:", clientErr);
+    console.error("Client upsert error:", clientErr);
     return NextResponse.json({ error: "Failed to save your enquiry. Please try again." }, { status: 500 });
   }
 
-  // 2. Create inquiry booking (if event date or type provided)
-  if (body.event_date || body.event_type) {
-    const serviceType = toServiceType(body.event_type ?? "");
-    const noteParts: string[] = [];
-    if (body.event_type)          noteParts.push("Event type: " + body.event_type);
-    if (body.guest_count)          noteParts.push("Est. guests: " + body.guest_count);
-    if (body.selected_package)     noteParts.push("Package interest: " + body.selected_package.replace(/_/g, " "));
-    if (body.services_required)    noteParts.push("Services: " + body.services_required);
-    if (body.budget_range)         noteParts.push("Budget: " + body.budget_range);
-    if (body.referral_source)      noteParts.push("Referral: " + body.referral_source + (body.referral_notes ? " — " + body.referral_notes : ""));
+  // 2. Always create an inquiry booking so every submission is visible in the CRM
+  const serviceType = toServiceType(body.event_type ?? "");
+  const noteParts: string[] = [];
+  if (body.event_type)       noteParts.push("Event type: " + body.event_type);
+  if (body.guest_count)      noteParts.push("Est. guests: " + body.guest_count);
+  if (body.selected_package) noteParts.push("Package interest: " + body.selected_package.replace(/_/g, " "));
+  if (body.services_required)noteParts.push("Services: " + body.services_required);
+  if (body.budget_range)     noteParts.push("Budget: " + body.budget_range);
+  if (body.referral_source)  noteParts.push("Referral: " + body.referral_source + (body.referral_notes ? " — " + body.referral_notes : ""));
 
-    await admin.from("bookings").insert({
-      client_id:        client.id,
-      service_type:     serviceType,
-      status:           "INQUIRY",
-      event_date:       body.event_date        || null,
-      event_start_time: body.event_start_time  || null,
-      event_end_time:   body.event_end_time    || null,
-      venue_name:       body.venue_name        || null,
-      venue_address:    body.venue_suburb      || null,
-      special_requests: body.special_requests  || null,
-      internal_notes:   noteParts.length ? noteParts.join("\n") : null,
-    });
+  const { error: bookingErr } = await admin.from("bookings").insert({
+    client_id:        client.id,
+    service_type:     serviceType,
+    status:           "INQUIRY",
+    event_date:       body.event_date        || null,
+    event_start_time: body.event_start_time  || null,
+    event_end_time:   body.event_end_time    || null,
+    venue_name:       body.venue_name        || null,
+    venue_address:    body.venue_suburb      || null,
+    special_requests: body.special_requests  || null,
+    internal_notes:   noteParts.length ? noteParts.join("\n") : null,
+  });
+
+  if (bookingErr) {
+    console.error("Booking insert error:", bookingErr);
+    // Non-fatal — client record exists; log but continue so emails still send
   }
 
-  // 3. Send notification to photographer (non-fatal)
-  try {
-    const notifyTo = process.env.SMTP_USER ?? "johnny.nguyen@jnguyen.co";
-    await sendEmailViaSMTP({
-      to:      notifyTo,
-      subject: "New Enquiry: " + firstName + " " + lastName + (body.event_date ? " — " + body.event_date : ""),
-      html:    buildNotificationHtml(body),
-    });
-  } catch (e) {
-    console.error("Notification email failed:", e);
-  }
-
-  // 4. Send confirmation to client (non-fatal)
+  // 3. Send confirmation to client first so we know if it failed before notifying photographer
+  let clientEmailFailed = false;
   try {
     await sendEmailViaSMTP({
       to:      email,
@@ -196,6 +196,19 @@ export async function POST(req: NextRequest) {
     });
   } catch (e) {
     console.error("Confirmation email failed:", e);
+    clientEmailFailed = true;
+  }
+
+  // 4. Notify photographer — flag in email if client confirmation failed
+  try {
+    const notifyTo = process.env.SMTP_USER ?? "johnny.nguyen@jnguyen.co";
+    await sendEmailViaSMTP({
+      to:      notifyTo,
+      subject: "New Enquiry: " + firstName + " " + lastName + (body.event_date ? " — " + body.event_date : ""),
+      html:    buildNotificationHtml(body, clientEmailFailed),
+    });
+  } catch (e) {
+    console.error("Notification email failed:", e);
   }
 
   return NextResponse.json({ success: true, clientId: client.id });

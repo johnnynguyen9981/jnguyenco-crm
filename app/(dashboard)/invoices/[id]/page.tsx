@@ -165,8 +165,8 @@ export default async function InvoiceDetailPage({ params }: Props) {
             {/* Payment details */}
             <div className="border border-gray-200 rounded-lg p-4 text-sm space-y-1">
               <p className="font-semibold text-brand-navy mb-2">Payment Details</p>
-              <p className="text-gray-600">Bank Transfer: JNguyen Co.</p>
-              <p className="text-gray-600">BSB: 062-000 · Account: 12345678</p>
+              <p className="text-gray-600">Account Name: Thanh Nhan Nguyen</p>
+              <p className="text-gray-600">BSB: 082-902 · Account: 890398777</p>
               <p className="text-gray-400 text-xs mt-2">Reference: {invoice.invoice_number}</p>
             </div>
           </div>

@@ -72,6 +72,7 @@ export function isFounder(role: TeamRole | string | null | undefined): boolean {
 /** Nav paths that VIDEOGRAPHER / PHOTOGRAPHER are redirected away from */
 export const STAFF_RESTRICTED_PATHS = [
   "/invoices",
+  "/expenses",
   "/settings",
   "/documents",
   "/forms",

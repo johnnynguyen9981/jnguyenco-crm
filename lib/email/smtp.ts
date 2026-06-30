@@ -31,13 +31,15 @@ function createTransporter() {
     );
   }
 
-  // Gmail uses port 465 with SSL; everything else (587) uses STARTTLS
-  const isGmail = host.includes("gmail");
+  // port 465 → implicit SSL (secure: true, no STARTTLS upgrade needed)
+  // port 587 → STARTTLS (secure: false, requireTLS: true)
+  // Works for both Gmail and GoDaddy (and most other providers)
+  const useSSL = port === 465;
   return nodemailer.createTransport({
     host,
     port,
-    secure: isGmail && port === 465,
-    requireTLS: !isGmail || port === 587,
+    secure: useSSL,
+    requireTLS: !useSSL,
     auth: { user, pass },
   });
 }

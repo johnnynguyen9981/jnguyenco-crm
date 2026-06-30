@@ -35,6 +35,16 @@ const REFERRAL_OPTIONS = [
 const inp = "w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#407e8c]/40 focus:border-[#407e8c] transition-colors";
 const lbl = "block text-xs font-semibold text-gray-600 mb-1";
 
+const TODAY = new Date().toISOString().split("T")[0];
+
+const WEDDING_PACKAGES = new Set(["mini_wedding", "full_day_essential", "full_day_premium"]);
+const NEEDS_PARTNER    = (eventType: string, pkg: string) =>
+  eventType.toLowerCase().includes("wedding") || eventType.toLowerCase().includes("elopement") ||
+  WEDDING_PACKAGES.has(pkg);
+const SERVICES_INFERRED = (pkg: string) => WEDDING_PACKAGES.has(pkg); // wedding pkgs include both
+const BUDGET_NEEDED     = (pkg: string) => !pkg || pkg === "not_sure";
+const REFERRAL_HAS_NOTES = (src: string) => src === "WORD_OF_MOUTH" || src === "OTHER";
+
 function SectionHeader({ num, title, note }: { num: string; title: string; note?: string }) {
   return (
     <div className="border-b border-[#c0d5d6] pb-2 mb-4">
@@ -155,17 +165,20 @@ export default function EnquireEmbedPage() {
           <div><label className={lbl}>Instagram Handle <span className="text-gray-400 font-normal">(optional)</span></label><input className={inp} value={form.instagram_handle} onChange={e => set("instagram_handle", e.target.value)} placeholder="@handle" /></div>
           <div>
             <label className={lbl}>How did you hear about me?</label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className={REFERRAL_HAS_NOTES(form.referral_source) ? "grid grid-cols-2 gap-3" : ""}>
               <select className={inp} value={form.referral_source} onChange={e => set("referral_source", e.target.value)}>
                 <option value="">Select source...</option>
                 {REFERRAL_OPTIONS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
               </select>
-              <input className={inp} value={form.referral_notes} onChange={e => set("referral_notes", e.target.value)} placeholder="e.g. Referred by Sarah & Tom" />
+              {REFERRAL_HAS_NOTES(form.referral_source) && (
+                <input className={inp} value={form.referral_notes} onChange={e => set("referral_notes", e.target.value)} placeholder="e.g. Referred by Sarah & Tom" />
+              )}
             </div>
           </div>
         </div>
 
-        {/* Partner */}
+        {/* Partner — only for weddings / couples */}
+        {NEEDS_PARTNER(form.event_type, form.selected_package) && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <SectionHeader num="" title="Partner / Spouse" note="Optional — fill in for weddings or couples sessions" />
           <div className="grid grid-cols-2 gap-4">
@@ -175,6 +188,7 @@ export default function EnquireEmbedPage() {
             <div><label className={lbl}>Phone</label><input className={inp} value={form.partner_phone} onChange={e => set("partner_phone", e.target.value)} /></div>
           </div>
         </div>
+        )}
 
         {/* 02 Event Details */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
@@ -186,7 +200,7 @@ export default function EnquireEmbedPage() {
             </select>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <div><label className={lbl}>Event Date</label><input type="date" className={inp} value={form.event_date} onChange={e => set("event_date", e.target.value)} /></div>
+            <div><label className={lbl}>Event Date</label><input type="date" min={TODAY} className={inp} value={form.event_date} onChange={e => set("event_date", e.target.value)} /></div>
             <div><label className={lbl}>Start Time</label><input type="time" className={inp} value={form.event_start_time} onChange={e => set("event_start_time", e.target.value)} /></div>
             <div><label className={lbl}>End Time</label><input type="time" className={inp} value={form.event_end_time} onChange={e => set("event_end_time", e.target.value)} /></div>
           </div>
@@ -209,7 +223,8 @@ export default function EnquireEmbedPage() {
           </div>
         </div>
 
-        {/* 04 Services */}
+        {/* 04 Services — hidden for wedding packages (photo+video already included) */}
+        {!SERVICES_INFERRED(form.selected_package) && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
           <SectionHeader num="04" title="Services Required" />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -220,8 +235,10 @@ export default function EnquireEmbedPage() {
             ))}
           </div>
         </div>
+        )}
 
-        {/* 05 Budget */}
+        {/* 05 Budget — only shown when no specific package is selected */}
+        {BUDGET_NEEDED(form.selected_package) && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
           <SectionHeader num="05" title="Approximate Budget" note="Helps me tailor the right package for you." />
           <div className="grid grid-cols-2 gap-3">
@@ -232,6 +249,7 @@ export default function EnquireEmbedPage() {
             ))}
           </div>
         </div>
+        )}
 
         {/* 06 Message */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
