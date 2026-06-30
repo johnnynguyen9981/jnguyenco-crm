@@ -1,10 +1,11 @@
 "use client";
 // app/(dashboard)/expenses/ExpenseForm.tsx
 // Shared add/edit form — rendered inside a modal-style slide-in panel.
+// Drop a PDF or image invoice onto the upload zone to auto-fill all fields.
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, X, FileText, Loader2 } from "lucide-react";
+import { Upload, X, FileText, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { EXPENSE_CATEGORIES } from "@/lib/expenses";
 import type { Expense, ExpenseCategory } from "@/lib/supabase/types";
 
@@ -14,57 +15,138 @@ const CATEGORY_OPTIONS = (Object.keys(EXPENSE_CATEGORIES) as ExpenseCategory[]).
 }));
 
 interface Props {
-  expense?: Expense;         // present when editing
+  expense?: Expense;   // present when editing
   onClose: () => void;
 }
 
 export function ExpenseForm({ expense, onClose }: Props) {
-  const router = useRouter();
+  const router  = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Form fields
   const [title,     setTitle]     = useState(expense?.title     ?? "");
   const [vendor,    setVendor]    = useState(expense?.vendor    ?? "");
   const [category,  setCategory]  = useState<ExpenseCategory>(
     expense?.category ?? "SOFTWARE_SUBSCRIPTIONS"
   );
   const [amount,    setAmount]    = useState(String(expense?.amount ?? ""));
-  const [date,      setDate]      = useState(expense?.date ?? new Date().toISOString().split("T")[0]);
-  const [notes,     setNotes]     = useState(expense?.notes     ?? "");
+  const [date,      setDate]      = useState(
+    expense?.date ?? new Date().toISOString().split("T")[0]
+  );
+  const [notes,     setNotes]     = useState(expense?.notes ?? "");
   const [recurring, setRecurring] = useState(expense?.is_recurring ?? false);
 
   // Drive receipt state
-  const [receipt,       setReceipt]       = useState<File | null>(null);
-  const [uploadedFile,  setUploadedFile]  = useState<{
+  const [uploadedFile, setUploadedFile] = useState<{
     id: string; name: string; url: string;
   } | null>(
     expense?.gdrive_file_id
       ? { id: expense.gdrive_file_id, name: expense.gdrive_file_name ?? "", url: expense.gdrive_file_url ?? "" }
       : null
   );
-  const [uploading, setUploading] = useState(false);
-  const [saving,    setSaving]    = useState(false);
-  const [error,     setError]     = useState("");
+
+  // UI states
+  const [uploading,   setUploading]   = useState(false);
+  const [parsing,     setParsing]     = useState(false);
+  const [parseFilled, setParseFilled] = useState(false);
+  const [parseError,  setParseError]  = useState("");
+  const [isDragging,  setIsDragging]  = useState(false);
+  const [saving,      setSaving]      = useState(false);
+  const [error,       setError]       = useState("");
+
+  // ── Core file handler — triggered by drop or file input ───────────────────
+
+  const handleFile = useCallback(async (file: File) => {
+    setError("");
+    setParseError("");
+    setParseFilled(false);
+
+    // 1. Upload to Drive (in background)
+    const uploadPromise = (async () => {
+      setUploading(true);
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("date", date);
+        const res  = await fetch("/api/expenses/upload", { method: "POST", body: fd });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "Upload failed");
+        setUploadedFile({ id: json.fileId, name: json.fileName, url: json.fileUrl });
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setUploading(false);
+      }
+    })();
+
+    // 2. Parse with AI (in parallel)
+    const parsePromise = (async () => {
+      setParsing(true);
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res  = await fetch("/api/expenses/parse", { method: "POST", body: fd });
+        const json = await res.json();
+
+        if (res.status === 503) {
+          // API key not configured — silently skip, just upload
+          return;
+        }
+        if (!res.ok) {
+          setParseError("Couldn't auto-fill — please fill in manually.");
+          return;
+        }
+
+        // Auto-fill fields (only override blanks for safety when editing)
+        const isNew = !expense;
+        if (json.title    && (isNew || !title))    setTitle(json.title);
+        if (json.vendor   && (isNew || !vendor))   setVendor(json.vendor);
+        if (json.amount   && (isNew || !amount))   setAmount(String(json.amount));
+        if (json.date     && (isNew || !date || date === new Date().toISOString().split("T")[0]))
+                                                    setDate(json.date);
+        if (json.category && (isNew || category === "SOFTWARE_SUBSCRIPTIONS"))
+                                                    setCategory(json.category as ExpenseCategory);
+        if (json.notes    && (isNew || !notes))    setNotes(json.notes);
+
+        setParseFilled(true);
+      } catch {
+        // Non-fatal — user can fill manually
+        setParseError("Couldn't auto-fill — please fill in manually.");
+      } finally {
+        setParsing(false);
+      }
+    })();
+
+    await Promise.all([uploadPromise, parsePromise]);
+  }, [date, expense, title, vendor, amount, category, notes]);
+
+  // ── Drag-and-drop handlers ─────────────────────────────────────────────────
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+  }
+
+  async function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) await handleFile(file);
+  }
+
+  // ── File input (click to upload) ───────────────────────────────────────────
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setReceipt(f);
-    setUploading(true);
-    setError("");
-    try {
-      const fd = new FormData();
-      fd.append("file", f);
-      fd.append("date", date);
-      const res = await fetch("/api/expenses/upload", { method: "POST", body: fd });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Upload failed");
-      setUploadedFile({ id: json.fileId, name: json.fileName, url: json.fileUrl });
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setUploading(false);
-    }
+    const file = e.target.files?.[0];
+    if (file) await handleFile(file);
   }
+
+  // ── Form submit ────────────────────────────────────────────────────────────
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,16 +156,16 @@ export function ExpenseForm({ expense, onClose }: Props) {
 
     const payload = {
       title,
-      vendor:             vendor || null,
+      vendor:              vendor || null,
       category,
-      amount:             parseFloat(amount),
+      amount:              parseFloat(amount),
       date,
-      notes:              notes || null,
-      is_recurring:       recurring,
+      notes:               notes || null,
+      is_recurring:        recurring,
       recurring_frequency: recurring ? "MONTHLY" : null,
-      gdrive_file_id:     uploadedFile?.id   ?? null,
-      gdrive_file_name:   uploadedFile?.name ?? null,
-      gdrive_file_url:    uploadedFile?.url  ?? null,
+      gdrive_file_id:      uploadedFile?.id   ?? null,
+      gdrive_file_name:    uploadedFile?.name ?? null,
+      gdrive_file_url:     uploadedFile?.url  ?? null,
     };
 
     try {
@@ -105,8 +187,103 @@ export function ExpenseForm({ expense, onClose }: Props) {
     }
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  const isBusy = uploading || parsing;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+
+      {/* Smart-fill status banner */}
+      {parsing && (
+        <div className="flex items-center gap-2 p-2.5 bg-brand-pale-blue rounded-lg text-sm text-brand-navy">
+          <Loader2 size={14} className="animate-spin shrink-0 text-brand-teal" />
+          <span>Scanning invoice with AI…</span>
+        </div>
+      )}
+      {parseFilled && !parsing && (
+        <div className="flex items-center gap-2 p-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+          <Sparkles size={14} className="shrink-0" />
+          <span>Fields auto-filled from your invoice — review and save.</span>
+        </div>
+      )}
+      {parseError && (
+        <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+          <AlertCircle size={13} className="shrink-0" />
+          <span>{parseError}</span>
+        </div>
+      )}
+
+      {/* Receipt upload — drop zone */}
+      <div>
+        <label className="block text-xs font-semibold text-brand-navy mb-1">
+          Receipt / Invoice
+          <span className="ml-1 font-normal text-gray-400">(drop here to auto-fill ✨)</span>
+        </label>
+        {uploadedFile ? (
+          <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
+            <FileText size={15} className="text-green-600 shrink-0" />
+            <a
+              href={uploadedFile.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-green-700 hover:underline truncate flex-1"
+            >
+              {uploadedFile.name}
+            </a>
+            <button
+              type="button"
+              onClick={() => { setUploadedFile(null); setParseFilled(false); }}
+              className="text-gray-400 hover:text-red-500 shrink-0"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileRef.current?.click()}
+            className={[
+              "border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-all",
+              isDragging
+                ? "border-brand-teal bg-brand-pale-blue scale-[1.01]"
+                : "border-brand-pale-blue hover:border-brand-teal hover:bg-brand-pale-blue/40",
+            ].join(" ")}
+          >
+            {isBusy ? (
+              <div className="flex flex-col items-center gap-1.5">
+                <Loader2 size={22} className="animate-spin text-brand-teal" />
+                <p className="text-sm text-brand-teal font-medium">
+                  {uploading && parsing ? "Uploading + scanning…"
+                   : uploading ? "Uploading to Google Drive…"
+                   : "Scanning with AI…"}
+                </p>
+              </div>
+            ) : isDragging ? (
+              <div className="flex flex-col items-center gap-1">
+                <Sparkles size={22} className="text-brand-teal" />
+                <p className="text-sm font-semibold text-brand-teal">Drop to scan & auto-fill</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-1">
+                <Upload size={20} className="text-gray-400 mb-0.5" />
+                <p className="text-sm text-gray-600 font-medium">Drop invoice here to auto-fill</p>
+                <p className="text-xs text-gray-400">or click to browse · PDF or image · max 20 MB</p>
+              </div>
+            )}
+          </div>
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+      </div>
+
       {/* Title */}
       <div>
         <label className="block text-xs font-semibold text-brand-navy mb-1">
@@ -211,58 +388,6 @@ export function ExpenseForm({ expense, onClose }: Props) {
         />
       </div>
 
-      {/* Receipt upload */}
-      <div>
-        <label className="block text-xs font-semibold text-brand-navy mb-1">
-          Receipt / Bill (saved to Google Drive)
-        </label>
-        {uploadedFile ? (
-          <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
-            <FileText size={15} className="text-green-600 shrink-0" />
-            <a
-              href={uploadedFile.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-green-700 hover:underline truncate flex-1"
-            >
-              {uploadedFile.name}
-            </a>
-            <button
-              type="button"
-              onClick={() => { setUploadedFile(null); setReceipt(null); }}
-              className="text-gray-400 hover:text-red-500"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        ) : (
-          <div
-            className="border-2 border-dashed border-brand-pale-blue rounded-lg p-4 text-center cursor-pointer hover:border-brand-teal transition-colors"
-            onClick={() => fileRef.current?.click()}
-          >
-            {uploading ? (
-              <div className="flex items-center justify-center gap-2 text-sm text-brand-teal">
-                <Loader2 size={15} className="animate-spin" />
-                Uploading to Google Drive…
-              </div>
-            ) : (
-              <>
-                <Upload size={20} className="mx-auto mb-1 text-gray-400" />
-                <p className="text-sm text-gray-500">Click to upload PDF or image</p>
-                <p className="text-xs text-gray-400">Max 20 MB</p>
-              </>
-            )}
-          </div>
-        )}
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-      </div>
-
       {error && <p className="text-sm text-red-600 bg-red-50 rounded p-2">{error}</p>}
 
       {/* Actions */}
@@ -270,7 +395,11 @@ export function ExpenseForm({ expense, onClose }: Props) {
         <button type="button" onClick={onClose} className="btn-secondary">
           Cancel
         </button>
-        <button type="submit" className="btn-primary" disabled={saving || uploading}>
+        <button
+          type="submit"
+          className="btn-primary"
+          disabled={saving || isBusy}
+        >
           {saving ? (
             <><Loader2 size={14} className="animate-spin" /> Saving…</>
           ) : expense ? "Save changes" : "Add expense"}
