@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
       drive  = getServiceAccountDrive();
       rootId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID!;
     } else {
-      // Fallback: user's personal Google Drive (token stored at sign-in)
+      // Fallback: user's personal Google Drive (token stored via Settings → Google Integration)
       drive  = await getOAuthDrive(ownerId);
       rootId = "root"; // Google Drive "My Drive" root
     }
@@ -127,13 +127,22 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: any) {
     console.error("[expenses/upload]", err);
-    // If Google not connected at all, return a clear message instead of 500
-    if (err.message?.includes("not connected")) {
+
+    // Drive not connected or not authorised — return a soft 200 so the
+    // expense form can still save the record without a receipt attachment.
+    // The user can connect Google in Settings → Google Integration to enable Drive uploads.
+    const isNotConnected = err.message?.includes("not connected");
+    const isPermission   = err.message?.includes("insufficientPermissions") ||
+                           err.code === 403 || err.status === 403;
+
+    if (isNotConnected || isPermission) {
       return NextResponse.json(
-        { error: "Google Drive not connected. Connect Google in Settings to enable receipt upload." },
-        { status: 503 }
+        { fileId: null, fileName: null, fileUrl: null, driveSkipped: true,
+          driveMessage: "Google Drive not connected — receipt not saved. Connect Google in Settings to enable this." },
+        { status: 200 }
       );
     }
+
     return NextResponse.json({ error: err.message ?? "Upload failed" }, { status: 500 });
   }
 }

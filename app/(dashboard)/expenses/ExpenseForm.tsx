@@ -37,6 +37,7 @@ export function ExpenseForm({ expense, onClose }: Props) {
   const [recurring, setRecurring] = useState(expense?.is_recurring ?? false);
 
   // Drive receipt state
+  const [driveWarning, setDriveWarning] = useState("");
   const [uploadedFile, setUploadedFile] = useState<{
     id: string; name: string; url: string;
   } | null>(
@@ -64,6 +65,7 @@ export function ExpenseForm({ expense, onClose }: Props) {
     // 1. Upload to Drive (in background)
     const uploadPromise = (async () => {
       setUploading(true);
+      setDriveWarning("");
       try {
         const fd = new FormData();
         fd.append("file", file);
@@ -71,7 +73,12 @@ export function ExpenseForm({ expense, onClose }: Props) {
         const res  = await fetch("/api/expenses/upload", { method: "POST", body: fd });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "Upload failed");
-        setUploadedFile({ id: json.fileId, name: json.fileName, url: json.fileUrl });
+        if (json.driveSkipped) {
+          // Drive not connected — soft warning, expense can still be saved without receipt
+          setDriveWarning(json.driveMessage ?? "Receipt not saved to Google Drive. Connect Google in Settings.");
+        } else {
+          setUploadedFile({ id: json.fileId, name: json.fileName, url: json.fileUrl });
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -211,6 +218,12 @@ export function ExpenseForm({ expense, onClose }: Props) {
         <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
           <AlertCircle size={13} className="shrink-0" />
           <span>{parseError}</span>
+        </div>
+      )}
+      {driveWarning && (
+        <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+          <AlertCircle size={13} className="shrink-0" />
+          <span>{driveWarning}</span>
         </div>
       )}
 
