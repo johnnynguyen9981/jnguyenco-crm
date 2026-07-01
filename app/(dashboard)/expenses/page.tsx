@@ -170,7 +170,7 @@ export default async function ExpensesPage({ searchParams }: Props) {
 
           <div className="flex items-center gap-2">
             <BulkImportButton />
-            <AddExpenseButton />
+            <AddExpenseButton viewingFY={fy} />
           </div>
         </div>
 

@@ -11,8 +11,25 @@ import type { Expense } from "@/lib/supabase/types";
 
 // ── Add Expense button + panel ───────────────────────────────────────────────
 
-export function AddExpenseButton() {
+interface AddExpenseButtonProps {
+  /** The FY currently being viewed, e.g. "2025-26". Used to pre-fill the date sensibly. */
+  viewingFY?: string;
+}
+
+export function AddExpenseButton({ viewingFY }: AddExpenseButtonProps) {
   const [open, setOpen] = useState(false);
+
+  // If viewing a past FY, default the date to June 30 of that FY instead of today.
+  // e.g. viewing "2025-26" → default date "2026-06-30"
+  function getDefaultDate() {
+    const today = new Date().toISOString().split("T")[0];
+    if (!viewingFY) return today;
+    const [startYearStr] = viewingFY.split("-");
+    const startYear = parseInt(startYearStr, 10);
+    const fyEnd = `${startYear + 1}-06-30`;
+    // Only override if today is AFTER the FY end (i.e. we're viewing a past FY)
+    return today > fyEnd ? fyEnd : today;
+  }
 
   return (
     <>
@@ -33,7 +50,7 @@ export function AddExpenseButton() {
               </button>
             </div>
             <div className="p-5 flex-1">
-              <ExpenseForm onClose={() => setOpen(false)} />
+              <ExpenseForm defaultDate={getDefaultDate()} onClose={() => setOpen(false)} />
             </div>
           </div>
         </div>

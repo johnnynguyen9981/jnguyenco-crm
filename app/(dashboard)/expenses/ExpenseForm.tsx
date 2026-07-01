@@ -16,10 +16,11 @@ const CATEGORY_OPTIONS = (Object.keys(EXPENSE_CATEGORIES) as ExpenseCategory[]).
 
 interface Props {
   expense?: Expense;   // present when editing
+  defaultDate?: string; // pre-fill date (YYYY-MM-DD) — used when viewing a past FY
   onClose: () => void;
 }
 
-export function ExpenseForm({ expense, onClose }: Props) {
+export function ExpenseForm({ expense, defaultDate, onClose }: Props) {
   const router  = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -31,7 +32,7 @@ export function ExpenseForm({ expense, onClose }: Props) {
   );
   const [amount,    setAmount]    = useState(String(expense?.amount ?? ""));
   const [date,      setDate]      = useState(
-    expense?.date ?? new Date().toISOString().split("T")[0]
+    expense?.date ?? defaultDate ?? new Date().toISOString().split("T")[0]
   );
   const [notes,     setNotes]     = useState(expense?.notes ?? "");
   const [recurring, setRecurring] = useState(expense?.is_recurring ?? false);
