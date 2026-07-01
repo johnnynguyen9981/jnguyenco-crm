@@ -9,7 +9,7 @@ import {
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Expense, ExpenseCategory } from "@/lib/supabase/types";
 import { Receipt, ExternalLink, RefreshCw, FolderOpen } from "lucide-react";
-import { AddExpenseButton, BulkImportButton, EditExpenseButton, DeleteExpenseButton } from "./ExpenseActions";
+import { AddExpenseButton, BulkImportButton, EditExpenseButton, DeleteExpenseButton, AttachReceiptButton } from "./ExpenseActions";
 
 export const metadata = { title: "Expenses — JNguyen Co. CRM" };
 
@@ -252,7 +252,7 @@ export default async function ExpensesPage({ searchParams }: Props) {
                                 <ExternalLink size={12} /> View
                               </a>
                             ) : (
-                              <span className="text-gray-300 text-xs">—</span>
+                              <AttachReceiptButton expense={exp} />
                             )}
                           </td>
                           <td className="table-cell">

@@ -2,9 +2,9 @@
 // app/(dashboard)/expenses/ExpenseActions.tsx
 // Add Expense button + slide-in form panel + Edit/Delete per row + Bulk Import
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Pencil, Trash2, Loader2, Layers } from "lucide-react";
+import { Plus, X, Pencil, Trash2, Loader2, Layers, Paperclip, Upload } from "lucide-react";
 import { ExpenseForm } from "./ExpenseForm";
 import { BulkImportModal } from "./BulkImportModal";
 import type { Expense } from "@/lib/supabase/types";
@@ -85,6 +85,122 @@ export function EditExpenseButton({ expense }: { expense: Expense }) {
             <div className="p-5 flex-1">
               <ExpenseForm expense={expense} onClose={() => setOpen(false)} />
             </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Attach Receipt button (per row, for expenses with no receipt) ─────────────
+
+export function AttachReceiptButton({ expense }: { expense: Expense }) {
+  const router   = useRouter();
+  const fileRef  = useRef<HTMLInputElement>(null);
+  const [open,      setOpen]      = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error,     setError]     = useState("");
+  const [dragging,  setDragging]  = useState(false);
+
+  const handleFile = useCallback(async (file: File) => {
+    setError("");
+    setUploading(true);
+    try {
+      // 1. Upload to Drive
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("date", expense.date);
+      const upRes  = await fetch("/api/expenses/upload", { method: "POST", body: fd });
+      const upJson = await upRes.json();
+      if (!upRes.ok) throw new Error(upJson.error ?? "Upload failed");
+      if (upJson.driveSkipped) throw new Error(upJson.driveMessage ?? "Drive not connected");
+
+      // 2. Patch the expense with Drive file details
+      const patchRes = await fetch(`/api/expenses/${expense.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gdrive_file_id:   upJson.fileId,
+          gdrive_file_name: upJson.fileName,
+          gdrive_file_url:  upJson.fileUrl,
+        }),
+      });
+      if (!patchRes.ok) throw new Error("Failed to save receipt link");
+
+      setOpen(false);
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }, [expense.date, expense.id, router]);
+
+  return (
+    <>
+      <button
+        onClick={() => { setOpen(true); setError(""); }}
+        className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-brand-teal transition-colors"
+        title="Attach receipt"
+      >
+        <Paperclip size={12} /> Attach
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-brand-navy">Attach receipt</p>
+                <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[220px]">{expense.title}</p>
+              </div>
+              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Drop zone */}
+            <div
+              onDragOver={e => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={e => { e.preventDefault(); setDragging(false); }}
+              onDrop={e => {
+                e.preventDefault();
+                setDragging(false);
+                const f = e.dataTransfer.files?.[0];
+                if (f) handleFile(f);
+              }}
+              onClick={() => !uploading && fileRef.current?.click()}
+              className={[
+                "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
+                dragging
+                  ? "border-brand-teal bg-brand-pale-blue scale-[1.01]"
+                  : "border-brand-pale-blue hover:border-brand-teal hover:bg-brand-pale-blue/40",
+              ].join(" ")}
+            >
+              {uploading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 size={24} className="animate-spin text-brand-teal" />
+                  <p className="text-sm text-brand-teal font-medium">Uploading to Drive…</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <Upload size={22} className="text-gray-400" />
+                  <p className="text-sm font-medium text-gray-600">Drop PDF or image here</p>
+                  <p className="text-xs text-gray-400">or click to browse</p>
+                </div>
+              )}
+            </div>
+
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
+              className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+            />
+
+            {error && <p className="text-xs text-red-600 bg-red-50 rounded p-2">{error}</p>}
           </div>
         </div>
       )}
