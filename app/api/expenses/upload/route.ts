@@ -1,16 +1,25 @@
 // app/api/expenses/upload/route.ts
 // Uploads a receipt/bill file to Google Drive under:
-//   JNguyen Co. CRM / Business Expenses / FY 2024-25 / [filename]
+//   Business Expenses / FY YYYY-YY / [filename]
+//
+// Auth strategy (in priority order):
+//   1. Service account  — if GOOGLE_SERVICE_ACCOUNT_JSON + GOOGLE_DRIVE_ROOT_FOLDER_ID set
+//   2. User OAuth       — uses the tokens stored in google_tokens for the owner
+//
 // Returns: { fileId, fileName, fileUrl }
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getOwnerUserId } from "@/lib/team";
+import { getAuthenticatedClientByOwnerId } from "@/lib/google/auth";
 import { isDriveConfigured } from "@/lib/google/drive";
 import { google } from "googleapis";
 import { Readable } from "stream";
 import { getAustralianFY } from "@/lib/expenses";
 
-function getDriveClient() {
+// ── Drive client helpers ─────────────────────────────────────────────────────
+
+function getServiceAccountDrive() {
   const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON!);
   const auth = new google.auth.GoogleAuth({
     credentials,
@@ -19,32 +28,45 @@ function getDriveClient() {
   return google.drive({ version: "v3", auth });
 }
 
-async function findOrCreateFolder(drive: any, name: string, parentId: string): Promise<string> {
+async function getOAuthDrive(ownerId: string) {
+  const authClient = await getAuthenticatedClientByOwnerId(ownerId);
+  return google.drive({ version: "v3", auth: authClient });
+}
+
+async function findOrCreateFolder(
+  drive: ReturnType<typeof google.drive>,
+  name: string,
+  parentId: string
+): Promise<string> {
   const safeName = name.replace(/'/g, "\\'");
   const { data } = await drive.files.list({
     q: `name='${safeName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
     fields: "files(id)",
   });
-  if (data.files?.length) return data.files[0].id;
+  if (data.files?.length) return data.files[0].id!;
   const { data: folder } = await drive.files.create({
-    requestBody: { name, mimeType: "application/vnd.google-apps.folder", parents: [parentId] },
+    requestBody: {
+      name,
+      mimeType: "application/vnd.google-apps.folder",
+      parents: [parentId],
+    },
     fields: "id",
   });
-  return folder.id;
+  return folder.id!;
 }
+
+// ── Route ────────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!isDriveConfigured()) {
-    return NextResponse.json({ error: "Google Drive not configured" }, { status: 503 });
-  }
+  const ownerId = await getOwnerUserId();
 
   const formData = await req.formData();
-  const file = formData.get("file") as File | null;
-  const dateStr = (formData.get("date") as string) || new Date().toISOString().split("T")[0];
+  const file     = formData.get("file") as File | null;
+  const dateStr  = (formData.get("date") as string) || new Date().toISOString().split("T")[0];
 
   if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
 
@@ -60,18 +82,27 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const drive = getDriveClient();
-    const rootId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID!;
+    let drive: ReturnType<typeof google.drive>;
+    let rootId: string;
 
-    // Build folder path: Business Expenses / FY 2024-25
+    if (isDriveConfigured()) {
+      // Preferred: service account with explicit root folder
+      drive  = getServiceAccountDrive();
+      rootId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID!;
+    } else {
+      // Fallback: user's personal Google Drive (token stored at sign-in)
+      drive  = await getOAuthDrive(ownerId);
+      rootId = "root"; // Google Drive "My Drive" root
+    }
+
+    // Build folder path: Business Expenses / FY YYYY-YY
     const expensesFolderId = await findOrCreateFolder(drive, "Business Expenses", rootId);
-    const fy = getAustralianFY(dateStr);
-    const fyFolderId = await findOrCreateFolder(drive, `FY ${fy}`, expensesFolderId);
+    const fy               = getAustralianFY(dateStr);
+    const fyFolderId       = await findOrCreateFolder(drive, `FY ${fy}`, expensesFolderId);
 
     // Unique filename with timestamp to avoid collisions
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    const ext = file.name.split(".").pop() ?? "pdf";
-    const fileName = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const fileName  = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
@@ -96,6 +127,13 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: any) {
     console.error("[expenses/upload]", err);
+    // If Google not connected at all, return a clear message instead of 500
+    if (err.message?.includes("not connected")) {
+      return NextResponse.json(
+        { error: "Google Drive not connected. Connect Google in Settings to enable receipt upload." },
+        { status: 503 }
+      );
+    }
     return NextResponse.json({ error: err.message ?? "Upload failed" }, { status: 500 });
   }
 }
