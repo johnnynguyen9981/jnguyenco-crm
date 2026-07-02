@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { apiSuccess, apiError } from "@/lib/utils";
 import type { BookingInsert } from "@/lib/supabase/types";
+import { syncBookingToCalendar } from "@/lib/google/calendar";
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -78,6 +79,17 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return apiError(error.message, 500);
+
+  // ── Auto-sync to Google Calendar (fire-and-forget — don't fail the booking if this errors) ──
+  if (data.clients) {
+    try {
+      const calResult = await syncBookingToCalendar(user.id, data, data.clients as any);
+      await supabase.from("bookings").update({ gcal_event_id: calResult.gcal_event_id }).eq("id", data.id);
+      (data as any).gcal_event_id = calResult.gcal_event_id;
+    } catch (calErr: any) {
+      console.warn("[bookings/POST] Calendar sync skipped:", calErr?.message);
+    }
+  }
 
   return apiSuccess({ booking: data, double_booking_warning: (sameDay ?? 0) > 0 }, 201);
 }

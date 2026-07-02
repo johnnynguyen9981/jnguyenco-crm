@@ -6,6 +6,10 @@ import { getAuthenticatedClient } from "./auth";
 import type { Booking, Client } from "@/lib/supabase/types";
 import { formatDate } from "@/lib/utils";
 
+// JNguyen Co. Photography, Videography Booking calendar
+const BOOKING_CALENDAR_ID =
+  "b3c07750835316cae4b43752e8426c76cbd2250ce727d80f6cf3ea9646e83bee@group.calendar.google.com";
+
 export interface CalendarSyncResult {
   gcal_event_id: string;
   html_link: string;
@@ -69,8 +73,8 @@ export async function syncBookingToCalendar(
   // Update existing event if we have an ID, otherwise create a new one
   if (booking.gcal_event_id) {
     const res = await calendar.events.update({
-      calendarId: "primary",
-      eventId:    booking.gcal_event_id,
+      calendarId:  BOOKING_CALENDAR_ID,
+      eventId:     booking.gcal_event_id,
       requestBody: eventBody,
     });
     return {
@@ -79,7 +83,7 @@ export async function syncBookingToCalendar(
     };
   } else {
     const res = await calendar.events.insert({
-      calendarId:  "primary",
+      calendarId:  BOOKING_CALENDAR_ID,
       requestBody: eventBody,
     });
     return {
@@ -98,7 +102,7 @@ export async function deleteCalendarEvent(
 ): Promise<void> {
   const authClient = await getAuthenticatedClient(userId);
   const calendar   = google.calendar({ version: "v3", auth: authClient });
-  await calendar.events.delete({ calendarId: "primary", eventId: gcalEventId });
+  await calendar.events.delete({ calendarId: BOOKING_CALENDAR_ID, eventId: gcalEventId });
 }
 
 /**

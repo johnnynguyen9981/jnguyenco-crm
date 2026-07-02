@@ -5,6 +5,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { apiSuccess, apiError } from "@/lib/utils";
 import type { BookingUpdate } from "@/lib/supabase/types";
+import { syncBookingToCalendar, deleteCalendarEvent } from "@/lib/google/calendar";
 
 type Params = { params: { id: string } };
 
@@ -65,6 +66,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       ? apiError("Booking not found", 404)
       : apiError(error.message, 500);
   }
+
+  // ── Auto-sync to Google Calendar (fire-and-forget) ──
+  if (data.clients) {
+    try {
+      const calResult = await syncBookingToCalendar(user.id, data, data.clients as any);
+      await supabase.from("bookings").update({ gcal_event_id: calResult.gcal_event_id }).eq("id", params.id);
+      (data as any).gcal_event_id = calResult.gcal_event_id;
+    } catch (calErr: any) {
+      console.warn("[bookings/PATCH] Calendar sync skipped:", calErr?.message);
+    }
+  }
+
   return apiSuccess(data);
 }
 
@@ -84,8 +97,22 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     return apiError("Cannot delete — this booking has paid invoices. Change status to CANCELLED instead.", 409);
   }
 
+  // Fetch gcal_event_id before deleting so we can clean up Calendar
+  const { data: toDelete } = await supabase
+    .from("bookings").select("gcal_event_id").eq("id", params.id).eq("owner_id", user.id).single();
+
   const { error } = await supabase
     .from("bookings").delete().eq("id", params.id).eq("owner_id", user.id);
   if (error) return apiError(error.message, 500);
+
+  // ── Remove Calendar event if one was linked ──
+  if (toDelete?.gcal_event_id) {
+    try {
+      await deleteCalendarEvent(user.id, toDelete.gcal_event_id);
+    } catch (calErr: any) {
+      console.warn("[bookings/DELETE] Calendar cleanup skipped:", calErr?.message);
+    }
+  }
+
   return new Response(null, { status: 204 });
 }
