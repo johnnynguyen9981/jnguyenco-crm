@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { FillContractButton } from "./FillContractButton";
 import { DeleteClientButton } from "../DeleteClientButton";
+import { CreateDriveFolderButton } from "./CreateDriveFolderButton";
 
 type Params = { params: { id: string } };
 
@@ -31,7 +32,7 @@ export default async function ClientDetailPage({ params }: Params) {
     getOwnerUserId(),
     getCurrentTeamMember(),
   ]);
-  const showFinancials = teamMember?.role === "FOUNDER";
+  const showFinancials = !teamMember || teamMember.role === "FOUNDER";
 
   const { data: client, error } = await supabase
     .from("clients")
@@ -134,7 +135,7 @@ export default async function ClientDetailPage({ params }: Params) {
                     </a>
                   </div>
                 )}
-                {client.gdrive_folder_id && (
+                {client.gdrive_folder_id ? (
                   <div className="flex items-center gap-2.5 text-sm">
                     <FolderOpen size={14} className="text-brand-teal shrink-0" />
                     <a
@@ -145,6 +146,8 @@ export default async function ClientDetailPage({ params }: Params) {
                       Google Drive folder ↗
                     </a>
                   </div>
+                ) : (
+                  <CreateDriveFolderButton clientId={client.id} />
                 )}
               </div>
 

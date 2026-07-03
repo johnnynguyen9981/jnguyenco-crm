@@ -43,7 +43,7 @@ export default async function BookingDetailPage({ params }: Props) {
     getOwnerUserId(),
     getCurrentTeamMember(),
   ]);
-  const showFinancials = teamMember?.role === "FOUNDER";
+  const showFinancials = !teamMember || teamMember.role === "FOUNDER";
 
   const { data: booking, error } = await supabase
     .from("bookings")

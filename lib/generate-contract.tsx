@@ -525,16 +525,64 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
 
         <View style={[s.notice, { marginTop: 6 }]}>
           <Text style={s.noticeText}>
-            All deliverables will be sent via a Google Drive download link once final payment has been cleared. Gallery passwords are not used — the link is shared directly and securely.
+            All deliverables will be delivered via a private Google Drive download link once final payment has been cleared. Gallery passwords are not used — the link is shared directly and securely. The download link remains active for 3 months from the date of delivery, after which all files are permanently deleted. Please download and back up your files promptly. See Section 4 for full details.
           </Text>
         </View>
 
         <Divider />
 
         {/* 4 */}
-        <Section title="4. Delivery and Delays" />
+        <Section title="4. Digital Delivery & Media Access" />
+        <Text style={s.subheading}>4.1 Delivery Method</Text>
         <Text style={s.body}>
-          All delivery timelines are as specified in Section 3 above. Deliverables will be sent via the Google Drive link only after the full balance has been cleared. In the event that circumstances beyond the Photographer's control (illness, equipment failure, extreme weather) cause a delay, the Photographer will notify the Client in writing as soon as practicable and provide a revised delivery date.
+          All final deliverables — edited images (JPEG format) and highlight film (MP4 format) — will be
+          delivered exclusively via a private shared Google Drive download link ("Gallery Link"). The Gallery
+          Link will be issued to the Client at the email address provided in this Agreement once the full
+          balance has been cleared. Gallery passwords are not used; the link is shared directly and securely.
+        </Text>
+        <Text style={s.subheading}>4.2 Access Window</Text>
+        <Text style={s.body}>
+          The Gallery Link will remain active for a period of three (3) calendar months from the date of
+          actual delivery ("Access Period"). The Client is solely responsible for downloading all files
+          before the Access Period expires. The Photographer will send a reminder notification to the
+          Client's registered email address approximately 14 days prior to expiry as a courtesy; however,
+          failure to send such reminder does not extend the Access Period or affect the Photographer's
+          obligations under this Agreement.
+        </Text>
+        <Text style={s.subheading}>4.3 Permanent Deletion — No Recovery</Text>
+        <Text style={s.body}>
+          Upon expiry of the Access Period, the Gallery Link will be permanently disabled and all
+          associated files will be permanently deleted from the Photographer's storage. The Photographer
+          is under no obligation to retain, recover, re-upload or re-deliver any files after this date.
+          No refund or compensation will be provided for files not downloaded within the Access Period,
+          and no exceptions will be made regardless of the reason for non-download.
+        </Text>
+        <Text style={s.subheading}>4.4 Client Download Responsibility</Text>
+        <Text style={s.body}>
+          The Photographer strongly recommends that the Client download all delivered files immediately
+          upon receipt of the Gallery Link and create at least one personal backup copy. The Photographer
+          shall not be held liable for any loss of files resulting from: (a) the Client's failure to
+          download within the Access Period; (b) third-party platform outages or changes to Google
+          Drive's terms of service; or (c) any other circumstances outside the Photographer's reasonable
+          control. It is the Client's sole responsibility to ensure files are saved and secured.
+        </Text>
+        <Text style={s.subheading}>4.5 Physical Media (USB) Add-On</Text>
+        <Text style={s.body}>
+          Clients who require deliverables on a physical USB drive may request this service at any time
+          during the Access Period for a fee of $30 AUD (flat rate). USB delivery is by pickup only
+          (Canberra, ACT) — no postal delivery is included in this fee. The USB will contain all final
+          edited JPEGs and the MP4 highlight film at the same quality and resolution as the Gallery Link.
+          USB requests made after the Access Period has expired cannot be fulfilled, as files will have
+          been permanently deleted. To request a USB, contact the Photographer at
+          johnny.nguyen@jnguyen.co prior to the Access Period expiry date.
+        </Text>
+        <Text style={s.subheading}>4.6 Delays</Text>
+        <Text style={s.body}>
+          In the event that circumstances beyond the Photographer's reasonable control — including
+          illness, equipment failure, extreme weather, or third-party platform outages — cause a delay
+          in delivery, the Photographer will notify the Client in writing as soon as practicable and
+          provide a revised delivery date. The three-month Access Period will commence from the actual
+          revised delivery date, not the originally scheduled delivery date.
         </Text>
 
         <Divider />
@@ -763,7 +811,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         <Field label="Client's Email:"        value={d.email || "—"} />
         <Field label="Client's Phone:"        value={d.phone || "—"} />
         <Text style={s.subheading}>13.2 Survival</Text>
-        <Text style={s.body}>Articles 10, 11, 12 and 13 will survive termination of this Agreement.</Text>
+        <Text style={s.body}>Articles 4 (Digital Delivery & Media Access), 10, 11, 12 and 13 will survive termination of this Agreement.</Text>
         <Text style={s.subheading}>13.3 Governing Law</Text>
         <Text style={s.body}>
           This Agreement will be governed by the laws of the Australian Capital Territory,
