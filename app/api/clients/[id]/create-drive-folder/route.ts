@@ -2,6 +2,7 @@
 // Creates (or retrieves) the Drive folder structure for a client using OAuth tokens.
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getOwnerUserId } from "@/lib/team";
 import { apiSuccess, apiError } from "@/lib/utils";
 import { getAuthenticatedClient } from "@/lib/google/auth";
 import { google } from "googleapis";
@@ -40,15 +41,27 @@ export async function POST(_req: NextRequest, { params }: Params) {
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
 
+  // Use getOwnerUserId() — same as the client detail page — so staff logins
+  // resolve to the founder's owner_id that all data is stored under.
+  let ownerUserId: string;
+  try {
+    ownerUserId = await getOwnerUserId();
+  } catch {
+    return apiError("Unauthorized", 401);
+  }
+
   // Fetch client
   const { data: client, error } = await supabase
     .from("clients")
     .select("id, first_name, last_name, gdrive_folder_id")
     .eq("id", params.id)
-    .eq("owner_id", user.id)
+    .eq("owner_id", ownerUserId)
     .single();
 
-  if (error || !client) return apiError("Client not found", 404);
+  if (error || !client) {
+    console.error("[create-drive-folder] client query failed:", error?.message, "| clientId:", params.id, "| ownerUserId:", ownerUserId);
+    return apiError(error?.message ?? "Client not found", 404);
+  }
 
   // If folder already exists, just return the URL
   if (client.gdrive_folder_id) {
