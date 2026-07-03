@@ -50,10 +50,12 @@ export async function POST(_req: NextRequest, { params }: Params) {
     return apiError("Unauthorized", 401);
   }
 
-  // Fetch client
+  // Fetch client — do NOT select gdrive_folder_id here; if the migration adding that
+  // column hasn't been run yet, PostgREST throws a schema-cache error on explicit selection.
+  // findOrCreateFolder() is idempotent so we don't need the cached ID to be correct.
   const { data: client, error } = await supabase
     .from("clients")
-    .select("id, first_name, last_name, gdrive_folder_id")
+    .select("id, first_name, last_name")
     .eq("id", params.id)
     .eq("owner_id", ownerUserId)
     .single();
@@ -61,14 +63,6 @@ export async function POST(_req: NextRequest, { params }: Params) {
   if (error || !client) {
     console.error("[create-drive-folder] client query failed:", error?.message, "| clientId:", params.id, "| ownerUserId:", ownerUserId);
     return apiError(error?.message ?? "Client not found", 404);
-  }
-
-  // If folder already exists, just return the URL
-  if (client.gdrive_folder_id) {
-    return apiSuccess({
-      folder_id: client.gdrive_folder_id,
-      folder_url: getDriveFolderUrl(client.gdrive_folder_id),
-    });
   }
 
   // Get OAuth client (tokens stored in google_tokens table)
@@ -94,11 +88,16 @@ export async function POST(_req: NextRequest, { params }: Params) {
     findOrCreateFolder(drive, "Invoices",  clientFolderId),
   ]);
 
-  // Persist folder ID to Supabase
-  await supabase
+  // Persist folder ID to Supabase.
+  // This will silently fail until the gdrive_folder_id migration is run — that's fine,
+  // because findOrCreateFolder() looks up the existing folder by name on every call.
+  const { error: updateError } = await supabase
     .from("clients")
     .update({ gdrive_folder_id: clientFolderId })
     .eq("id", client.id);
+  if (updateError) {
+    console.warn("[create-drive-folder] could not cache folder ID (run migration?):", updateError.message);
+  }
 
   return apiSuccess({
     folder_id: clientFolderId,
