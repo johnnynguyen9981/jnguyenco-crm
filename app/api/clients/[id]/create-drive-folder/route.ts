@@ -1,20 +1,46 @@
 // POST /api/clients/[id]/create-drive-folder
-// Creates (or retrieves) the Drive folder for a client and returns the URL.
+// Creates (or retrieves) the Drive folder structure for a client using OAuth tokens.
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { apiSuccess, apiError } from "@/lib/utils";
-import { getOrCreateClientFolder, getDriveFolderUrl, isDriveConfigured } from "@/lib/google/drive";
+import { getAuthenticatedClient } from "@/lib/google/auth";
+import { google } from "googleapis";
+import { getDriveFolderUrl } from "@/lib/google/drive";
 
 type Params = { params: { id: string } };
+
+async function findOrCreateFolder(
+  drive: ReturnType<typeof google.drive>,
+  name: string,
+  parentId?: string
+): Promise<string> {
+  const parentQ = parentId
+    ? ` and '${parentId}' in parents`
+    : ` and 'root' in parents`;
+  const safeName = name.replace(/'/g, "\\'");
+  const { data } = await drive.files.list({
+    q: `name = '${safeName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false${parentQ}`,
+    fields: "files(id)",
+    spaces: "drive",
+  });
+  if (data.files && data.files.length > 0) return data.files[0].id!;
+  const { data: f } = await drive.files.create({
+    requestBody: {
+      name,
+      mimeType: "application/vnd.google-apps.folder",
+      ...(parentId ? { parents: [parentId] } : {}),
+    },
+    fields: "id",
+  });
+  return f.id!;
+}
 
 export async function POST(_req: NextRequest, { params }: Params) {
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
 
-  if (!isDriveConfigured()) return apiError("Google Drive is not configured.", 503);
-
-  // Fetch client name + existing folder ID
+  // Fetch client
   const { data: client, error } = await supabase
     .from("clients")
     .select("id, first_name, last_name, gdrive_folder_id")
@@ -24,10 +50,45 @@ export async function POST(_req: NextRequest, { params }: Params) {
 
   if (error || !client) return apiError("Client not found", 404);
 
+  // If folder already exists, just return the URL
+  if (client.gdrive_folder_id) {
+    return apiSuccess({
+      folder_id: client.gdrive_folder_id,
+      folder_url: getDriveFolderUrl(client.gdrive_folder_id),
+    });
+  }
+
+  // Get OAuth client (tokens stored in google_tokens table)
+  let authClient: Awaited<ReturnType<typeof getAuthenticatedClient>>;
+  try {
+    authClient = await getAuthenticatedClient(user.id);
+  } catch {
+    return apiError(
+      "Google account not connected. Please connect it in Settings → Integrations.",
+      503
+    );
+  }
+
+  const drive = google.drive({ version: "v3", auth: authClient });
   const clientName = `${client.first_name} ${client.last_name}`.trim();
 
-  const folderId = await getOrCreateClientFolder(client.id, clientName);
-  const folderUrl = getDriveFolderUrl(folderId);
+  // Create: JNguyen Co. CRM / [Client Name] / {Quotes, Contracts, Invoices}
+  const rootId = await findOrCreateFolder(drive, "JNguyen Co. CRM");
+  const clientFolderId = await findOrCreateFolder(drive, clientName, rootId);
+  await Promise.all([
+    findOrCreateFolder(drive, "Quotes",    clientFolderId),
+    findOrCreateFolder(drive, "Contracts", clientFolderId),
+    findOrCreateFolder(drive, "Invoices",  clientFolderId),
+  ]);
 
-  return apiSuccess({ folder_id: folderId, folder_url: folderUrl });
+  // Persist folder ID to Supabase
+  await supabase
+    .from("clients")
+    .update({ gdrive_folder_id: clientFolderId })
+    .eq("id", client.id);
+
+  return apiSuccess({
+    folder_id: clientFolderId,
+    folder_url: getDriveFolderUrl(clientFolderId),
+  });
 }
