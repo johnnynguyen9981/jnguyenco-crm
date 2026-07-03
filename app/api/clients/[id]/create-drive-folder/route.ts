@@ -41,8 +41,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
 
-  // Use getOwnerUserId() — same as the client detail page — so staff logins
-  // resolve to the founder's owner_id that all data is stored under.
+  // Use getOwnerUserId() so staff logins resolve to the founder's owner_id.
   let ownerUserId: string;
   try {
     ownerUserId = await getOwnerUserId();
@@ -50,9 +49,9 @@ export async function POST(_req: NextRequest, { params }: Params) {
     return apiError("Unauthorized", 401);
   }
 
-  // Fetch client — do NOT select gdrive_folder_id here; if the migration adding that
-  // column hasn't been run yet, PostgREST throws a schema-cache error on explicit selection.
-  // findOrCreateFolder() is idempotent so we don't need the cached ID to be correct.
+  // Do NOT select gdrive_folder_id — if the migration hasn't run yet, PostgREST
+  // throws a schema-cache error on explicit column selection. findOrCreateFolder()
+  // is idempotent (looks up by name before creating), so no caching is needed.
   const { data: client, error } = await supabase
     .from("clients")
     .select("id, first_name, last_name")
@@ -88,9 +87,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
     findOrCreateFolder(drive, "Invoices",  clientFolderId),
   ]);
 
-  // Persist folder ID to Supabase.
-  // This will silently fail until the gdrive_folder_id migration is run — that's fine,
-  // because findOrCreateFolder() looks up the existing folder by name on every call.
+  // Try to persist folder ID. Silently fails until gdrive_folder_id migration runs.
   const { error: updateError } = await supabase
     .from("clients")
     .update({ gdrive_folder_id: clientFolderId })
