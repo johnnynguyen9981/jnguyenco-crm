@@ -1,0 +1,15 @@
+﻿Settings HWND: 3943666
+Settings window: Left=-21333 Top=-21333 Right=-21175 Bottom=-21307
+Width=158 Height=26
+Child window count: 3
+  HWND=1188826 Class='ApplicationFrameTitleBarWindow' Title='' Rect=[-21333,-21333,-21333,-21301]
+    UIA children: 5
+      ControlType.MenuBar | System
+      ControlType.MenuItem | System
+      ControlType.Button | Minimize Settings
+      ControlType.Button | Maximize Settings
+      ControlType.Button | Close Settings
+  HWND=1254520 Class='ApplicationFrameTitleBarWindow' Title='' Rect=[-32000,-32000,-32000,-32000]
+    UIA children: 0
+  HWND=862026 Class='ApplicationFrameInputSinkWindow' Title='' Rect=[-32000,-31951,-32000,-31951]
+    UIA children: 0

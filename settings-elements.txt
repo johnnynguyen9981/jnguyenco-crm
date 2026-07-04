@@ -1,0 +1,8 @@
+﻿=== ApplicationFrameWindow instances found: 2 ===
+  - Media Player
+  - Settings
+
+=== SETTINGS WINDOW FOUND ===
+Total child elements: 0
+
+=== ALL NAMED ELEMENTS ===

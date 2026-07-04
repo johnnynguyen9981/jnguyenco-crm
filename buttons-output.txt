@@ -1,0 +1,30 @@
+﻿=== TOP LEVEL WINDOWS ===
+WINDOW: Claude | CLASS: Chrome_WidgetWin_1
+WINDOW:  | CLASS: Shell_SecondaryTrayWnd
+WINDOW: Claude | CLASS: Chrome_WidgetWin_1
+WINDOW: C:\WINDOWS\system32\cmd.exe | CLASS: CASCADIA_HOSTING_WINDOW_CLASS
+WINDOW: jnguyenco-crm - File Explorer | CLASS: CabinetWClass
+WINDOW: Facebook - (1) Facebook | CLASS: Chrome_WidgetWin_1
+WINDOW: _XT52119.RAF @ 25% (RGB/16*) * | CLASS: Photoshop
+WINDOW: Google Calendar - jnguyen.co – Calendar - July 2026 | CLASS: Chrome_WidgetWin_1
+WINDOW: Lightroom Classic | CLASS: AgWinMainFrame
+WINDOW: OFFICIAL KARAOKE | NHỮNG NGÀY MƯA (BEAT GỐC) | LÊ GIA BẢO - YouTube - Google Chrome | CLASS: Chrome_WidgetWin_1
+WINDOW: jnguyenco-crm - File Explorer | CLASS: CabinetWClass
+WINDOW: Google Gemini - add text on a photo of a 9 year old girl, write something vibe, happy, confidenct freely thinking - Google Gemini | CLASS: Chrome_WidgetWin_1
+WINDOW: User List - Admin Console - Google Chrome | CLASS: Chrome_WidgetWin_1
+WINDOW: C:\Program Files\Google - Search Results in This PC - File Explorer | CLASS: CabinetWClass
+WINDOW: Myra's Baptism - File Explorer | CLASS: CabinetWClass
+WINDOW: Gmail - Inbox - johnny.nguyen@jnguyen.co - jnguyen.co Mail | CLASS: Chrome_WidgetWin_1
+WINDOW: Downloads - File Explorer | CLASS: CabinetWClass
+WINDOW: Google Calendar - jnguyen.co – Calendar - July 2026 | CLASS: Chrome_WidgetWin_1
+WINDOW: Wacom Center | CLASS: WinUIDesktopWin32WindowClass
+WINDOW: Media Player | CLASS: ApplicationFrameWindow
+WINDOW: Settings | CLASS: ApplicationFrameWindow
+WINDOW:  | CLASS: Shell_TrayWnd
+WINDOW:  | CLASS: Internet Explorer_Hidden
+WINDOW: Program Manager | CLASS: Progman
+
+=== SETTINGS WINDOW FOUND: Media Player ===
+Total child elements: 0
+
+=== ALL NAMED ELEMENTS ===

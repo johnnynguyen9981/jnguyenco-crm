@@ -1,0 +1,10 @@
+﻿Total windows enumerated: 806
+SystemSettings processes: 1
+  PID: 36520
+
+=== Windows owned by SystemSettings.exe ===
+
+=== ApplicationFrameWindow named Settings ===
+  HWND=3943666
+  Rect: L=-21333 T=-21333 R=-21175 B=-21307 W=158 H=26
+  After restore - Rect: L=1109 T=285 R=2308 B=1299 W=1199 H=1014
