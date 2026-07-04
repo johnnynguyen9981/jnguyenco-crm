@@ -18,6 +18,15 @@ interface EmailOptions {
 }
 
 /**
+ * Encode a mail header value using RFC 2047 base64 if it contains non-ASCII.
+ * Required for subjects containing em dashes, emoji, or any non-ASCII chars.
+ */
+function encodeSubject(str: string): string {
+  if (/^[\x00-\x7F]*$/.test(str)) return str; // pure ASCII — no encoding needed
+  return `=?UTF-8?B?${Buffer.from(str, "utf8").toString("base64")}?=`;
+}
+
+/**
  * Send an email from johnny.nguyen@jnguyen.co using the Gmail API.
  * Constructs a proper RFC 2822 MIME message.
  */
@@ -39,7 +48,7 @@ export async function sendEmail(
     rawMessage = [
       `From: JNguyen Co. <${fromAddress}>`,
       `To: ${opts.to}`,
-      `Subject: ${opts.subject}`,
+      `Subject: ${encodeSubject(opts.subject)}`,
       `MIME-Version: 1.0`,
       `Content-Type: multipart/mixed; boundary="${boundary}"`,
       ``,
@@ -61,7 +70,7 @@ export async function sendEmail(
     rawMessage = [
       `From: JNguyen Co. <${fromAddress}>`,
       `To: ${opts.to}`,
-      `Subject: ${opts.subject}`,
+      `Subject: ${encodeSubject(opts.subject)}`,
       `MIME-Version: 1.0`,
       `Content-Type: text/html; charset="UTF-8"`,
       `Content-Transfer-Encoding: base64`,
