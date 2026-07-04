@@ -122,7 +122,9 @@ export async function POST(_req: NextRequest) {
 
   for (const client of clients) {
     const clientName = `${client.first_name} ${client.last_name}`.trim();
-    const clientResult = { client: clientName, invoices: [] as string[], errors: [] as string[] };
+    const clientResult: { client: string; contract?: string; invoices: string[]; errors: string[] } = {
+      client: clientName, invoices: [], errors: [],
+    };
 
     try {
       // Earliest booking → year/month folder
