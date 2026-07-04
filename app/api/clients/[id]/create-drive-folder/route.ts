@@ -64,6 +64,20 @@ export async function POST(_req: NextRequest, { params }: Params) {
     return apiError(error?.message ?? "Client not found", 404);
   }
 
+  // Fetch the earliest upcoming (or most recent past) booking to determine year/month folder.
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("event_date")
+    .eq("client_id", params.id)
+    .order("event_date", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  // Derive year/month from booking event_date, fall back to today if no booking.
+  const eventDate = booking?.event_date ? new Date(booking.event_date) : new Date();
+  const yearFolder  = String(eventDate.getUTCFullYear());
+  const monthFolder = eventDate.toLocaleString("en-AU", { month: "long", timeZone: "UTC" });
+
   // Get OAuth client (tokens stored in google_tokens table)
   let authClient: Awaited<ReturnType<typeof getAuthenticatedClient>>;
   try {
@@ -78,9 +92,12 @@ export async function POST(_req: NextRequest, { params }: Params) {
   const drive = google.drive({ version: "v3", auth: authClient });
   const clientName = `${client.first_name} ${client.last_name}`.trim();
 
-  // Create: JNguyen Co. CRM / [Client Name] / {Quotes, Contracts, Invoices, Deliverables / {Photos, Videos}}
+  // Create: JNguyen Co. CRM / Clients / YYYY / Month / [Client Name] / {Quotes, Contracts, Invoices, Deliverables / {Photos, Videos}}
   const rootId = await findOrCreateFolder(drive, "JNguyen Co. CRM");
-  const clientFolderId = await findOrCreateFolder(drive, clientName, rootId);
+  const clientsId = await findOrCreateFolder(drive, "Clients", rootId);
+  const yearId = await findOrCreateFolder(drive, yearFolder, clientsId);
+  const monthId = await findOrCreateFolder(drive, monthFolder, yearId);
+  const clientFolderId = await findOrCreateFolder(drive, clientName, monthId);
   const [deliverablesId] = await Promise.all([
     findOrCreateFolder(drive, "Deliverables", clientFolderId),
     findOrCreateFolder(drive, "Quotes",       clientFolderId),
