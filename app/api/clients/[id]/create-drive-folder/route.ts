@@ -78,13 +78,18 @@ export async function POST(_req: NextRequest, { params }: Params) {
   const drive = google.drive({ version: "v3", auth: authClient });
   const clientName = `${client.first_name} ${client.last_name}`.trim();
 
-  // Create: JNguyen Co. CRM / [Client Name] / {Quotes, Contracts, Invoices}
+  // Create: JNguyen Co. CRM / [Client Name] / {Quotes, Contracts, Invoices, Deliverables / {Photos, Videos}}
   const rootId = await findOrCreateFolder(drive, "JNguyen Co. CRM");
   const clientFolderId = await findOrCreateFolder(drive, clientName, rootId);
+  const [deliverablesId] = await Promise.all([
+    findOrCreateFolder(drive, "Deliverables", clientFolderId),
+    findOrCreateFolder(drive, "Quotes",       clientFolderId),
+    findOrCreateFolder(drive, "Contracts",    clientFolderId),
+    findOrCreateFolder(drive, "Invoices",     clientFolderId),
+  ]);
   await Promise.all([
-    findOrCreateFolder(drive, "Quotes",    clientFolderId),
-    findOrCreateFolder(drive, "Contracts", clientFolderId),
-    findOrCreateFolder(drive, "Invoices",  clientFolderId),
+    findOrCreateFolder(drive, "Photos", deliverablesId),
+    findOrCreateFolder(drive, "Videos", deliverablesId),
   ]);
 
   // Try to persist folder ID. Silently fails until gdrive_folder_id migration runs.
