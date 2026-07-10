@@ -131,25 +131,22 @@ export async function POST(req: NextRequest) {
 
   const admin = adminClient();
 
-  // 1. Upsert client — avoid duplicates on resubmit
+  // 1. Create client record
   const { data: client, error: clientErr } = await admin
     .from("clients")
-    .upsert(
-      {
-        first_name:       firstName,
-        last_name:        lastName,
-        email,
-        phone:            body.phone            || null,
-        instagram_handle: body.instagram_handle || null,
-        referral_source:  body.referral_source  || null,
-        referral_notes:   body.referral_notes   || null,
-        partner_first:    body.partner_first    || null,
-        partner_last:     body.partner_last     || null,
-        partner_email:    body.partner_email    || null,
-        partner_phone:    body.partner_phone    || null,
-      },
-      { onConflict: "email", ignoreDuplicates: false }
-    )
+    .insert({
+      first_name:       firstName,
+      last_name:        lastName,
+      email,
+      phone:            body.phone            || null,
+      instagram_handle: body.instagram_handle || null,
+      referral_source:  body.referral_source  || null,
+      referral_notes:   body.referral_notes   || null,
+      partner_first:    body.partner_first    || null,
+      partner_last:     body.partner_last     || null,
+      partner_email:    body.partner_email    || null,
+      partner_phone:    body.partner_phone    || null,
+    })
     .select("id")
     .single();
 
