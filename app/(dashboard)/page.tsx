@@ -3,10 +3,37 @@ import { createClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/TopBar";
 import { formatCurrency, formatDate, getBookingStatusBadge, formatServiceType } from "@/lib/utils";
 import Link from "next/link";
-import { Plus, ArrowRight, AlertTriangle, TrendingUp, CalendarCheck, Users } from "lucide-react";
+import { Plus, ArrowRight, AlertTriangle, TrendingUp, CalendarCheck, Users, Star } from "lucide-react";
 import type { DashboardBooking, InvoiceAging, Client } from "@/lib/supabase/types";
 
 export const metadata = { title: "Dashboard — JNguyen Co. CRM" };
+
+async function getGoogleReviews() {
+  try {
+    const apiKey  = process.env.GOOGLE_PLACES_API_KEY;
+    const placeId = process.env.GOOGLE_PLACE_ID;
+    if (!apiKey || !placeId) return null;
+
+    const url = new URL("https://maps.googleapis.com/maps/api/place/details/json");
+    url.searchParams.set("place_id",    placeId);
+    url.searchParams.set("fields",      "rating,user_ratings_total,reviews");
+    url.searchParams.set("reviews_sort","newest");
+    url.searchParams.set("key",         apiKey);
+
+    const res  = await fetch(url.toString(), { next: { revalidate: 3600 } });
+    const data = await res.json();
+    if (!data.result) return null;
+    return {
+      rating:       data.result.rating       as number,
+      totalReviews: data.result.user_ratings_total as number,
+      reviews:      (data.result.reviews ?? []) as {
+        author_name: string; rating: number;
+        relative_time_description: string; text: string;
+        profile_photo_url: string;
+      }[],
+    };
+  } catch { return null; }
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -15,11 +42,13 @@ export default async function DashboardPage() {
   const yearStart = `${new Date().getFullYear()}-01-01`;
 
   const [
+    googleReviews,
     { data: upcomingBookings },
     { data: overdueInvoices },
     { count: clientCount },
     { data: allPayments },
   ] = await Promise.all([
+    getGoogleReviews(),
     supabase
       .from("bookings")
       .select(`id, event_date, status, service_type, quoted_total,
@@ -206,6 +235,58 @@ export default async function DashboardPage() {
                       View
                     </Link>
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Google Reviews ──────────────────────────────── */}
+        {googleReviews && googleReviews.reviews.length > 0 && (
+          <div className="card p-0 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-brand-pale-blue">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-semibold text-brand-navy">Google Reviews</h2>
+                <span className="flex items-center gap-1 bg-amber-50 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded-full border border-amber-200">
+                  <Star size={11} className="fill-amber-400 text-amber-400" />
+                  {googleReviews.rating.toFixed(1)} · {googleReviews.totalReviews} reviews
+                </span>
+              </div>
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=JNguyen+Co+Canberra"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-brand-teal hover:underline font-medium"
+              >
+                View on Google →
+              </a>
+            </div>
+            <div className="divide-y divide-brand-pale-blue">
+              {googleReviews.reviews.slice(0, 5).map((r, i) => (
+                <div key={i} className="px-5 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {r.profile_photo_url ? (
+                        <img src={r.profile_photo_url} alt={r.author_name} className="w-8 h-8 rounded-full shrink-0 object-cover" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-brand-sand/20 border border-brand-sand/30 flex items-center justify-center shrink-0">
+                          <span className="text-brand-sand text-xs font-bold">{r.author_name[0]}</span>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-brand-navy truncate">{r.author_name}</p>
+                        <p className="text-xs text-gray-400">{r.relative_time_description}</p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0">
+                      {[1,2,3,4,5].map(s => (
+                        <Star key={s} size={13} className={s <= r.rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"} />
+                      ))}
+                    </div>
+                  </div>
+                  {r.text && (
+                    <p className="mt-2.5 text-sm text-gray-600 leading-relaxed line-clamp-3">{r.text}</p>
+                  )}
                 </div>
               ))}
             </div>
