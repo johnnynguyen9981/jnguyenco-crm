@@ -1,9 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // standalone output is required for Electron desktop packaging.
-  // NEVER set this when deploying to Vercel — it causes instant build failure.
-  // Only enable it locally when building the desktop app: NEXT_OUTPUT=standalone npm run build
-  ...(process.env.NEXT_OUTPUT === "standalone" ? { output: "standalone" } : {}),
   experimental: {
     serverComponentsExternalPackages: ["@react-pdf/renderer"],
   },
