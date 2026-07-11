@@ -43,6 +43,8 @@ async function findOrCreateFolder(
   const { data } = await drive.files.list({
     q: `name='${safeName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
     fields: "files(id)",
+    includeItemsFromAllDrives: true,
+    supportsAllDrives: true,
   });
   if (data.files?.length) return data.files[0].id!;
   const { data: folder } = await drive.files.create({
@@ -52,6 +54,7 @@ async function findOrCreateFolder(
       parents: [parentId],
     },
     fields: "id",
+    supportsAllDrives: true,
   });
   return folder.id!;
 }
@@ -118,6 +121,7 @@ export async function POST(req: NextRequest) {
         body:     Readable.from(buffer),
       },
       fields: "id, webViewLink, name",
+      supportsAllDrives: true,
     });
 
     const fileUrl = uploaded.webViewLink ?? `https://drive.google.com/file/d/${uploaded.id}/view`;
