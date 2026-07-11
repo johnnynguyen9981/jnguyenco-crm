@@ -33,7 +33,8 @@ function getDriveClient(): drive_v3.Drive {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
     throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON env var is not set.");
   }
-  const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  const credentials = JSON.parse(raw.charCodeAt(0) === 0xFEFF ? raw.slice(1) : raw);
   const auth = new google.auth.GoogleAuth({
     credentials,
     scopes: ["https://www.googleapis.com/auth/drive"],
