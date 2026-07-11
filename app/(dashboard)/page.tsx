@@ -10,28 +10,21 @@ export const metadata = { title: "Dashboard — JNguyen Co. CRM" };
 
 async function getGoogleReviews() {
   try {
-    const apiKey  = process.env.GOOGLE_PLACES_API_KEY;
-    const placeId = process.env.GOOGLE_PLACE_ID;
-    if (!apiKey || !placeId) return null;
-
-    const url = new URL("https://maps.googleapis.com/maps/api/place/details/json");
-    url.searchParams.set("place_id",    placeId);
-    url.searchParams.set("fields",      "rating,user_ratings_total,reviews");
-    url.searchParams.set("reviews_sort","newest");
-    url.searchParams.set("key",         apiKey);
-
-    const res  = await fetch(url.toString(), { next: { revalidate: 3600 } });
-    const data = await res.json();
-    if (!data.result) return null;
-    return {
-      rating:       data.result.rating       as number,
-      totalReviews: data.result.user_ratings_total as number,
-      reviews:      (data.result.reviews ?? []) as {
+    const base = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
+    const res  = await fetch(`${base}/api/reviews`, { next: { revalidate: 3600 } });
+    if (!res.ok) return null;
+    const data = await res.json() as {
+      rating: number; totalReviews: number;
+      reviews: {
         author_name: string; rating: number;
         relative_time_description: string; text: string;
         profile_photo_url: string;
-      }[],
+      }[];
     };
+    if (!data.reviews?.length) return null;
+    return data;
   } catch { return null; }
 }
 
