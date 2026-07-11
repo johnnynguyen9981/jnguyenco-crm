@@ -45,22 +45,19 @@ export async function GET(_req: NextRequest, { params }: Params) {
       createElement(InvoiceTemplate, { invoice: invoice as unknown as InvoiceWithDetails }) as any
     );
 
-    // Upload to Google Drive (non-fatal background task)
+    // Upload to Google Drive before returning response (Vercel kills fire-and-forget tasks)
     if (isDriveConfigured()) {
       const clientRow = invoice.clients as any;
       if (clientRow?.id) {
         const clientName = `${clientRow.first_name ?? ""} ${clientRow.last_name ?? ""}`.trim();
-        const driveUpload = async () => {
-          try {
-            const folderId = clientRow.gdrive_folder_id
-              ? clientRow.gdrive_folder_id
-              : await getOrCreateClientFolder(clientRow.id, clientName);
-            await uploadToDriveFolder(folderId, "Invoices", `${invoice.invoice_number}.pdf`, pdfBuffer as Buffer);
-          } catch (e: any) {
-            console.warn("[drive] Invoice upload failed:", e?.message);
-          }
-        };
-        driveUpload(); // fire-and-forget
+        try {
+          const folderId = clientRow.gdrive_folder_id
+            ? clientRow.gdrive_folder_id
+            : await getOrCreateClientFolder(clientRow.id, clientName);
+          await uploadToDriveFolder(folderId, "Invoices", `${invoice.invoice_number}.pdf`, pdfBuffer as Buffer);
+        } catch (e: any) {
+          console.warn("[drive] Invoice upload failed:", e?.message);
+        }
       }
     }
 
