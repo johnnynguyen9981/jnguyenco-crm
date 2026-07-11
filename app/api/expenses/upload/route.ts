@@ -140,8 +140,10 @@ export async function POST(req: NextRequest) {
     const isNotConnected = err.message?.includes("not connected");
     const isPermission   = err.message?.includes("insufficientPermissions") ||
                            err.code === 403 || err.status === 403;
+    const isAuthExpired  = err.message?.includes("invalid_grant") ||
+                           err.message?.includes("Token has been expired");
 
-    if (isNotConnected || isPermission) {
+    if (isNotConnected || isPermission || isAuthExpired) {
       return NextResponse.json(
         { fileId: null, fileName: null, fileUrl: null, driveSkipped: true,
           driveMessage: "Google Drive not connected — receipt not saved. Connect Google in Settings to enable this." },
