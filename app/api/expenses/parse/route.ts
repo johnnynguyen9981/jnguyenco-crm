@@ -45,8 +45,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  const rawKey = process.env.GEMINI_API_KEY ?? "";
+  const apiKey = rawKey.charCodeAt(0) === 0xFEFF ? rawKey.slice(1) : rawKey;
+  if (!apiKey || apiKey.length < 10) {
     return NextResponse.json(
       { error: "AI_NOT_CONFIGURED", message: "Add GEMINI_API_KEY to Vercel env vars to enable smart scanning." },
       { status: 503 }
