@@ -92,11 +92,18 @@ export async function getOrCreateClientFolder(
   // Create / find the client folder
   const clientFolderId = await findOrCreateFolder(drive, clientName, rootId);
 
-  // Ensure all three subfolders exist (safe to run multiple times)
+  // Ensure all subfolders exist (safe to run multiple times)
+  const [deliverablesFolderId] = await Promise.all([
+    findOrCreateFolder(drive, "Deliverables", clientFolderId),
+    findOrCreateFolder(drive, "Quotes",       clientFolderId),
+    findOrCreateFolder(drive, "Contracts",    clientFolderId),
+    findOrCreateFolder(drive, "Invoices",     clientFolderId),
+  ]);
+
+  // Ensure Photos and Videos subfolders inside Deliverables
   await Promise.all([
-    findOrCreateFolder(drive, "Quotes",    clientFolderId),
-    findOrCreateFolder(drive, "Contracts", clientFolderId),
-    findOrCreateFolder(drive, "Invoices",  clientFolderId),
+    findOrCreateFolder(drive, "Photos", deliverablesFolderId),
+    findOrCreateFolder(drive, "Videos", deliverablesFolderId),
   ]);
 
   // Persist folder ID back to Supabase using service role (works in any context)
