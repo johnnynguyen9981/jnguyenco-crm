@@ -99,7 +99,8 @@ export async function POST(req: NextRequest) {
     const result  = await geminiRes.json();
     const rawText = (result.candidates?.[0]?.content?.parts?.[0]?.text ?? "") as string;
 
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    const cleanText = rawText.charCodeAt(0) === 0xFEFF ? rawText.slice(1) : rawText;
+    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error("[expenses/parse] No JSON in Gemini response:", rawText);
       return NextResponse.json({ error: "NO_JSON" }, { status: 422 });
