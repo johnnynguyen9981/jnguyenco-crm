@@ -5,28 +5,9 @@ import { formatCurrency, formatDate, getBookingStatusBadge, formatServiceType } 
 import Link from "next/link";
 import { Plus, ArrowRight, AlertTriangle, TrendingUp, CalendarCheck, Users, Star } from "lucide-react";
 import type { DashboardBooking, InvoiceAging, Client } from "@/lib/supabase/types";
+import { fetchReviews } from "@/lib/reviews";
 
 export const metadata = { title: "Dashboard — JNguyen Co. CRM" };
-
-async function getGoogleReviews() {
-  try {
-    const base = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
-    const res  = await fetch(`${base}/api/reviews`, { next: { revalidate: 3600 } });
-    if (!res.ok) return null;
-    const data = await res.json() as {
-      rating: number; totalReviews: number;
-      reviews: {
-        author_name: string; rating: number;
-        relative_time_description: string; text: string;
-        profile_photo_url: string;
-      }[];
-    };
-    if (!data.reviews?.length) return null;
-    return data;
-  } catch { return null; }
-}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -35,13 +16,13 @@ export default async function DashboardPage() {
   const yearStart = `${new Date().getFullYear()}-01-01`;
 
   const [
-    googleReviews,
+    { reviews: googleReviewsList, rating: googleRating, totalReviews: googleTotal },
     { data: upcomingBookings },
     { data: overdueInvoices },
     { count: clientCount },
     { data: allPayments },
   ] = await Promise.all([
-    getGoogleReviews(),
+    fetchReviews(),
     supabase
       .from("bookings")
       .select(`id, event_date, status, service_type, quoted_total,
@@ -235,18 +216,18 @@ export default async function DashboardPage() {
         )}
 
         {/* ── Google Reviews ──────────────────────────────── */}
-        {googleReviews && googleReviews.reviews.length > 0 && (
+        {googleReviewsList.length > 0 && (
           <div className="card p-0 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-brand-pale-blue">
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-semibold text-brand-navy">Google Reviews</h2>
                 <span className="flex items-center gap-1 bg-amber-50 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded-full border border-amber-200">
                   <Star size={11} className="fill-amber-400 text-amber-400" />
-                  {googleReviews.rating.toFixed(1)} · {googleReviews.totalReviews} reviews
+                  {googleRating.toFixed(1)} · {googleTotal} reviews
                 </span>
               </div>
               <a
-                href="https://www.google.com/maps/search/?api=1&query=JNguyen+Co+Canberra"
+                href="https://share.google/sUmfJfpLfCDYnQMsz"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-brand-teal hover:underline font-medium"
@@ -255,7 +236,7 @@ export default async function DashboardPage() {
               </a>
             </div>
             <div className="divide-y divide-brand-pale-blue">
-              {googleReviews.reviews.slice(0, 5).map((r, i) => (
+              {googleReviewsList.slice(0, 5).map((r, i) => (
                 <div key={i} className="px-5 py-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
