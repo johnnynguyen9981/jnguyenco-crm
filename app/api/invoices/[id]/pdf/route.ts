@@ -51,12 +51,15 @@ export async function GET(_req: NextRequest, { params }: Params) {
       if (clientRow?.id) {
         const clientName = `${clientRow.first_name ?? ""} ${clientRow.last_name ?? ""}`.trim();
         try {
+          console.log("[drive] step1: gdrive_folder_id =", clientRow.gdrive_folder_id);
           const folderId = clientRow.gdrive_folder_id
             ? clientRow.gdrive_folder_id
             : await getOrCreateClientFolder(clientRow.id, clientName);
+          console.log("[drive] step2: folderId =", folderId);
           await uploadToDriveFolder(folderId, "Invoices", `${invoice.invoice_number}.pdf`, pdfBuffer as Buffer);
+          console.log("[drive] step3: upload complete");
         } catch (e: any) {
-          console.warn("[drive] Invoice upload failed:", e?.message);
+          console.warn("[drive] Invoice upload failed:", e?.message, e?.stack?.split("\n")[1]);
         }
       }
     }
