@@ -186,8 +186,14 @@ export function ExpenseForm({ expense, defaultDate, onClose }: Props) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Save failed");
-      router.refresh();
       onClose();
+      // Navigate to the FY the saved expense belongs to (AI-filled date may be in a past FY)
+      const savedFY = json.expense?.financial_year;
+      if (savedFY) {
+        router.push(`/expenses?fy=${savedFY}`);
+      } else {
+        router.refresh();
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
