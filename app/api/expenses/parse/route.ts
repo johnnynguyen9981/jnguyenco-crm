@@ -96,9 +96,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "AI_FAILED", message: "Scanning failed — fill in manually." }, { status: 502 });
     }
 
-    const result  = await geminiRes.json();
-    const rawText = (result.candidates?.[0]?.content?.parts?.[0]?.text ?? "") as string;
-
+    const rawBody  = await geminiRes.text();
+    const cleanBody = rawBody.charCodeAt(0) === 0xFEFF ? rawBody.slice(1) : rawBody;
+    const result   = JSON.parse(cleanBody);
+    const rawText  = (result.candidates?.[0]?.content?.parts?.[0]?.text ?? "") as string;
     const cleanText = rawText.charCodeAt(0) === 0xFEFF ? rawText.slice(1) : rawText;
     const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
