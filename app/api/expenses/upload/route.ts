@@ -89,7 +89,8 @@ export async function POST(req: NextRequest) {
     if (isDriveConfigured()) {
       // Preferred: service account with explicit root folder
       drive  = getServiceAccountDrive();
-      rootId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID!;
+      const rawRootId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID ?? "";
+      rootId = rawRootId.charCodeAt(0) === 0xFEFF ? rawRootId.slice(1) : rawRootId;
     } else {
       // Fallback: user's personal Google Drive (token stored via Settings → Google Integration)
       drive  = await getOAuthDrive(ownerId);
