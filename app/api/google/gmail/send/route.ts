@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   if (authErr || !user) return apiError("Unauthorized", 401);
 
   const body = await req.json();
-  const { template, to, subject, from_account = "gmail" } = body as {
+  const { template, to, subject, from_account = "godaddy" } = body as {
     template:      EmailTemplate;
     to:            string;
     subject?:      string;
