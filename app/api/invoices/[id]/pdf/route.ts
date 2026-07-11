@@ -23,7 +23,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .from("invoices")
     .select(`
       *,
-      clients (id, first_name, last_name, email, phone, address),
+      clients (id, first_name, last_name, email, phone, address, gdrive_folder_id),
       invoice_line_items (id, description, quantity, unit_price, total, sort_order)
     `)
     .eq("id", params.id)
