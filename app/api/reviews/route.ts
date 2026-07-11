@@ -36,9 +36,18 @@ const FALLBACK = {
   ],
 };
 
+const CORS = {
+  "Access-Control-Allow-Origin":  "https://www.jnguyen.co",
+  "Access-Control-Allow-Methods": "GET",
+};
+
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS });
+}
+
 export async function GET() {
   if (!API_KEY || !PLACE_ID) {
-    return NextResponse.json(FALLBACK);
+    return NextResponse.json(FALLBACK, { headers: CORS });
   }
 
   try {
@@ -67,7 +76,7 @@ export async function GET() {
 
     if (!data.result) {
       console.warn("[reviews] Places API status:", data.status, "— using fallback");
-      return NextResponse.json(FALLBACK);
+      return NextResponse.json(FALLBACK, { headers: CORS });
     }
 
     return NextResponse.json({
@@ -76,10 +85,10 @@ export async function GET() {
       totalReviews: data.result.user_ratings_total,
       source:       "live",
       reviews:      data.result.reviews ?? [],
-    });
+    }, { headers: CORS });
 
   } catch (err) {
     console.error("[reviews] error:", err);
-    return NextResponse.json(FALLBACK);
+    return NextResponse.json(FALLBACK, { headers: CORS });
   }
 }
