@@ -32,9 +32,30 @@ export async function GET() {
       corpora: "allDrives",
     });
 
+    // Try to create a test folder inside the Shared Drive
+    let createResult: any = null;
+    let createError: any = null;
+    try {
+      const created = await drive.files.create({
+        requestBody: {
+          name: "_test-folder",
+          mimeType: "application/vnd.google-apps.folder",
+          parents: [folderId],
+        },
+        fields: "id, name, driveId",
+        supportsAllDrives: true,
+      });
+      createResult = created.data;
+      // Clean up
+      await drive.files.delete({ fileId: created.data.id!, supportsAllDrives: true });
+    } catch (e: any) {
+      createError = e.message;
+    }
+
     return NextResponse.json({
       folder: meta.data,
       children: list.data.files,
+      createTest: createResult ?? { error: createError },
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
