@@ -18,6 +18,7 @@
 import { google, drive_v3 } from "googleapis";
 import { Readable } from "stream";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 
 export type DriveSubfolder = "Quotes" | "Contracts" | "Invoices";
 
@@ -89,8 +90,24 @@ export async function getOrCreateClientFolder(
 
   const drive = getDriveClient();
 
-  // Create / find the client folder
-  const clientFolderId = await findOrCreateFolder(drive, clientName, rootId);
+  // Look up booking event_date to determine Year/Month folder names
+  const supabase = await createServerClient();
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("event_date")
+    .eq("client_id", clientId)
+    .order("event_date", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const eventDate   = booking?.event_date ? new Date(booking.event_date) : new Date();
+  const yearFolder  = String(eventDate.getUTCFullYear());
+  const monthFolder = eventDate.toLocaleString("en-AU", { month: "long", timeZone: "UTC" });
+
+  // Structure: Root / Year / Month / ClientName / ...
+  const yearId          = await findOrCreateFolder(drive, yearFolder,   rootId);
+  const monthId         = await findOrCreateFolder(drive, monthFolder,  yearId);
+  const clientFolderId  = await findOrCreateFolder(drive, clientName,   monthId);
 
   // Ensure all subfolders exist (safe to run multiple times)
   const [deliverablesFolderId] = await Promise.all([
