@@ -53,6 +53,8 @@ async function findOrCreateFolder(
     q: `name = '${safeName}' and '${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
     fields: "files(id)",
     spaces: "drive",
+    includeItemsFromAllDrives: true,
+    supportsAllDrives: true,
   });
 
   if (data.files && data.files.length > 0) {
@@ -66,6 +68,7 @@ async function findOrCreateFolder(
       parents: [parentId],
     },
     fields: "id",
+    supportsAllDrives: true,
   });
   return folder.id!;
 }
@@ -137,6 +140,7 @@ export async function uploadToDriveFolder(
       body: Readable.from(buffer),
     },
     fields: "id, webViewLink",
+    supportsAllDrives: true,
   });
 
   return file.webViewLink ?? `https://drive.google.com/file/d/${file.id}/view`;
