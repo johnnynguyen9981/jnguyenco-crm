@@ -35,7 +35,7 @@ export default async function InvoicesPage({ searchParams }: Props) {
   let query = supabase
     .from("invoices")
     .select(
-      `id, invoice_number, status, subtotal, gst, total, due_date, paid_at, created_at,
+      `id, invoice_number, status, subtotal, gst_amount, total_amount, due_date, paid_at, created_at,
        clients (id, first_name, last_name),
        bookings (id, event_date, service_type)`,
       { count: "exact" }
@@ -52,13 +52,13 @@ export default async function InvoicesPage({ searchParams }: Props) {
   // Revenue summary
   const { data: allInvoices } = await supabase
     .from("invoices")
-    .select("status, total")
+    .select("status, total_amount")
     .eq("owner_id", user.id);
 
   const revenue = {
-    paid:    (allInvoices || []).filter((i) => i.status === "PAID").reduce((s, i) => s + Number(i.total), 0),
-    pending: (allInvoices || []).filter((i) => ["SENT", "DRAFT"].includes(i.status)).reduce((s, i) => s + Number(i.total), 0),
-    overdue: (allInvoices || []).filter((i) => i.status === "OVERDUE").reduce((s, i) => s + Number(i.total), 0),
+    paid:    (allInvoices || []).filter((i) => i.status === "PAID").reduce((s, i) => s + Number(i.total_amount), 0),
+    pending: (allInvoices || []).filter((i) => ["SENT", "DRAFT"].includes(i.status)).reduce((s, i) => s + Number(i.total_amount), 0),
+    overdue: (allInvoices || []).filter((i) => i.status === "OVERDUE").reduce((s, i) => s + Number(i.total_amount), 0),
   };
 
   const statusCounts = (allInvoices || []).reduce<Record<string, number>>((acc, i) => {
@@ -183,7 +183,7 @@ export default async function InvoicesPage({ searchParams }: Props) {
                     <td className="table-cell">
                       <span className={`badge ${badge.class}`}>{badge.label}</span>
                     </td>
-                    <td className="table-cell text-right font-semibold">{formatCurrency(inv.total)}</td>
+                    <td className="table-cell text-right font-semibold">{formatCurrency(inv.total_amount)}</td>
                     <td className="table-cell text-right">
                       <Link href={`/invoices/${inv.id}`} className="text-brand-teal hover:underline text-xs font-medium">
                         View →
