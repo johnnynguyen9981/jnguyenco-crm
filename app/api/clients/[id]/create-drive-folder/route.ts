@@ -42,7 +42,10 @@ export async function POST(_req: NextRequest, { params }: Params) {
     const saJson = env["GOOGLE_SERVICE_ACCOUNT_JSON"] ?? "";
     const saB64  = env["GOOGLE_SERVICE_ACCOUNT_B64"]  ?? "";
     const rootId = env["GOOGLE_DRIVE_ROOT_FOLDER_ID"] ?? "";
-    const diag = `[json:${saJson.length}c0=${saJson.charCodeAt(0)}][b64:${saB64.length}][root:${rootId.length}c0=${rootId.charCodeAt(0)}]`;
+    const visibleKeys = Object.keys(process.env).filter(k =>
+      k.startsWith("GOOGLE") || k.startsWith("VERCEL") || k === "NODE_ENV"
+    ).sort();
+    const diag = `[json:${saJson.length}][b64:${saB64.length}][root:${rootId.length}][keys:${visibleKeys.join(",")}]`;
     return apiError(`Drive error: ${e.message} ${diag}`, 500);
   }
 }
