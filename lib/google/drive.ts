@@ -37,6 +37,7 @@ function stripBOM(s: string): string {
 function getDriveClient(): drive_v3.Drive {
   const saRaw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "";
   const saJson = stripBOM(saRaw).trim();
+  console.log("[drive] SA JSON raw.length=%d stripped.length=%d firstCharCode=%d", saRaw.length, saJson.length, saRaw.charCodeAt(0));
   if (!saJson) {
     throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON env var is not set.");
   }
