@@ -25,7 +25,7 @@ export type DriveSubfolder = "Quotes" | "Contracts" | "Invoices";
 /** Returns true if Drive env vars are configured. */
 export function isDriveConfigured(): boolean {
   return !!(
-    stripBOM(process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "").trim() &&
+    getServiceAccountJson() &&
     (stripBOM(process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID ?? "").trim() || "0AFXFUoYwRDw-Uk9PVA")
   );
 }
@@ -34,10 +34,17 @@ function stripBOM(s: string): string {
   return s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
 }
 
+/** Reads the service account JSON from env — supports plain JSON or base64-encoded value. */
+function getServiceAccountJson(): string {
+  // Prefer base64-encoded var (no encoding/newline issues)
+  const b64 = stripBOM(process.env.GOOGLE_SERVICE_ACCOUNT_B64 ?? "").trim();
+  if (b64) return Buffer.from(b64, "base64").toString("utf8");
+  // Fall back to raw JSON var
+  return stripBOM(process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "").trim();
+}
+
 function getDriveClient(): drive_v3.Drive {
-  const saRaw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "";
-  const saJson = stripBOM(saRaw).trim();
-  console.log("[drive] SA JSON raw.length=%d stripped.length=%d firstCharCode=%d", saRaw.length, saJson.length, saRaw.charCodeAt(0));
+  const saJson = getServiceAccountJson();
   if (!saJson) {
     throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON env var is not set.");
   }
