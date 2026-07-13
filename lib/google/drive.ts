@@ -85,7 +85,9 @@ export async function getOrCreateClientFolder(
   clientName: string
 ): Promise<string> {
   const raw = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID ?? "";
-  const rootId = raw.charCodeAt(0) === 0xFEFF ? raw.slice(1) : raw;
+  const fromEnv = raw.charCodeAt(0) === 0xFEFF ? raw.slice(1) : raw;
+  // Fallback to known root folder ID if env var is missing/corrupt
+  const rootId = fromEnv || "0AFXFUoYwRDw-Uk9PVA";
   if (!rootId) throw new Error("GOOGLE_DRIVE_ROOT_FOLDER_ID env var is not set.");
 
   const drive = getDriveClient();
