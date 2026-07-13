@@ -25,17 +25,22 @@ export type DriveSubfolder = "Quotes" | "Contracts" | "Invoices";
 /** Returns true if Drive env vars are configured. */
 export function isDriveConfigured(): boolean {
   return !!(
-    process.env.GOOGLE_SERVICE_ACCOUNT_JSON &&
-    process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID
+    stripBOM(process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "").trim() &&
+    (stripBOM(process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID ?? "").trim() || "0AFXFUoYwRDw-Uk9PVA")
   );
 }
 
+function stripBOM(s: string): string {
+  return s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
+}
+
 function getDriveClient(): drive_v3.Drive {
-  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+  const saRaw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "";
+  const saJson = stripBOM(saRaw).trim();
+  if (!saJson) {
     throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON env var is not set.");
   }
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  const credentials = JSON.parse(raw.charCodeAt(0) === 0xFEFF ? raw.slice(1) : raw);
+  const credentials = JSON.parse(saJson);
   const auth = new google.auth.GoogleAuth({
     credentials,
     scopes: ["https://www.googleapis.com/auth/drive"],
