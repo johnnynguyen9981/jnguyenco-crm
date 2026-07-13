@@ -24,9 +24,10 @@ export type DriveSubfolder = "Quotes" | "Contracts" | "Invoices";
 
 /** Returns true if Drive env vars are configured. */
 export function isDriveConfigured(): boolean {
+  const env = process.env as Record<string, string | undefined>;
   return !!(
     getServiceAccountJson() &&
-    (stripBOM(process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID ?? "").trim() || "0AFXFUoYwRDw-Uk9PVA")
+    (stripBOM(env["GOOGLE_DRIVE_ROOT_FOLDER_ID"] ?? "").trim() || "0AFXFUoYwRDw-Uk9PVA")
   );
 }
 
@@ -34,13 +35,14 @@ function stripBOM(s: string): string {
   return s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
 }
 
-/** Reads the service account JSON from env — supports plain JSON or base64-encoded value. */
+/** Reads the service account JSON from env — uses dynamic access to prevent webpack build-time inlining. */
 function getServiceAccountJson(): string {
-  // Prefer base64-encoded var (no encoding/newline issues)
-  const b64 = stripBOM(process.env.GOOGLE_SERVICE_ACCOUNT_B64 ?? "").trim();
+  const env = process.env as Record<string, string | undefined>;
+  // Prefer base64-encoded var (no encoding/newline/BOM issues)
+  const b64 = stripBOM(env["GOOGLE_SERVICE_ACCOUNT_B64"] ?? "").trim();
   if (b64) return Buffer.from(b64, "base64").toString("utf8");
   // Fall back to raw JSON var
-  return stripBOM(process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "").trim();
+  return stripBOM(env["GOOGLE_SERVICE_ACCOUNT_JSON"] ?? "").trim();
 }
 
 function getDriveClient(): drive_v3.Drive {
@@ -97,8 +99,8 @@ export async function getOrCreateClientFolder(
   clientId: string,
   clientName: string
 ): Promise<string> {
-  const raw = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID ?? "";
-  const fromEnv = raw.charCodeAt(0) === 0xFEFF ? raw.slice(1) : raw;
+  const env = process.env as Record<string, string | undefined>;
+  const fromEnv = stripBOM(env["GOOGLE_DRIVE_ROOT_FOLDER_ID"] ?? "").trim();
   // Fallback to known root folder ID if env var is missing/corrupt
   const rootId = fromEnv || "0AFXFUoYwRDw-Uk9PVA";
   if (!rootId) throw new Error("GOOGLE_DRIVE_ROOT_FOLDER_ID env var is not set.");
