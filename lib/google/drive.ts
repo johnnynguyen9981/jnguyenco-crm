@@ -20,7 +20,7 @@ import { Readable } from "stream";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 
-export type DriveSubfolder = "Quotes" | "Contracts" | "Invoices";
+export type DriveSubfolder = "Quotes" | "Contracts" | "Invoices" | "Receipts";
 
 /** Returns true if Drive env vars are configured. */
 export function isDriveConfigured(): boolean {
@@ -102,7 +102,8 @@ export async function getOrCreateClientFolder(
   const env = process.env as Record<string, string | undefined>;
   const fromEnv = stripBOM(env["GOOGLE_DRIVE_ROOT_FOLDER_ID"] ?? "").trim();
   // Fallback to known root folder ID if env var is missing/corrupt
-  const rootId = fromEnv || "0AFXFUoYwRDw-Uk9PVA";
+  // "Clients" folder inside JNguyen Co. CRM (ID: 1dzxMz7t2NNKT7sgnOgZvNGbaJTHNMVCX)
+  const rootId = fromEnv || "13R1SuLYVyUvB-s1_a9kNmJ-S5aZqZtCU";
   if (!rootId) throw new Error("GOOGLE_DRIVE_ROOT_FOLDER_ID env var is not set.");
 
   const drive = getDriveClient();
@@ -132,6 +133,7 @@ export async function getOrCreateClientFolder(
     findOrCreateFolder(drive, "Quotes",       clientFolderId),
     findOrCreateFolder(drive, "Contracts",    clientFolderId),
     findOrCreateFolder(drive, "Invoices",     clientFolderId),
+    findOrCreateFolder(drive, "Receipts",     clientFolderId),
   ]);
 
   // Ensure Photos and Videos subfolders inside Deliverables

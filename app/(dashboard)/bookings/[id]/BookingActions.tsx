@@ -637,3 +637,51 @@ export function BookingActions({ booking, client }: Props) {
     </>
   );
 }
+
+// ── Send Receipt button ───────────────────────────────────────────────────────
+export function SendReceiptButton({ paymentId }: { paymentId: string }) {
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailDone,    setEmailDone]    = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
+
+  async function handleEmail() {
+    setEmailSending(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/payments/${paymentId}/receipt`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed");
+      setEmailDone(true);
+      setTimeout(() => setEmailDone(false), 4000);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setEmailSending(false);
+    }
+  }
+
+  return (
+    <span className="flex items-center gap-1">
+      {/* Download PDF */}
+      <a
+        href={`/api/payments/${paymentId}/receipt`}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Download receipt PDF"
+        className="text-[10px] text-brand-teal hover:underline px-1.5 py-0.5 rounded hover:bg-teal-50"
+      >
+        ↓ Receipt
+      </a>
+      {/* Email */}
+      <button
+        onClick={handleEmail}
+        disabled={emailSending}
+        title="Email receipt to client"
+        className="text-[10px] text-brand-sand hover:underline px-1.5 py-0.5 rounded hover:bg-amber-50 disabled:opacity-50"
+      >
+        {emailSending ? "Sending…" : emailDone ? "✓ Sent!" : "✉ Email"}
+      </button>
+      {error && <span className="text-[9px] text-red-500">{error}</span>}
+    </span>
+  );
+}
