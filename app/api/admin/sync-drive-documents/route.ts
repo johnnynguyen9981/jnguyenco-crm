@@ -1,257 +1,183 @@
 // POST /api/admin/sync-drive-documents
 // Generates contract + invoice PDFs for every client and uploads them to their
-// Google Drive folders using OAuth (user tokens). Safe to re-run — existing files
-// are not deleted; new versions are just uploaded alongside.
+// Google Drive folders using the service account (same path used elsewhere in
+// the app for receipts/contracts). Safe to re-run — existing files are not
+// deleted; new versions are just uploaded alongside.
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getOwnerUserId } from "@/lib/team";
 import { apiSuccess, apiError } from "@/lib/utils";
-import { getAuthenticatedClient } from "@/lib/google/auth";
-import { google } from "googleapis";
-import { Readable } from "stream";
+import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 import { generateContractPDF, EnquiryData } from "@/lib/generate-contract";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { InvoiceTemplate } from "@/lib/pdf/InvoiceTemplate";
 import { createElement } from "react";
 import type { InvoiceWithDetails } from "@/lib/supabase/types";
 
-// ─── Drive helpers (OAuth-based) ────────────────────────────
-
-async function findOrCreateFolder(
-  drive: ReturnType<typeof google.drive>,
-  name: string,
-  parentId?: string
-): Promise<string> {
-  const parentQ = parentId
-    ? ` and '${parentId}' in parents`
-    : ` and 'root' in parents`;
-  const safeName = name.replace(/'/g, "\\'");
-  const { data } = await drive.files.list({
-    q: `name = '${safeName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false${parentQ}`,
-    fields: "files(id)",
-    spaces: "drive",
-  });
-  if (data.files && data.files.length > 0) return data.files[0].id!;
-  const { data: f } = await drive.files.create({
-    requestBody: {
-      name,
-      mimeType: "application/vnd.google-apps.folder",
-      ...(parentId ? { parents: [parentId] } : {}),
-    },
-    fields: "id",
-  });
-  return f.id!;
-}
-
-async function uploadPdf(
-  drive: ReturnType<typeof google.drive>,
-  parentId: string,
-  filename: string,
-  buffer: Buffer
-): Promise<string> {
-  const { data: file } = await drive.files.create({
-    requestBody: { name: filename, parents: [parentId] },
-    media: { mimeType: "application/pdf", body: Readable.from(buffer) },
-    fields: "id, webViewLink",
-  });
-  return file.webViewLink ?? `https://drive.google.com/file/d/${file.id}/view`;
-}
-
 // ─── Package key mapper (mirrors fill-contract route) ────────
 
 type PkgKey = keyof Pick<
-  EnquiryData,
-  "pkg_mini" | "pkg_full8" | "pkg_full13" | "pkg_hourly" | "pkg_combo" | "pkg_portrait" | "pkg_unsure"
->;
+    EnquiryData,
+    "pkg_mini" | "pkg_full8" | "pkg_full13" | "pkg_hourly" | "pkg_combo" | "pkg_portrait" | "pkg_unsure"
+  >;
 
 function packageNameToKey(name: string): PkgKey | null {
-  const n = name.toLowerCase();
-  if (n.includes("mini") || n.includes("elopement"))                                                return "pkg_mini";
-  if (n.includes("essential"))                                                                      return "pkg_full8";
-  if (n.includes("premium"))                                                                        return "pkg_full13";
-  if (n.includes("portrait") || n.includes("headshot") || n.includes("newborn") || n.includes("maternity") || n.includes("couples")) return "pkg_portrait";
-  if (n.includes("videography") || n.includes("video") || (n.includes("photo") && n.includes("video"))) return "pkg_combo";
-  if (n.includes("photography only") || n.includes("hourly") || n.includes("photo"))               return "pkg_hourly";
-  return null;
+    const n = name.toLowerCase();
+    if (n.includes("mini") || n.includes("elopement"))                                                return "pkg_mini";
+    if (n.includes("essential"))                                                                      return "pkg_full8";
+    if (n.includes("premium"))                                                                        return "pkg_full13";
+    if (n.includes("portrait") || n.includes("headshot") || n.includes("newborn") || n.includes("maternity") || n.includes("couples")) return "pkg_portrait";
+    if (n.includes("videography") || n.includes("video") || (n.includes("photo") && n.includes("video"))) return "pkg_combo";
+    if (n.includes("photography only") || n.includes("hourly") || n.includes("photo"))               return "pkg_hourly";
+    return null;
 }
 
 // ─── Route ───────────────────────────────────────────────────
 
 export async function POST(_req: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user }, error: authErr } = await supabase.auth.getUser();
-  if (authErr || !user) return apiError("Unauthorized", 401);
+    const supabase = await createClient();
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    if (authErr || !user) return apiError("Unauthorized", 401);
 
   let ownerUserId: string;
-  try {
-    ownerUserId = await getOwnerUserId();
-  } catch {
-    return apiError("Unauthorized", 401);
+    try {
+          ownerUserId = await getOwnerUserId();
+    } catch {
+          return apiError("Unauthorized", 401);
+    }
+
+  if (!isDriveConfigured()) {
+        return apiError("Google Drive service account is not configured.", 503);
   }
-
-  // OAuth Drive client
-  let authClient: Awaited<ReturnType<typeof getAuthenticatedClient>>;
-  try {
-    authClient = await getAuthenticatedClient(user.id);
-  } catch {
-    return apiError("Google account not connected. Connect it in Settings → Integrations.", 503);
-  }
-
-  const drive = google.drive({ version: "v3", auth: authClient });
-
-  // Root folder structure
-  const rootId    = await findOrCreateFolder(drive, "JNguyen Co. CRM");
-  const clientsId = await findOrCreateFolder(drive, "Clients", rootId);
 
   // All clients
   const { data: clients, error: clientsErr } = await supabase
-    .from("clients")
-    .select("id, first_name, last_name, email, phone")
-    .eq("owner_id", ownerUserId);
+      .from("clients")
+      .select("id, first_name, last_name, email, phone")
+      .eq("owner_id", ownerUserId);
 
   if (clientsErr || !clients?.length) {
-    return apiSuccess({ results: [], message: "No clients found." });
+        return apiSuccess({ results: [], message: "No clients found." });
   }
 
   const results: Array<{
-    client: string;
-    contract?: string;
-    invoices: string[];
-    errors: string[];
+        client: string;
+        contract?: string;
+        invoices: string[];
+        errors: string[];
   }> = [];
 
   for (const client of clients) {
-    const clientName = `${client.first_name} ${client.last_name}`.trim();
-    const clientResult: { client: string; contract?: string; invoices: string[]; errors: string[] } = {
-      client: clientName, invoices: [], errors: [],
-    };
-
-    try {
-      // Earliest booking → year/month folder
-      const { data: booking } = await supabase
-        .from("bookings")
-        .select(
-          "id, event_date, event_start_time, event_end_time, venue_name, quoted_total, deposit_amount, package_id, hours_booked, special_requests"
-        )
-        .eq("client_id", client.id)
-        .order("event_date", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      const eventDate  = booking?.event_date ? new Date(booking.event_date) : new Date();
-      const yearFolder  = String(eventDate.getUTCFullYear());
-      const monthFolder = eventDate.toLocaleString("en-AU", { month: "long", timeZone: "UTC" });
-
-      // Build Drive folder path: Clients / YYYY / Month / [Client Name]
-      const yearId          = await findOrCreateFolder(drive, yearFolder, clientsId);
-      const monthId         = await findOrCreateFolder(drive, monthFolder, yearId);
-      const clientFolderId  = await findOrCreateFolder(drive, clientName, monthId);
-
-      // Ensure all subfolders exist
-      const [deliverablesId, contractsFolderId, invoicesFolderId] = await Promise.all([
-        findOrCreateFolder(drive, "Deliverables", clientFolderId),
-        findOrCreateFolder(drive, "Contracts",    clientFolderId),
-        findOrCreateFolder(drive, "Invoices",     clientFolderId),
-      ]);
-      await Promise.all([
-        findOrCreateFolder(drive, "Photos", deliverablesId),
-        findOrCreateFolder(drive, "Videos", deliverablesId),
-      ]);
-
-      // Persist gdrive_folder_id
-      await supabase
-        .from("clients")
-        .update({ gdrive_folder_id: clientFolderId })
-        .eq("id", client.id);
-
-      // ── Contract PDF ─────────────────────────────────────
-      try {
-        const enquiryData: EnquiryData = {
-          full_name: clientName,
-          email:     client.email    ?? "",
-          phone:     client.phone    ?? "",
+        const clientName = `${client.first_name} ${client.last_name}`.trim();
+        const clientResult: { client: string; contract?: string; invoices: string[]; errors: string[] } = {
+                client: clientName, invoices: [], errors: [],
         };
 
-        if (booking) {
-          if (booking.event_date)       enquiryData.event_date      = booking.event_date;
-          if (booking.event_start_time) enquiryData.start_time      = booking.event_start_time;
-          if (booking.event_end_time)   enquiryData.end_time        = booking.event_end_time;
-          if (booking.venue_name)       enquiryData.venue           = booking.venue_name;
-          if (booking.quoted_total   != null) enquiryData.total_fee        = booking.quoted_total;
-          if (booking.deposit_amount != null) enquiryData.deposit_amount   = booking.deposit_amount;
-          if (booking.special_requests)       enquiryData.special_requests = booking.special_requests;
+      try {
+              // getOrCreateClientFolder builds Root/Year/Month/[Client Name]/... (with
+          // Deliverables/Photos+Videos, Quotes, Contracts, Invoices, Receipts) and
+          // persists gdrive_folder_id back to the client row — same as every other
+          // Drive write path in this app.
+          const clientFolderId = await getOrCreateClientFolder(client.id, clientName);
 
-          if (booking.package_id) {
-            // Clear any existing package flags
-            (["pkg_mini","pkg_full8","pkg_full13","pkg_hourly","pkg_combo","pkg_portrait","pkg_unsure"] as const)
-              .forEach(k => { delete enquiryData[k]; });
-            delete enquiryData.svc_both;
-            delete enquiryData.svc_photo;
-            delete enquiryData.svc_video;
+          const { data: booking } = await supabase
+                .from("bookings")
+                .select(
+                            "id, event_date, event_start_time, event_end_time, venue_name, quoted_total, deposit_amount, package_id, hours_booked, special_requests"
+                          )
+                .eq("client_id", client.id)
+                .order("event_date", { ascending: true })
+                .limit(1)
+                .maybeSingle();
 
-            const { data: pkg } = await supabase
-              .from("packages")
-              .select("name, includes_photography, includes_videography, base_price, max_hours")
-              .eq("id", booking.package_id)
-              .single();
+          // ── Contract PDF ─────────────────────────────────────
+          try {
+                    const enquiryData: EnquiryData = {
+                                full_name: clientName,
+                                email:     client.email    ?? "",
+                                phone:     client.phone    ?? "",
+                    };
 
-            if (pkg?.name) {
-              enquiryData.package_name = pkg.name;
-              const pkgKey = packageNameToKey(pkg.name);
-              if (pkgKey) enquiryData[pkgKey] = "Yes";
+                if (booking) {
+                            if (booking.event_date)       enquiryData.event_date      = booking.event_date;
+                            if (booking.event_start_time) enquiryData.start_time      = booking.event_start_time;
+                            if (booking.event_end_time)   enquiryData.end_time        = booking.event_end_time;
+                            if (booking.venue_name)       enquiryData.venue           = booking.venue_name;
+                            if (booking.quoted_total   != null) enquiryData.total_fee        = booking.quoted_total;
+                            if (booking.deposit_amount != null) enquiryData.deposit_amount   = booking.deposit_amount;
+                            if (booking.special_requests)       enquiryData.special_requests = booking.special_requests;
 
-              if (pkg.base_price != null) {
-                const isHourly = !pkg.max_hours;
-                enquiryData.list_price = (isHourly && booking.hours_booked != null)
-                  ? Math.round(Number(booking.hours_booked) * Number(pkg.base_price))
-                  : Number(pkg.base_price);
-              }
+                      if (booking.package_id) {
+                                    // Clear any existing package flags
+                              (["pkg_mini","pkg_full8","pkg_full13","pkg_hourly","pkg_combo","pkg_portrait","pkg_unsure"] as const)
+                                      .forEach(k => { delete enquiryData[k]; });
+                                    delete enquiryData.svc_both;
+                                    delete enquiryData.svc_photo;
+                                    delete enquiryData.svc_video;
 
-              if (pkg.includes_photography && pkg.includes_videography) enquiryData.svc_both  = "Yes";
-              else if (pkg.includes_videography)                          enquiryData.svc_video = "Yes";
-              else                                                         enquiryData.svc_photo = "Yes";
-            }
+                              const { data: pkg } = await supabase
+                                      .from("packages")
+                                      .select("name, includes_photography, includes_videography, base_price, max_hours")
+                                      .eq("id", booking.package_id)
+                                      .single();
+
+                              if (pkg?.name) {
+                                              enquiryData.package_name = pkg.name;
+                                              const pkgKey = packageNameToKey(pkg.name);
+                                              if (pkgKey) enquiryData[pkgKey] = "Yes";
+
+                                      if (pkg.base_price != null) {
+                                                        const isHourly = !pkg.max_hours;
+                                                        enquiryData.list_price = (isHourly && booking.hours_booked != null)
+                                                          ? Math.round(Number(booking.hours_booked) * Number(pkg.base_price))
+                                                                            : Number(pkg.base_price);
+                                      }
+
+                                      if (pkg.includes_photography && pkg.includes_videography) enquiryData.svc_both  = "Yes";
+                                              else if (pkg.includes_videography)                          enquiryData.svc_video = "Yes";
+                                              else                                                         enquiryData.svc_photo = "Yes";
+                              }
+                      }
+                }
+
+                const contractBuf      = await generateContractPDF(enquiryData);
+                    const contractFilename = `Contract_${clientName.replace(/\s+/g, "_")}.pdf`;
+                    const contractUrl      = await uploadToDriveFolder(clientFolderId, "Contracts", contractFilename, contractBuf);
+                    clientResult.contract  = contractUrl;
+          } catch (e: any) {
+                    clientResult.errors.push(`Contract: ${e.message}`);
           }
-        }
 
-        const contractBuf      = await generateContractPDF(enquiryData);
-        const contractFilename = `Contract_${clientName.replace(/\s+/g, "_")}.pdf`;
-        const contractUrl      = await uploadPdf(drive, contractsFolderId, contractFilename, contractBuf);
-        clientResult.contract  = contractUrl;
+          // ── Invoice PDFs ──────────────────────────────────────
+          const { data: invoices } = await supabase
+                .from("invoices")
+                .select(`
+                          *,
+                                    clients (id, first_name, last_name, email, phone, address),
+                                              invoice_line_items (id, description, quantity, unit_price, total, sort_order)
+                                                      `)
+                .eq("client_id", client.id)
+                .eq("owner_id",  ownerUserId);
+
+          for (const invoice of (invoices ?? [])) {
+                    try {
+                                invoice.invoice_line_items = (invoice.invoice_line_items ?? []).sort(
+                                              (a: any, b: any) => a.sort_order - b.sort_order
+                                            );
+                                const pdfBuf = await renderToBuffer(
+                                              createElement(InvoiceTemplate, { invoice: invoice as unknown as InvoiceWithDetails }) as any
+                                            );
+                                const url = await uploadToDriveFolder(clientFolderId, "Invoices", `${invoice.invoice_number}.pdf`, pdfBuf as Buffer);
+                                clientResult.invoices.push(url);
+                    } catch (e: any) {
+                                clientResult.errors.push(`Invoice ${invoice.invoice_number}: ${e.message}`);
+                    }
+          }
       } catch (e: any) {
-        clientResult.errors.push(`Contract: ${e.message}`);
+              clientResult.errors.push(`Folder setup: ${e.message}`);
       }
 
-      // ── Invoice PDFs ──────────────────────────────────────
-      const { data: invoices } = await supabase
-        .from("invoices")
-        .select(`
-          *,
-          clients (id, first_name, last_name, email, phone, address),
-          invoice_line_items (id, description, quantity, unit_price, total, sort_order)
-        `)
-        .eq("client_id", client.id)
-        .eq("owner_id",  ownerUserId);
-
-      for (const invoice of (invoices ?? [])) {
-        try {
-          invoice.invoice_line_items = (invoice.invoice_line_items ?? []).sort(
-            (a: any, b: any) => a.sort_order - b.sort_order
-          );
-          const pdfBuf = await renderToBuffer(
-            createElement(InvoiceTemplate, { invoice: invoice as unknown as InvoiceWithDetails }) as any
-          );
-          const url = await uploadPdf(drive, invoicesFolderId, `${invoice.invoice_number}.pdf`, pdfBuf as Buffer);
-          clientResult.invoices.push(url);
-        } catch (e: any) {
-          clientResult.errors.push(`Invoice ${invoice.invoice_number}: ${e.message}`);
-        }
-      }
-    } catch (e: any) {
-      clientResult.errors.push(`Folder setup: ${e.message}`);
-    }
-
-    results.push(clientResult);
+      results.push(clientResult);
   }
 
   return apiSuccess({ results });
