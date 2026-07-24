@@ -171,9 +171,12 @@ const Field = ({ label, value }: { label: string; value: string }) => (
 
 const Divider = () => <View style={s.divider} />;
 
-interface AgreementDocProps { d: ContractorAgreementData }
+interface AgreementDocProps {
+  d: ContractorAgreementData;
+  signatureDataUri: string | null;
+}
 
-const AgreementDoc = ({ d }: AgreementDocProps) => {
+const AgreementDoc = ({ d, signatureDataUri }: AgreementDocProps) => {
   const roleLabel  = ROLE_LABELS[d.role] ?? d.role;
   const rateLabel  = d.rate_type === "HOURLY"
     ? fmt(d.rate_amount) + " per hour"
@@ -373,8 +376,14 @@ const AgreementDoc = ({ d }: AgreementDocProps) => {
           <View style={s.sigBlock}>
             <Text style={[s.sigName, { color: TEAL }]}>Company</Text>
             <Text style={s.body}>Name: Johnny Nguyen — JNguyen Co.</Text>
+            {signatureDataUri ? (
+              <Image
+                src={signatureDataUri}
+                style={{ width: 110, height: 50, objectFit: "contain", marginTop: 2 }}
+              />
+            ) : null}
             <View style={s.sigLine} />
-            <Text style={s.sigLabel}>Signature</Text>
+            <Text style={s.sigLabel}>Signature{signatureDataUri ? " (Digital)" : ""}</Text>
             <View style={{ marginTop: 6 }} />
             <Text style={{ fontSize: 8.5, color: NAVY, marginBottom: 3 }}>{today()}</Text>
             <View style={[s.sigLine, { marginTop: 0 }]} />
@@ -387,8 +396,21 @@ const AgreementDoc = ({ d }: AgreementDocProps) => {
   );
 };
 
+function getSignatureDataUri(): string | null {
+  try {
+    const sigPath = path.join(process.cwd(), "public", "signature.png");
+    if (!fs.existsSync(sigPath)) return null;
+    return "data:image/png;base64," + fs.readFileSync(sigPath).toString("base64");
+  } catch {
+    return null;
+  }
+}
+
 export async function generateContractorAgreementPDF(
   data: ContractorAgreementData
 ): Promise<Buffer> {
-  return renderToBuffer(<AgreementDoc d={data} />) as Promise<Buffer>;
+  const signatureDataUri = getSignatureDataUri();
+  return renderToBuffer(
+    <AgreementDoc d={data} signatureDataUri={signatureDataUri} />
+  ) as Promise<Buffer>;
 }
