@@ -15,6 +15,7 @@ import {
 import { BookingActions, StatusUpdateForm, QuickPaymentForm, DeleteBookingButton, GenerateDepositInvoiceButton, EditPaymentModal, SendReceiptButton } from "./BookingActions";
 import { FillContractButton } from "@/app/(dashboard)/clients/[id]/FillContractButton";
 import { ContractCard } from "./ContractCard";
+import { ContractorAssignment } from "./ContractorAssignment";
 
 type Props = { params: { id: string } };
 
@@ -53,7 +54,11 @@ export default async function BookingDetailPage({ params }: Props) {
       packages (*),
       payments (*, id, payment_type, amount, due_date, paid_date, status, method, notes),
       deliverables (*),
-      invoices (id, invoice_number, status, total_amount, due_date, created_at)
+      invoices (id, invoice_number, status, total_amount, due_date, created_at),
+      booking_contractors (
+        id, role, agreed_rate, confirmed, paid,
+        contractors (id, first_name, last_name, role)
+      )
     `)
     .eq("id", params.id)
     .eq("owner_id", ownerUserId)
@@ -66,6 +71,18 @@ export default async function BookingDetailPage({ params }: Props) {
   const payments = (booking.payments as any[]) || [];
   const deliverables = (booking.deliverables as any[]) || [];
   const invoices = (booking.invoices as any[]) || [];
+  const bookingContractors = (booking.booking_contractors as any[]) || [];
+
+  let availableContractors: any[] = [];
+  if (showFinancials) {
+    const { data: contractorsData } = await supabase
+      .from("contractors")
+      .select("id, first_name, last_name, role")
+      .eq("owner_id", ownerUserId)
+      .eq("is_active", true)
+      .order("first_name");
+    availableContractors = contractorsData || [];
+  }
 
   const totalPaid = payments
     .filter((p) => p.status === "PAID")
@@ -299,6 +316,15 @@ export default async function BookingDetailPage({ params }: Props) {
                 )}
               </div>
             </div>
+          )}
+
+          {/* Crew / Contractors — founder only */}
+          {showFinancials && (
+            <ContractorAssignment
+              bookingId={booking.id}
+              assignments={bookingContractors}
+              availableContractors={availableContractors}
+            />
           )}
 
           {/* Payment milestones — founder only */}
