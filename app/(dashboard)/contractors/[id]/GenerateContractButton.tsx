@@ -2,15 +2,28 @@
 import { useState } from "react";
 import { FileText, Loader2, CheckCircle } from "lucide-react";
 
+type ContractLanguage = "EN" | "VI" | "BOTH";
+
+const LANGUAGE_OPTIONS: { value: ContractLanguage; label: string }[] = [
+  { value: "BOTH", label: "Both — English + Vietnamese (recommended)" },
+  { value: "EN",   label: "English only" },
+  { value: "VI",   label: "Vietnamese only" },
+];
+
 export function GenerateContractButton({ contractorId }: { contractorId: string }) {
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [error,  setError]  = useState("");
+  const [language, setLanguage] = useState<ContractLanguage>("BOTH");
 
   async function generate() {
     setStatus("loading");
     setError("");
     try {
-      const res = await fetch(`/api/contractors/${contractorId}/generate-contract`, { method: "POST" });
+      const res = await fetch(`/api/contractors/${contractorId}/generate-contract`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language }),
+      });
       if (!res.ok) {
         const j = await res.json().catch(() => ({ error: "Unknown error" }));
         throw new Error(j.error ?? "Failed to generate agreement");
@@ -41,6 +54,30 @@ export function GenerateContractButton({ contractorId }: { contractorId: string 
       <p className="text-xs text-gray-500">
         Generates a PDF agreement covering payment terms, IP ownership, confidentiality, and term/termination — filled in from this contractor's saved details. Sign manually (print or email) — there's no e-sign flow for contractor agreements.
       </p>
+
+      <div>
+        <label className="label text-xs">Language</label>
+        <select
+          className="input w-full text-sm"
+          value={language}
+          onChange={(e) => setLanguage(e.target.value as ContractLanguage)}
+        >
+          {LANGUAGE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+        {language === "BOTH" && (
+          <p className="text-[11px] text-gray-400 mt-1">
+            One PDF with an English page followed by a Vietnamese page. A short notice states the English version governs if the two ever differ.
+          </p>
+        )}
+        {language === "VI" && (
+          <p className="text-[11px] text-gray-400 mt-1">
+            Vietnamese only — no English page included. Consider &quot;Both&quot; if you may ever need to rely on the English wording (e.g. for your own records or a dispute).
+          </p>
+        )}
+      </div>
+
       <button
         onClick={generate}
         disabled={status === "loading"}
