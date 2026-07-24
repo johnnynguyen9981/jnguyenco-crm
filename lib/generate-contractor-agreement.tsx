@@ -17,10 +17,37 @@
  */
 import React from "react";
 import {
-  Document, Page, Text, View, StyleSheet, renderToBuffer, Image,
+  Document, Page, Text, View, StyleSheet, renderToBuffer, Image, Font,
 } from "@react-pdf/renderer";
 import path from "path";
 import fs from "fs";
+
+// ─── Font registration ───────────────────────────────────────
+// The PDF's default "Helvetica" is a standard-14 PDF font that only supports
+// WinAnsi (Latin-1) characters — Vietnamese diacritics (ế, ộ, ạ, ư, Đ, etc.)
+// silently render as the wrong glyph ("garbled" text) with it. Noto Sans has
+// full Vietnamese coverage, so it's used for both the English and Vietnamese
+// pages of this document (keeps the two pages visually consistent too).
+// Subset .woff files live in public/fonts/ — see public/fonts/README (if
+// present) for how to regenerate them from Fontsource if ever needed.
+let fontsRegistered = false;
+function registerFonts() {
+  if (fontsRegistered) return;
+  try {
+    Font.register({
+      family: "NotoSans",
+      fonts: [{ src: path.join(process.cwd(), "public", "fonts", "NotoSans-Regular.woff"), fontWeight: 400 }],
+    });
+    Font.register({
+      family: "NotoSans-Bold",
+      fonts: [{ src: path.join(process.cwd(), "public", "fonts", "NotoSans-Bold.woff"), fontWeight: 700 }],
+    });
+    fontsRegistered = true;
+  } catch (e) {
+    console.error("[generate-contractor-agreement] Font registration failed, falling back to Helvetica:", e);
+  }
+}
+registerFonts();
 
 export type ContractLanguage = "EN" | "VI" | "BOTH";
 
@@ -77,7 +104,7 @@ function today(lang: "EN" | "VI") {
 const s = StyleSheet.create({
   page: {
     fontSize: 8.5,
-    fontFamily: "Helvetica",
+    fontFamily: "NotoSans",
     paddingTop: "1.4cm",
     paddingBottom: "1.8cm",
     paddingHorizontal: "1.8cm",
@@ -92,7 +119,7 @@ const s = StyleSheet.create({
   rulePrimary:   { borderBottomWidth: 1.5, borderBottomColor: NAVY, marginBottom: 1.5 },
   ruleAccent:    { borderBottomWidth: 0.5, borderBottomColor: TEAL, marginBottom: 10 },
   contractTitle: {
-    textAlign: "center", fontFamily: "Helvetica-Bold",
+    textAlign: "center", fontFamily: "NotoSans-Bold",
     fontSize: 11, color: NAVY, letterSpacing: 2, marginBottom: 2,
   },
   contractSubtitle: { textAlign: "center", fontSize: 7.5, color: "#888", marginBottom: 10 },
@@ -100,21 +127,21 @@ const s = StyleSheet.create({
     backgroundColor: CREAM_BG, borderRadius: 5, padding: "8 12", marginBottom: 10,
     borderLeftWidth: 2.5, borderLeftColor: TEAL, flexDirection: "row", justifyContent: "space-between",
   },
-  summaryLabel: { fontSize: 6.5, color: TEAL, fontFamily: "Helvetica-Bold", marginBottom: 2, letterSpacing: 0.5 },
-  summaryValue: { fontSize: 8.5, color: NAVY, fontFamily: "Helvetica-Bold" },
+  summaryLabel: { fontSize: 6.5, color: TEAL, fontFamily: "NotoSans-Bold", marginBottom: 2, letterSpacing: 0.5 },
+  summaryValue: { fontSize: 8.5, color: NAVY, fontFamily: "NotoSans-Bold" },
   summarySub:   { fontSize: 7, color: "#666" },
   sectionRow:   { flexDirection: "row", alignItems: "center", marginTop: 9, marginBottom: 4 },
   sectionBar:   { width: 2.5, height: 12, backgroundColor: TEAL, marginRight: 6, borderRadius: 1.5 },
-  sectionText:  { fontFamily: "Helvetica-Bold", fontSize: 9.5, color: NAVY, letterSpacing: 0.5 },
-  subheading:   { fontFamily: "Helvetica-Bold", fontSize: 8.5, color: TEAL, marginTop: 5, marginBottom: 2 },
+  sectionText:  { fontFamily: "NotoSans-Bold", fontSize: 9.5, color: NAVY, letterSpacing: 0.5 },
+  subheading:   { fontFamily: "NotoSans-Bold", fontSize: 8.5, color: TEAL, marginTop: 5, marginBottom: 2 },
   body:    { lineHeight: 1.55, marginBottom: 3.5, color: "#1a2e3a" },
   field:   { flexDirection: "row", marginBottom: 3.5, alignItems: "flex-start" },
-  label:   { fontFamily: "Helvetica-Bold", width: 150, flexShrink: 0, fontSize: 7.5, color: SAND },
+  label:   { fontFamily: "NotoSans-Bold", width: 150, flexShrink: 0, fontSize: 7.5, color: SAND },
   value:   { flex: 1, fontSize: 8.5, color: NAVY },
   divider: { borderBottomWidth: 0.5, borderBottomColor: PALE_BLUE, marginVertical: 6 },
   sigRow:    { flexDirection: "row", marginTop: 18, gap: 30 },
   sigBlock:  { flex: 1 },
-  sigName:   { fontFamily: "Helvetica-Bold", fontSize: 8.5, color: NAVY, marginBottom: 2 },
+  sigName:   { fontFamily: "NotoSans-Bold", fontSize: 8.5, color: NAVY, marginBottom: 2 },
   sigLine:   { borderBottomWidth: 0.75, borderBottomColor: NAVY, marginTop: 22, marginBottom: 3 },
   sigLabel:  { fontSize: 7, color: "#888" },
   footer:      { position: "absolute", bottom: "0.7cm", left: "1.8cm", right: "1.8cm" },
@@ -126,7 +153,7 @@ const s = StyleSheet.create({
   noticeText: { fontSize: 7.5, color: "#555", lineHeight: 1.5 },
   langTag: {
     alignSelf: "center", fontSize: 6.5, color: TEAL, letterSpacing: 1,
-    fontFamily: "Helvetica-Bold", marginBottom: 4,
+    fontFamily: "NotoSans-Bold", marginBottom: 4,
   },
 });
 
@@ -352,7 +379,7 @@ const Header = ({ t }: { t: Strings }) => (
       {LOGO_DATA_URI ? (
         <Image src={LOGO_DATA_URI} style={{ width: 75, height: 60 }} />
       ) : (
-        <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: NAVY }}>JNguyen Co.</Text>
+        <Text style={{ fontSize: 14, fontFamily: "NotoSans-Bold", color: NAVY }}>JNguyen Co.</Text>
       )}
       <View style={{ flex: 1 }} />
       <View style={s.headerContact}>
@@ -450,9 +477,9 @@ const AgreementPage = ({ lang, d, signatureDataUri, showLangTag, bilingualNotice
 
       <Text style={s.body}>
         {t.preambleOpen + dateStr + t.preambleBetween}
-        <Text style={{ fontFamily: "Helvetica-Bold" }}>{t.companyLegalName}</Text>
+        <Text style={{ fontFamily: "NotoSans-Bold" }}>{t.companyLegalName}</Text>
         {t.preambleMid}
-        <Text style={{ fontFamily: "Helvetica-Bold" }}>{name}</Text>
+        <Text style={{ fontFamily: "NotoSans-Bold" }}>{name}</Text>
         {t.preambleEnd}
       </Text>
 
