@@ -430,7 +430,13 @@ export default async function BookingDetailPage({ params }: Props) {
 
             {client && (() => {
               const qt = booking.quoted_total ?? 0;
-              const contractDeposit   = depositAmount != null ? depositAmount : undefined;
+              // Use the QUOTED deposit (booking.deposit_amount, e.g. the 30% set on
+              // the booking) here — not the `depositAmount` variable above, which
+              // sums actual recorded DEPOSIT payments and is 0 until money has
+              // been collected. Using the payments figure here was why the
+              // contract showed "Remaining: $360" instead of "$252" for a
+              // $360 quote with a $108 (30%) deposit that hadn't been paid yet.
+              const contractDeposit   = booking.deposit_amount != null ? Number(booking.deposit_amount) : undefined;
               const contractRemaining = qt > 0 && contractDeposit != null ? qt - contractDeposit : undefined;
               return (
                 <div className="card space-y-2">
