@@ -201,6 +201,10 @@ export interface EnquiryData {
   svc_both?: string;
   additional_info?: string;
   special_requests?: string;
+  // When true, overrides the standard 6.4 Model Release grant — Photographer
+  // will NOT use this Client's Images for portfolio/website/social media/
+  // marketing purposes. Set per-booking for clients who request privacy.
+  no_portfolio_marketing_use?: boolean;
   // Explicit pricing — override package-derived values when supplied
   total_fee?: string | number;
   deposit_amount?: string | number;
@@ -667,15 +671,35 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
           pursuant to this Agreement.
         </Text>
         <Text style={s.subheading}>6.4 Model Release</Text>
-        <Text style={s.body}>
-          Client (on behalf of himself/herself and all persons whose likeness is captured
-          during the Services) hereby grants Photographer an irrevocable, worldwide,
-          royalty-free licence to use, display, publish and reproduce any Images containing
-          Client's or any attendee's likeness for the purposes of Photographer's portfolio,
-          website, social media, and general marketing and promotional materials. Client
-          warrants that they have obtained consent from all attendees over the age of 18 and
-          from the parent or guardian of any minors whose likeness may be captured.
-        </Text>
+        {d.no_portfolio_marketing_use ? (
+          <>
+            <Text style={s.body}>
+              Client (on behalf of himself/herself and all persons whose likeness is captured
+              during the Services) warrants that they have obtained consent from all attendees
+              over the age of 18 and from the parent or guardian of any minors whose likeness
+              may be captured, for Photographer's use of Images as set out in this Agreement.
+            </Text>
+            <View style={s.notice}>
+              <Text style={s.noticeText}>
+                By agreement with Client, Photographer will NOT use any Images from this
+                engagement for Photographer's portfolio, website, social media, or any other
+                marketing or promotional materials. Images will be used solely to produce and
+                deliver Client's Work Product under this Agreement. This supersedes
+                Photographer's standard portfolio/marketing licence for this booking only.
+              </Text>
+            </View>
+          </>
+        ) : (
+          <Text style={s.body}>
+            Client (on behalf of himself/herself and all persons whose likeness is captured
+            during the Services) hereby grants Photographer an irrevocable, worldwide,
+            royalty-free licence to use, display, publish and reproduce any Images containing
+            Client's or any attendee's likeness for the purposes of Photographer's portfolio,
+            website, social media, and general marketing and promotional materials. Client
+            warrants that they have obtained consent from all attendees over the age of 18 and
+            from the parent or guardian of any minors whose likeness may be captured.
+          </Text>
+        )}
 
         <Divider />
 
