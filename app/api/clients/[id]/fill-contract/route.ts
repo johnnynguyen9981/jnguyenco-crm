@@ -112,6 +112,17 @@ export async function POST(
     if (booking.deposit_amount != null)  enquiryData.deposit_amount   = booking.deposit_amount;
     if (booking.special_requests)        enquiryData.special_requests = booking.special_requests;
 
+    // Always recompute remaining_balance from the authoritative DB values above
+    // rather than trusting whatever the caller prefilled — a stale/incorrect
+    // client-side remaining_balance (e.g. computed from unpaid-deposit amounts
+    // instead of the quoted deposit) would otherwise pass through unchanged,
+    // since nothing else in this route touches remaining_balance.
+    if (booking.quoted_total != null && booking.deposit_amount != null) {
+      enquiryData.remaining_balance = booking.quoted_total - booking.deposit_amount;
+    } else {
+      delete enquiryData.remaining_balance;
+    }
+
     if (booking.package_id) {
       (["pkg_mini","pkg_full8","pkg_full13","pkg_hourly","pkg_combo","pkg_portrait","pkg_unsure"] as const)
         .forEach(k => { delete enquiryData[k]; });
