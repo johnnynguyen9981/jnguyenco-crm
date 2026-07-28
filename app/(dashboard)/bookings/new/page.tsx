@@ -27,9 +27,11 @@ const PORTRAIT_FALLBACK = [
 
 // Hourly event options (not DB packages — just rate cards)
 const EVENT_RATES = [
-  { key: "photo", label: "Photography",        rate: "$150/hr", price: 150,
+  { key: "photo", label: "Photography",         rate: "$200/hr", price: 200,
     icon: Camera,  desc: "Photography only" },
-  { key: "both",  label: "Photo + Videography", rate: "$250/hr", price: 250,
+  { key: "video", label: "Videography Add-on",  rate: "$150/hr", price: 150,
+    icon: Video,   desc: "Add-on videography for an event already booked for photography" },
+  { key: "both",  label: "Photo + Videography",  rate: "$350/hr", price: 350,
     icon: Layers,  desc: "Combined photography & videography" },
 ];
 
@@ -115,7 +117,7 @@ export default function NewBookingPage() {
   useEffect(() => {
     fetch("/api/packages")
       .then((r) => r.json())
-      .then((d) => setDbPackages(d.data?.packages ?? []))
+      .then((d) => setDbPackages(d.packages ?? []))
       .catch(console.error);
   }, []);
 
@@ -377,7 +379,7 @@ export default function NewBookingPage() {
                     selected={pkg.id ? packageId === pkg.id : packageName === pkg.name}
                     onSelect={() => selectPackage(pkg)}
                     label={pkg.name}
-                    price={`$${pkg.base_price.toLocaleString()}${pkg.max_hours ? ` · up to ${pkg.max_hours} hrs` : ""}`}
+                    price={`$${pkg.base_price.toLocaleString()}${pkg.max_hours ? ` · up to ${pkg.max_hours} hrs` : "/hr"}`}
                     sub={pkg.description}
                   />
                 ))}
