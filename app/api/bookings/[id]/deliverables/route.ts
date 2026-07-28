@@ -18,7 +18,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
     .from("bookings")
     .select(`
       id, event_date, service_type, owner_id,
-      packages (id, name),
+      packages (id, name, max_hours, includes_photography, includes_videography, photo_count_min, photo_count_max, film_duration_min_sec, film_duration_max_sec),
       deliverables (type)
     `)
     .eq("id", params.id)
@@ -28,12 +28,11 @@ export async function POST(_req: NextRequest, { params }: Params) {
   if (bErr || !booking) return apiError("Booking not found", 404);
 
   const pkg         = (booking as any).packages;
-  const packageName = pkg?.name ?? "";
   const serviceType = booking.service_type ?? "EVENT";
   const eventDate   = booking.event_date;
 
-  // Get template list
-  const templates = getDeliverableTemplates(packageName, serviceType);
+  // Get template list — derived from the package's real DB columns
+  const templates = getDeliverableTemplates(pkg, serviceType);
 
   // Find which types already exist (avoid duplicates)
   const existingTypes = new Set(
