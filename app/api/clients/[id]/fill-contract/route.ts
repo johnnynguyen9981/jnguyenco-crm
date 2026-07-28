@@ -132,7 +132,7 @@ export async function POST(
 
       const { data: pkg } = await supabase
         .from("packages")
-        .select("name, includes_photography, includes_videography, base_price, max_hours")
+        .select("name, includes_photography, includes_videography, base_price, max_hours, team, deliverables, timeline, photo_count_min, photo_count_max")
         .eq("id", booking.package_id)
         .single();
 
@@ -155,6 +155,21 @@ export async function POST(
         } else {
           enquiryData.svc_photo = "Yes";
         }
+
+        // Live package data — drives Section 3 of the contract directly
+        // (see resolvePackage() in lib/generate-contract.tsx). Editing a
+        // package's team/deliverables/timeline in the Packages admin page
+        // is reflected here automatically, no code changes needed.
+        enquiryData.pkgData = {
+          hours: pkg.max_hours ?? null,
+          fee:   pkg.base_price ?? null,
+          images: (pkg.photo_count_min != null && pkg.photo_count_max != null)
+            ? `${pkg.photo_count_min}–${pkg.photo_count_max}`
+            : null,
+          team: pkg.team ?? null,
+          deliverables: pkg.deliverables ?? null,
+          timeline: pkg.timeline ?? null,
+        };
       }
     }
   }
