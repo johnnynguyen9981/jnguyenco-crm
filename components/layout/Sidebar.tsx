@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, CalendarDays,
-  FileText, FolderOpen, Settings, LogOut, ClipboardList, Inbox, Receipt, Briefcase,
+  FileText, FolderOpen, Settings, LogOut, ClipboardList, Inbox, Receipt, Briefcase, Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -18,7 +18,7 @@ interface TeamMember {
 }
 
 // Nav items only the FOUNDER (owner) can see
-const FOUNDER_ONLY_HREFS = new Set(["/enquiries", "/invoices", "/expenses", "/documents", "/forms", "/contractors", "/settings"]);
+const FOUNDER_ONLY_HREFS = new Set(["/enquiries", "/invoices", "/expenses", "/documents", "/forms", "/contractors", "/packages", "/settings"]);
 
 function FlameMark({ size = 40, color = "#a58d66" }: { size?: number; color?: string }) {
   return (
@@ -40,6 +40,7 @@ const navItems = [
   { href: "/invoices",   label: "Invoices",          icon: FileText },
   { href: "/expenses",   label: "Expenses",          icon: Receipt },
   { href: "/contractors",label: "Contractors",       icon: Briefcase },
+  { href: "/packages",   label: "Packages",          icon: Package },
   { href: "/documents",  label: "Documents",         icon: FolderOpen },
   { href: "/forms",      label: "Forms / Templates", icon: ClipboardList },
   { href: "/settings",   label: "Settings",          icon: Settings },
