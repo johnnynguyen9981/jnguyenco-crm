@@ -211,11 +211,48 @@ export interface EnquiryData {
   remaining_balance?: string | number;
   // Original package list price (set when a discount is applied so the contract can show both)
   list_price?: string | number;
+  // Real package data pulled live from the `packages` table (preferred source —
+  // set by fill-contract route whenever the booking has a package_id). When
+  // present, this drives Section 3 directly instead of the legacy pkg_* +
+  // hardcoded-table lookup below, so editing a package's team/deliverables/
+  // timeline in the Packages admin page is reflected in the next contract
+  // generated, with no code changes required.
+  pkgData?: {
+    hours?: number | null;
+    fee?: number | null;
+    images?: string | null;
+    team?: string | null;
+    deliverables?: string[] | null;
+    timeline?: string[] | null;
+  };
 }
 
 function resolvePackage(d: EnquiryData) {
+  if (d.pkgData) {
+    return {
+      key: null as string | null,
+      hours: d.pkgData.hours ?? null,
+      images: d.pkgData.images ?? null,
+      fee: d.pkgData.fee ?? null,
+      label: d.package_name || "Package",
+      team: d.pkgData.team || null,
+      deliverables: d.pkgData.deliverables && d.pkgData.deliverables.length ? d.pkgData.deliverables : null,
+      timeline: d.pkgData.timeline && d.pkgData.timeline.length ? d.pkgData.timeline : null,
+    };
+  }
+  // Legacy fallback — used only when no live DB package data is available
+  // (e.g. a contract generated from a raw uploaded enquiry PDF before a
+  // booking/package_id exists yet).
   for (const key of ["pkg_mini","pkg_full8","pkg_full13","pkg_hourly","pkg_combo","pkg_portrait","pkg_unsure"] as const) {
-    if (d[key] === "Yes") return { key, ...PACKAGES[key] };
+    if (d[key] === "Yes") {
+      return {
+        key,
+        ...PACKAGES[key],
+        team: PACKAGE_TEAM[key] ?? null,
+        deliverables: PACKAGE_DELIVERABLES_LIST[key] ?? null,
+        timeline: PACKAGE_TIMELINE[key] ?? null,
+      };
+    }
   }
   return null;
 }
@@ -438,16 +475,16 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
 
   // Pre-compute deliverable and timeline arrays (avoids complex ternaries in JSX)
   const deliverablesList: string[] =
-    (pkg?.key && PACKAGE_DELIVERABLES_LIST[pkg.key])
-      ? PACKAGE_DELIVERABLES_LIST[pkg.key]
+    pkg?.deliverables && pkg.deliverables.length
+      ? pkg.deliverables
       : images
         ? ["Delivery of " + images + " professionally edited high-resolution images",
            "Online gallery delivery via Google Drive (download link)"]
         : ["Online gallery delivery via Google Drive (download link)"];
 
   const timelineList: string[] =
-    (pkg?.key && PACKAGE_TIMELINE[pkg.key])
-      ? PACKAGE_TIMELINE[pkg.key]
+    pkg?.timeline && pkg.timeline.length
+      ? pkg.timeline
       : ["All deliverables to be mutually agreed in writing prior to the event"];
 
   const coverage = hours
@@ -550,7 +587,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
           The Photographer agrees to provide the following services and deliverables as part of the package selected below. All deliverables listed are included in the agreed fee unless explicitly stated as optional or subject to add-on.
         </Text>
         <Field label="Package Selected:"   value={d.package_name || pkg?.label || svc || "—"} />
-        {pkg?.key ? <Field label="Coverage Team:"    value={PACKAGE_TEAM[pkg.key] ?? "—"} /> : null}
+        {pkg?.team ? <Field label="Coverage Team:"    value={pkg.team} /> : null}
         {hours    ? <Field label="Coverage Duration:" value={hours + " consecutive hours"} /> : null}
 
         <Text style={s.subheading}>What's Included:</Text>
