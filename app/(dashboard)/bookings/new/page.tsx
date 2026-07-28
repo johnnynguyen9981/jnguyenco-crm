@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Check, Loader2, Camera, Video, Layers } from "lucide-react";
+import { ArrowLeft, Check, Loader2, Camera, Layers } from "lucide-react";
 
 // ── Static fallbacks shown when no DB packages exist yet ─────────────────────
 const WEDDING_FALLBACK = [
@@ -29,8 +29,6 @@ const PORTRAIT_FALLBACK = [
 const EVENT_RATES = [
   { key: "photo", label: "Photography",         rate: "$200/hr", price: 200,
     icon: Camera,  desc: "Photography only" },
-  { key: "video", label: "Videography Add-on",  rate: "$150/hr", price: 150,
-    icon: Video,   desc: "Add-on videography for an event already booked for photography" },
   { key: "both",  label: "Photo + Videography",  rate: "$350/hr", price: 350,
     icon: Layers,  desc: "Combined photography & videography" },
 ];
