@@ -92,9 +92,9 @@ async function buildReceiptData(paymentId: string, supabase: any): Promise<Build
 
   // Generate receipt number: REC-YYYYMM-{last6 of payment id}
   const now     = new Date();
-  const yyyymm  = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const shortId = paymentId.replace(/-/g, "").slice(-6).toUpperCase();
-  const receiptNumber = `REC-${yyyymm}-${shortId}`;
+      const yyyymm  = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const shortId = paymentId.replace(/-/g, "").slice(-6).toUpperCase();
+      const receiptNumber = `REC-${yyyymm}-${shortId}`;
 
   const receiptData: ReceiptData = {
     receiptNumber,
@@ -147,14 +147,14 @@ function receiptErrorResponse(
 
 // ── GET — return PDF as download ────────────────────────────────────────────
 export async function GET(_req: NextRequest, { params }: Params) {
-  const supabase = await createClient();
-  const { data: { user }, error: authErr } = await supabase.auth.getUser();
-  if (authErr || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const supabase = await createClient();
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   // Verify payment belongs to owner
   const { data: ownerCheck } = await supabase
-    .from("payments").select("id").eq("id", params.id).eq("owner_id", user.id).maybeSingle();
-  if (!ownerCheck) return NextResponse.json({ error: "Not found" }, { status: 404 });
+        .from("payments").select("id").eq("id", params.id).eq("owner_id", user.id).maybeSingle();
+      if (!ownerCheck) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const outcome = await buildReceiptData(params.id, supabase);
   if (!outcome.data) return receiptErrorResponse(outcome.errorReason, outcome.errorDetail);
@@ -192,20 +192,20 @@ export async function GET(_req: NextRequest, { params }: Params) {
       },
     });
   } catch (err: any) {
-    console.error("[receipt/GET] renderToBuffer error:", err);
-    return NextResponse.json({ error: `PDF generation failed: ${err.message}` }, { status: 500 });
+          console.error("[receipt/GET] renderToBuffer error:", err);
+          return NextResponse.json({ error: `PDF generation failed: ${err.message}` }, { status: 500 });
   }
 }
 
 // ── POST — generate PDF + email to client ──────────────────────────────────
 export async function POST(_req: NextRequest, { params }: Params) {
-  const supabase = await createClient();
-  const { data: { user }, error: authErr } = await supabase.auth.getUser();
-  if (authErr || !user) return apiError("Unauthorized", 401);
+      const supabase = await createClient();
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !user) return apiError("Unauthorized", 401);
 
   const { data: ownerCheck } = await supabase
-    .from("payments").select("id").eq("id", params.id).eq("owner_id", user.id).maybeSingle();
-  if (!ownerCheck) return apiError("Not found", 404);
+        .from("payments").select("id").eq("id", params.id).eq("owner_id", user.id).maybeSingle();
+      if (!ownerCheck) return apiError("Not found", 404);
 
   const outcome = await buildReceiptData(params.id, supabase);
   if (!outcome.data) return receiptErrorResponse(outcome.errorReason, outcome.errorDetail);
@@ -326,7 +326,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ ok: true, receiptNumber: receiptData.receiptNumber });
   } catch (err: any) {
-    console.error("[receipt/POST] error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+          console.error("[receipt/POST] error:", err);
+          return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

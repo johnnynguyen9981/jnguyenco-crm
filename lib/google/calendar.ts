@@ -8,11 +8,11 @@ import { formatDate, getAppUrl } from "@/lib/utils";
 
 // JNguyen Co. Photography, Videography Booking calendar
 const BOOKING_CALENDAR_ID =
-  "b3c07750835316cae4b43752e8426c76cbd2250ce727d80f6cf3ea9646e83bee@group.calendar.google.com";
+    "b3c07750835316cae4b43752e8426c76cbd2250ce727d80f6cf3ea9646e83bee@group.calendar.google.com";
 
 export interface CalendarSyncResult {
-  gcal_event_id: string;
-  html_link: string;
+    gcal_event_id: string;
+    html_link: string;
 }
 
 const DELIVERABLE_ICON: Record<string, string> = {
@@ -34,28 +34,28 @@ const DELIVERABLE_LABEL: Record<string, string> = {
  * Returns the Google Calendar event ID to store in bookings.gcal_event_id.
  */
 export async function syncBookingToCalendar(
-  userId: string,
-  booking: Booking,
-  client: Pick<Client, "first_name" | "last_name" | "email">
-): Promise<CalendarSyncResult> {
-  const authClient = await getAuthenticatedClient(userId);
-  const calendar   = google.calendar({ version: "v3", auth: authClient });
+    userId: string,
+    booking: Booking,
+    client: Pick<Client, "first_name" | "last_name" | "email">
+  ): Promise<CalendarSyncResult> {
+    const authClient = await getAuthenticatedClient(userId);
+    const calendar   = google.calendar({ version: "v3", auth: authClient });
 
   const clientName  = `${client.first_name} ${client.last_name}`;
-  const serviceLabel = booking.service_type === "WEDDING"
-    ? "💍 Wedding"
-    : booking.service_type === "EVENT"
-    ? "🎉 Event"
-    : "📸 Portrait";
+    const serviceLabel = booking.service_type === "WEDDING"
+      ? "💍 Wedding"
+          : booking.service_type === "EVENT"
+      ? "🎉 Event"
+          : "📸 Portrait";
 
   // Build start/end datetime strings
   // Postgres 'time' columns return "HH:MM:SS" — slice to "HH:MM" before appending seconds
   const startDate = booking.event_date; // 'YYYY-MM-DD'
   const startTime = (booking.event_start_time ?? "08:00").substring(0, 5);
-  const endTime   = (booking.event_end_time   ?? "17:00").substring(0, 5);
-  const startDateTime = `${startDate}T${startTime}:00`;
-  const endDateTime   = `${startDate}T${endTime}:00`;
-  const timeZone      = "Australia/Sydney";
+    const endTime   = (booking.event_end_time   ?? "17:00").substring(0, 5);
+    const startDateTime = `${startDate}T${startTime}:00`;
+    const endDateTime   = `${startDate}T${endTime}:00`;
+    const timeZone      = "Australia/Sydney";
 
   const eventBody = {
     summary: `${serviceLabel} — ${clientName}`,
@@ -86,24 +86,24 @@ export async function syncBookingToCalendar(
 
   // Update existing event if we have an ID, otherwise create a new one
   if (booking.gcal_event_id) {
-    const res = await calendar.events.update({
-      calendarId:  BOOKING_CALENDAR_ID,
-      eventId:     booking.gcal_event_id,
-      requestBody: eventBody,
-    });
-    return {
-      gcal_event_id: res.data.id!,
-      html_link:     res.data.htmlLink!,
-    };
+        const res = await calendar.events.update({
+                calendarId:  BOOKING_CALENDAR_ID,
+                eventId:     booking.gcal_event_id,
+                requestBody: eventBody,
+        });
+        return {
+                gcal_event_id: res.data.id!,
+                html_link:     res.data.htmlLink!,
+        };
   } else {
-    const res = await calendar.events.insert({
-      calendarId:  BOOKING_CALENDAR_ID,
-      requestBody: eventBody,
-    });
-    return {
-      gcal_event_id: res.data.id!,
-      html_link:     res.data.htmlLink!,
-    };
+        const res = await calendar.events.insert({
+                calendarId:  BOOKING_CALENDAR_ID,
+                requestBody: eventBody,
+        });
+        return {
+                gcal_event_id: res.data.id!,
+                html_link:     res.data.htmlLink!,
+        };
   }
 }
 
@@ -111,12 +111,12 @@ export async function syncBookingToCalendar(
  * Delete a calendar event when a booking is cancelled.
  */
 export async function deleteCalendarEvent(
-  userId: string,
-  gcalEventId: string
-): Promise<void> {
-  const authClient = await getAuthenticatedClient(userId);
-  const calendar   = google.calendar({ version: "v3", auth: authClient });
-  await calendar.events.delete({ calendarId: BOOKING_CALENDAR_ID, eventId: gcalEventId });
+    userId: string,
+    gcalEventId: string
+  ): Promise<void> {
+    const authClient = await getAuthenticatedClient(userId);
+    const calendar   = google.calendar({ version: "v3", auth: authClient });
+    await calendar.events.delete({ calendarId: BOOKING_CALENDAR_ID, eventId: gcalEventId });
 }
 
 /**
@@ -206,25 +206,25 @@ export async function deleteDeliverableCalendarEvent(
  * Returns true if there are conflicting events on that date.
  */
 export async function isDateBusy(
-  userId: string,
-  date: string,           // 'YYYY-MM-DD'
-  startTime = "00:00",
-  endTime   = "23:59"
-): Promise<boolean> {
-  const authClient = await getAuthenticatedClient(userId);
-  const calendar   = google.calendar({ version: "v3", auth: authClient });
+    userId: string,
+    date: string,           // 'YYYY-MM-DD'
+    startTime = "00:00",
+    endTime   = "23:59"
+  ): Promise<boolean> {
+    const authClient = await getAuthenticatedClient(userId);
+    const calendar   = google.calendar({ version: "v3", auth: authClient });
 
   const timeMin = `${date}T${startTime}:00+11:00`;
-  const timeMax = `${date}T${endTime}:00+11:00`;
+    const timeMax = `${date}T${endTime}:00+11:00`;
 
   const res = await calendar.freebusy.query({
-    requestBody: {
-      timeMin,
-      timeMax,
-      items: [{ id: "primary" }],
-    },
+        requestBody: {
+                timeMin,
+                timeMax,
+                items: [{ id: "primary" }],
+        },
   });
 
   const busy = res.data.calendars?.["primary"]?.busy ?? [];
-  return busy.length > 0;
+    return busy.length > 0;
 }

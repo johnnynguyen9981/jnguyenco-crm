@@ -13,6 +13,10 @@ import { nightBeforeChecklistHtml } from "@/lib/google/gmail";
 import { NIGHT_BEFORE_ITEM_COUNT } from "@/lib/checklist/nightBeforeItems";
 import { getAppUrl } from "@/lib/utils";
 
+// Never statically prerender this route at build time (it needs live env
+// vars + a request header at runtime, and has nothing to prerender anyway).
+export const dynamic = "force-dynamic";
+
 function sydneyTodayISO(): string {
   // Locale 'en-CA' formats as YYYY-MM-DD, handy for a direct ISO date string,
   // and Intl handles the AEST/AEDT daylight-saving switch for us.

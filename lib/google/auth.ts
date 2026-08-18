@@ -22,11 +22,11 @@ export const GOOGLE_SCOPES = [
 
 /** Build an OAuth2 client from environment credentials */
 export function getOAuth2Client() {
-  return new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID!,
-    process.env.GOOGLE_CLIENT_SECRET!,
-    process.env.GOOGLE_REDIRECT_URI!
-  );
+      return new google.auth.OAuth2(
+              process.env.GOOGLE_CLIENT_ID!,
+              process.env.GOOGLE_CLIENT_SECRET!,
+              process.env.GOOGLE_REDIRECT_URI!
+            );
 }
 
 /**
@@ -34,13 +34,13 @@ export function getOAuth2Client() {
  * Redirect the user here when they click "Connect Google" in Settings.
  */
 export function getGoogleAuthUrl(): string {
-  const client = getOAuth2Client();
-  return client.generateAuthUrl({
-    access_type: "offline",        // Required to get a refresh_token
-    prompt:      "consent",        // Force consent screen so refresh_token is always returned
-    scope:       GOOGLE_SCOPES,
-    state:       "google_connect", // Tells /api/auth/callback this is a token exchange, not a Supabase login
-  });
+      const client = getOAuth2Client();
+      return client.generateAuthUrl({
+              access_type: "offline",        // Required to get a refresh_token
+              prompt:      "consent",        // Force consent screen so refresh_token is always returned
+              scope:       GOOGLE_SCOPES,
+              state:       "google_connect", // Tells /api/auth/callback this is a token exchange, not a Supabase login
+      });
 }
 
 /**
@@ -49,33 +49,33 @@ export function getGoogleAuthUrl(): string {
  * Called only from /api/auth/callback — never from the browser.
  */
 export async function exchangeCodeAndSaveTokens(
-  code: string,
-  userId: string
-): Promise<void> {
-  const client = getOAuth2Client();
-  const { tokens } = await client.getToken(code);
+      code: string,
+      userId: string
+    ): Promise<void> {
+      const client = getOAuth2Client();
+      const { tokens } = await client.getToken(code);
 
   if (!tokens.access_token || !tokens.refresh_token || !tokens.expiry_date) {
-    throw new Error(
-      "Google did not return all required tokens. Make sure prompt=consent is set."
-    );
+          throw new Error(
+                    "Google did not return all required tokens. Make sure prompt=consent is set."
+                  );
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("google_tokens").upsert(
-    {
-      owner_id:      userId,
-      access_token:  tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      token_expiry:  new Date(tokens.expiry_date).toISOString(),
-      scopes:        GOOGLE_SCOPES.join(" "),
-      updated_at:    new Date().toISOString(),
-    },
-    { onConflict: "owner_id" }
-  );
+      const { error } = await supabase.from("google_tokens").upsert(
+          {
+                    owner_id:      userId,
+                    access_token:  tokens.access_token,
+                    refresh_token: tokens.refresh_token,
+                    token_expiry:  new Date(tokens.expiry_date).toISOString(),
+                    scopes:        GOOGLE_SCOPES.join(" "),
+                    updated_at:    new Date().toISOString(),
+          },
+          { onConflict: "owner_id" }
+            );
 
   if (error) {
-    throw new Error(`Failed to save Google tokens: ${error.message}`);
+          throw new Error(`Failed to save Google tokens: ${error.message}`);
   }
 }
 
@@ -89,29 +89,29 @@ export async function exchangeCodeAndSaveTokens(
  *   const gmail = google.gmail({ version: "v1", auth: authClient });
  */
 export async function getAuthenticatedClient(userId: string) {
-  const supabase = await createClient();
+      const supabase = await createClient();
 
   const { data: row, error } = await supabase
-    .from("google_tokens")
-    .select("access_token, refresh_token, token_expiry")
-    .eq("owner_id", userId)
-    .single();
+        .from("google_tokens")
+        .select("access_token, refresh_token, token_expiry")
+        .eq("owner_id", userId)
+        .single();
 
   if (error || !row) {
-    throw new Error(
-      "Google account not connected. Please connect it in Settings → Integrations."
-    );
+          throw new Error(
+                    "Google account not connected. Please connect it in Settings → Integrations."
+                  );
   }
 
   const oauthClient = getOAuth2Client();
-  oauthClient.setCredentials({
-    access_token:  row.access_token,
-    refresh_token: row.refresh_token,
-  });
+      oauthClient.setCredentials({
+              access_token:  row.access_token,
+              refresh_token: row.refresh_token,
+      });
 
   // Refresh if expired or within 5 minutes of expiry
   const expiryMs   = new Date(row.token_expiry).getTime();
-  const bufferMs   = 5 * 60 * 1000; // 5 minutes
+      const bufferMs   = 5 * 60 * 1000; // 5 minutes
   if (Date.now() >= expiryMs - bufferMs) {
     try {
       const { credentials } = await oauthClient.refreshAccessToken();
@@ -151,23 +151,23 @@ export async function getAuthenticatedClient(userId: string) {
  * Pass the booking's owner_id so we can look up their stored OAuth tokens.
  */
 export async function getAuthenticatedClientByOwnerId(ownerId: string) {
-  const supabase = createServiceClient();
+      const supabase = createServiceClient();
 
   const { data: row, error } = await supabase
-    .from("google_tokens")
-    .select("access_token, refresh_token, token_expiry")
-    .eq("owner_id", ownerId)
-    .single();
+        .from("google_tokens")
+        .select("access_token, refresh_token, token_expiry")
+        .eq("owner_id", ownerId)
+        .single();
 
   if (error || !row) {
-    throw new Error("Google account not connected for this owner.");
+          throw new Error("Google account not connected for this owner.");
   }
 
   const oauthClient = getOAuth2Client();
-  oauthClient.setCredentials({
-    access_token:  row.access_token,
-    refresh_token: row.refresh_token,
-  });
+      oauthClient.setCredentials({
+              access_token:  row.access_token,
+              refresh_token: row.refresh_token,
+      });
 
   const expiryMs = new Date(row.token_expiry).getTime();
   if (Date.now() >= expiryMs - 5 * 60 * 1000) {
@@ -199,11 +199,11 @@ export async function getAuthenticatedClientByOwnerId(ownerId: string) {
  * Check whether the current user has connected their Google account.
  */
 export async function isGoogleConnected(userId: string): Promise<boolean> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("google_tokens")
-    .select("id")
-    .eq("owner_id", userId)
-    .maybeSingle();
-  return !!data;
+      const supabase = await createClient();
+      const { data } = await supabase
+        .from("google_tokens")
+        .select("id")
+        .eq("owner_id", userId)
+        .maybeSingle();
+      return !!data;
 }

@@ -4,11 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 export type TeamRole = "FOUNDER" | "PHOTOGRAPHER" | "VIDEOGRAPHER" | "BOTH";
 
 export interface TeamMemberInfo {
-  user_id: string;
-  full_name: string;
-  title: string | null;
-  role: TeamRole;
-  is_active: boolean;
+    user_id: string;
+    full_name: string;
+    title: string | null;
+    role: TeamRole;
+    is_active: boolean;
 }
 
 /**
@@ -16,15 +16,15 @@ export interface TeamMemberInfo {
  * Returns null if the user is not in team_members (shouldn't happen in practice).
  */
 export async function getCurrentTeamMember(): Promise<TeamMemberInfo | null> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
 
   const { data } = await supabase
-    .from("team_members")
-    .select("user_id, full_name, title, role, is_active")
-    .eq("user_id", user.id)
-    .single();
+      .from("team_members")
+      .select("user_id, full_name, title, role, is_active")
+      .eq("user_id", user.id)
+      .single();
 
   return data ?? null;
 }
@@ -39,34 +39,34 @@ export async function getCurrentTeamMember(): Promise<TeamMemberInfo | null> {
  * If the current user IS the founder, returns their own user.id directly.
  */
 export async function getOwnerUserId(): Promise<string> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
 
   const { data: member } = await supabase
-    .from("team_members")
-    .select("role")
-    .eq("user_id", user.id)
-    .single();
+      .from("team_members")
+      .select("role")
+      .eq("user_id", user.id)
+      .single();
 
   // If founder (or not in team_members), use their own id
   if (!member || member.role === "FOUNDER") return user.id;
 
   // Staff: find the FOUNDER's user_id
   const { data: founder } = await supabase
-    .from("team_members")
-    .select("user_id")
-    .eq("role", "FOUNDER")
-    .eq("is_active", true)
-    .not("user_id", "is", null)
-    .single();
+      .from("team_members")
+      .select("user_id")
+      .eq("role", "FOUNDER")
+      .eq("is_active", true)
+      .not("user_id", "is", null)
+      .single();
 
   return founder?.user_id ?? user.id;
 }
 
 /** Returns true if the role has full admin access */
 export function isFounder(role: TeamRole | string | null | undefined): boolean {
-  return role === "FOUNDER";
+    return role === "FOUNDER";
 }
 
 /**
