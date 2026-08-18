@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getOwnerUserId } from "@/lib/team";
+import { getOwnerUserId, isCurrentUserFounder } from "@/lib/team";
 import { getAustralianFY } from "@/lib/expenses";
 
 const VALID_CATEGORIES = [
@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await isCurrentUserFounder())) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const ownerId = await getOwnerUserId();
   const mode    = req.nextUrl.searchParams.get("mode") ?? "check";

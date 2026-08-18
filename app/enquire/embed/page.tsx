@@ -2,13 +2,16 @@
 import { useState, useEffect, useRef } from "react";
 
 const PACKAGES = [
-  { id: "mini_wedding",       label: "Mini Wedding / Elopement",        price: "$1,600",  desc: "Up to 4 hrs · 1 Photographer + 1 Videographer · 200–350 images · 3–5 min film" },
-  { id: "full_day_essential", label: "Full Day Essential",               price: "$3,200",  desc: "Up to 8 hrs · 400–600 images · 5–7 min highlight film" },
-  { id: "full_day_premium",   label: "Full Day Premium",                 price: "$4,800",  desc: "Up to 13 hrs · 2 Photographers + 2 Videographers · 700–1,000 images" },
-  { id: "hourly_photo",       label: "Event Photography Only",           price: "$200/hr", desc: "60+ edited images per hour · Online gallery · 4–8 week turnaround" },
-  { id: "hourly_photo_video", label: "Event Photography & Videography",  price: "$350/hr", desc: "60+ images/hr · 2–3 min highlight reel + full event video" },
-  { id: "portrait",           label: "Portrait Session",                 price: "$200/hr", desc: "Headshot · Couples · Family · Newborn/Maternity · Online gallery" },
-  { id: "not_sure",           label: "Not sure — please advise me",      price: null,      desc: "" },
+  { id: "mini_wedding",       label: "Mini Wedding / Elopement",              price: "$2,300",  desc: "Up to 4 hrs · 1 Photographer + 1 Videographer · 200–350 images · 3–5 min film" },
+  { id: "full_day_essential", label: "Full Day Essential",                    price: "$4,500",  desc: "Up to 8 hrs · 1 Photographer + 1 Videographer · 400–600 images · 5–7 min highlight film" },
+  { id: "full_day_premium",   label: "Full Day Premium",                      price: "$7,300",  desc: "Up to 13 hrs · 2 Photographers + 2 Videographers · 700–1,000 images" },
+  { id: "wedding_photo_only", label: "Wedding Photography Only",              price: "$3,700",  desc: "7–10 hrs · Photographer only, no videographer · 400–600 images" },
+  { id: "wedding_video_only", label: "Wedding Videography Only (Cinematic)",  price: "$3,600",  desc: "7–10 hrs · Videographer only, no photographer · 5–7 min cinematic film" },
+  { id: "hourly_photo",       label: "Event Photography Only",                price: "$230/hr", desc: "50–80 edited images per hour · Online gallery · 2–4 week turnaround" },
+  { id: "hourly_video",       label: "Event Videography Only",                price: "$280/hr", desc: "1–2 min highlight reel per hour of coverage · Online gallery · 6–8 week turnaround" },
+  { id: "hourly_photo_video", label: "Event Photography & Videography",       price: "$450/hr", desc: "50–80 images/hr + 1–2 min highlight reel per hour · Online gallery" },
+  { id: "portrait",           label: "Portrait Session",                      price: "$250/hr", desc: "Couples · Family · Newborn/Maternity — $250/hr · Headshot — flat $375 · Online gallery" },
+  { id: "not_sure",           label: "Not sure — please advise me",           price: null,      desc: "" },
 ];
 
 const EVENT_TYPES = ["Wedding / Elopement","Birthday","Baptism","Party / Celebration","Corporate Event","Portrait Session","Other"];
@@ -37,7 +40,7 @@ const lbl = "block text-xs font-semibold text-gray-600 mb-1";
 
 const TODAY = new Date().toISOString().split("T")[0];
 
-const WEDDING_PACKAGES = new Set(["mini_wedding", "full_day_essential", "full_day_premium"]);
+const WEDDING_PACKAGES = new Set(["mini_wedding", "full_day_essential", "full_day_premium", "wedding_photo_only", "wedding_video_only"]);
 const NEEDS_PARTNER    = (eventType: string, pkg: string) =>
   eventType.toLowerCase().includes("wedding") || eventType.toLowerCase().includes("elopement") ||
   WEDDING_PACKAGES.has(pkg);

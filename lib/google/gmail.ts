@@ -257,6 +257,49 @@ export function preEventChecklistHtml(params: {
 </html>`.trim();
 }
 
+/** Night-before checklist reminder — sent to Johnny the evening before a shoot */
+export function nightBeforeChecklistHtml(params: {
+  clientName:   string;
+  eventDate:    string;
+  itemCount:    number;
+  checklistUrl: string;
+}): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"/>
+<style>
+  body{font-family:'Helvetica Neue',Arial,sans-serif;color:#083a4f;margin:0;padding:0;background:#f8f8f6}
+  .container{max-width:480px;margin:40px auto;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #c0d5d6}
+  .header{background:#083a4f;padding:24px 32px}
+  .body{padding:28px 32px}
+  .body p{line-height:1.7;font-size:15px;color:#333}
+  .cta-wrap{text-align:center;margin:24px 0}
+  .cta{display:inline-block;background:#a58d66;color:#fff !important;text-decoration:none;padding:16px 36px;border-radius:8px;font-weight:700;font-size:16px}
+  .note{font-size:12px;color:#999;text-align:center;margin-top:10px}
+  .footer{background:#e5e1dd;padding:18px 32px;text-align:center;font-size:12px;color:#666}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <img src="https://jnguyenco-crm.vercel.app/PNG/LetterHeadSand.png" alt="JNguyen Co." style="height:52px;width:auto;display:block;" />
+  </div>
+  <div class="body">
+    <p>You're shooting <strong>${params.clientName}</strong> tomorrow — ${params.eventDate}. 📸</p>
+    <p>Here's your tickable night-before checklist (${params.itemCount} items — cameras, batteries, cards, audio, logistics, the lot). Tap the button below on your phone, tick things off as you pack, and it'll remember your progress.</p>
+    <div class="cta-wrap">
+      <a href="${params.checklistUrl}" class="cta">Open Checklist →</a>
+      <p class="note">Tip: add it to your home screen for one-tap access tonight.</p>
+    </div>
+    <p>Good luck tomorrow!</p>
+  </div>
+  <div class="footer">JNguyen Co. CRM &nbsp;·&nbsp; automatic night-before reminder</div>
+</div>
+</body>
+</html>`.trim();
+}
+
 /** Gallery delivery — sends Google Drive link after final payment */
 export function galleryDeliveryHtml(params: {
   clientName:   string;

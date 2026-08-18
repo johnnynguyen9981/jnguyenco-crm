@@ -41,3 +41,19 @@ dist-electron/
 next-env.d.ts
 
 .vercel
+.env*
+
+# secrets — never commit
+sa_key_temp.json
+*.pem
+*key*.json
+
+# personal / non-repo files that ended up in this folder
+Tax_FY2025-26/
+
+# scratch / debug files
+.tsc_check.log
+_test-*.mjs
+_test-*.tsx
+_test-*.png
+tsconfig.contractors-check.json

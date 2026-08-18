@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Trash2, Loader2, Ban } from "lucide-react";
 
 type Props = {
   invoice: any;
@@ -15,6 +16,11 @@ export function InvoiceDetailActions({ invoice, client }: Props) {
   const [sendLoading, setSendLoading] = useState(false);
   const [paidLoading, setPaidLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmVoid, setConfirmVoid] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [voidLoading, setVoidLoading] = useState(false);
+  const [confirmError, setConfirmError] = useState("");
 
   async function sendInvoiceEmail() {
     if (!client?.email) { setMessage({ type: "error", text: "No client email on file." }); return; }
@@ -79,7 +85,50 @@ export function InvoiceDetailActions({ invoice, client }: Props) {
     window.open(`/api/invoices/${invoice.id}/pdf`, "_blank");
   }
 
-  const isPaid = invoice.status === "PAID";
+  async function handleDelete() {
+    setDeleteLoading(true);
+    setConfirmError("");
+    try {
+      const res = await fetch(`/api/invoices/${invoice.id}`, { method: "DELETE" });
+      if (res.status === 204) {
+        router.push("/invoices");
+        router.refresh();
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      setConfirmError(data.error ?? "Failed to delete invoice.");
+    } catch {
+      setConfirmError("Network error. Please try again.");
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
+
+  async function handleVoid() {
+    setVoidLoading(true);
+    setConfirmError("");
+    try {
+      const res = await fetch(`/api/invoices/${invoice.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "VOID" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to void invoice");
+      setConfirmVoid(false);
+      setMessage({ type: "success", text: "Invoice voided ✓" });
+      router.refresh();
+    } catch (err: any) {
+      setConfirmError(err.message);
+    } finally {
+      setVoidLoading(false);
+    }
+  }
+
+  const isPaid  = invoice.status === "PAID";
+  const isDraft = invoice.status === "DRAFT";
+  const isVoid  = invoice.status === "VOID";
+  const canVoid = invoice.status === "SENT" || invoice.status === "OVERDUE";
 
   return (
     <div className="flex flex-col items-end gap-2">
@@ -113,7 +162,103 @@ export function InvoiceDetailActions({ invoice, client }: Props) {
             ✓ Paid
           </span>
         )}
+        {isVoid && (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">
+            <Ban size={14} /> Void
+          </span>
+        )}
+        {isDraft && (
+          <button
+            onClick={() => { setConfirmError(""); setConfirmDelete(true); }}
+            className="btn-danger text-sm py-1.5 flex items-center gap-1.5"
+          >
+            <Trash2 size={14} /> Delete Invoice
+          </button>
+        )}
+        {canVoid && (
+          <button
+            onClick={() => { setConfirmError(""); setConfirmVoid(true); }}
+            className="btn-danger text-sm py-1.5 flex items-center gap-1.5"
+          >
+            <Ban size={14} /> Void Invoice
+          </button>
+        )}
       </div>
+
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={() => !deleteLoading && setConfirmDelete(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 size={18} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-brand-navy">Delete this invoice?</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  This is permanent and removes {invoice.invoice_number} completely. Only draft invoices can be deleted this way.
+                </p>
+              </div>
+            </div>
+
+            {confirmError && (
+              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{confirmError}</p>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setConfirmDelete(false)} disabled={deleteLoading} className="btn-secondary flex-1">
+                Cancel
+              </button>
+              <button onClick={handleDelete} disabled={deleteLoading} className="btn-danger flex-1 flex items-center justify-center gap-2">
+                {deleteLoading ? <><Loader2 size={14} className="animate-spin" /> Deleting…</> : <><Trash2 size={14} /> Delete</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmVoid && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={() => !voidLoading && setConfirmVoid(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <Ban size={18} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-brand-navy">Void this invoice?</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {invoice.invoice_number} has already been sent, so it can't be deleted outright — voiding keeps it on record
+                  as cancelled instead, and it won't count toward outstanding revenue.
+                </p>
+              </div>
+            </div>
+
+            {confirmError && (
+              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{confirmError}</p>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setConfirmVoid(false)} disabled={voidLoading} className="btn-secondary flex-1">
+                Cancel
+              </button>
+              <button onClick={handleVoid} disabled={voidLoading} className="btn-danger flex-1 flex items-center justify-center gap-2">
+                {voidLoading ? <><Loader2 size={14} className="animate-spin" /> Voiding…</> : <><Ban size={14} /> Void Invoice</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

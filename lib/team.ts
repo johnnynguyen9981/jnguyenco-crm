@@ -69,6 +69,23 @@ export function isFounder(role: TeamRole | string | null | undefined): boolean {
   return role === "FOUNDER";
 }
 
+/**
+ * Convenience: true if the currently logged-in user is the FOUNDER.
+ * Falls back to "FOUNDER" when the user has no team_members row (matches
+ * getOwnerUserId's own fallback), so a lone founder account with no staff
+ * set up yet isn't accidentally locked out.
+ *
+ * Use this at the top of any API route serving founder-only data
+ * (invoices, expenses, contractors, documents, etc.) -- the sidebar nav
+ * hides these pages from staff, but that's a UI-only restriction; routes
+ * must enforce it themselves or a staff member can hit the endpoint
+ * directly and see data they're not meant to.
+ */
+export async function isCurrentUserFounder(): Promise<boolean> {
+  const member = await getCurrentTeamMember();
+  return isFounder(member?.role ?? "FOUNDER");
+}
+
 /** Nav paths that VIDEOGRAPHER / PHOTOGRAPHER are redirected away from */
 export const STAFF_RESTRICTED_PATHS = [
   "/invoices",
@@ -77,6 +94,7 @@ export const STAFF_RESTRICTED_PATHS = [
   "/documents",
   "/forms",
   "/enquiries",
+  "/contractors",
 ];
 
 /** Nav items visible to staff (non-founders) */

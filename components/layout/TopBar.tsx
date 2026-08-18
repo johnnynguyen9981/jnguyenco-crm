@@ -1,7 +1,8 @@
 "use client";
 
-import { Search, ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { GlobalSearch } from "./GlobalSearch";
 
 // Flame mark for topbar avatar
 function FlameMark({ size = 16, color = "#a58d66" }: { size?: number; color?: string }) {
@@ -59,20 +60,7 @@ export function TopBar({ title, subtitle, backHref, backLabel }: TopBarProps) {
 
       {/* Right: search + avatar */}
       <div className="flex items-center gap-3">
-        <button
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors"
-          style={{
-            border: "1px solid #c0d5d6",
-            background: "#e5e1dd",
-            color: "#407e8c",
-          }}
-          title="Search"
-        >
-          <Search size={14} />
-          <span className="hidden sm:inline text-xs" style={{ color: "#a58d66" }}>
-            Search...
-          </span>
-        </button>
+        <GlobalSearch />
 
         {/* Avatar with flame mark */}
         <div

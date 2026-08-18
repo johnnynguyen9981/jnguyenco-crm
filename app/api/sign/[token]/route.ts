@@ -11,8 +11,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { generateContractPDF, EnquiryData } from "@/lib/generate-contract";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 import { contractSignedConfirmationHtml } from "@/lib/google/gmail";
-import { uploadToDriveWithOAuth } from "@/lib/google/drive";
-import { getAuthenticatedClientByOwnerId } from "@/lib/google/auth";
+import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 import { apiSuccess, apiError, formatDate } from "@/lib/utils";
 
 /** Copy of packageNameToKey from fill-contract (could be shared) */
@@ -56,7 +55,7 @@ export async function POST(
       venue_name, service_type, quoted_total, deposit_amount,
       hours_booked, special_requests,
       contract_signed_at, contract_sign_expires_at,
-      clients (id, first_name, last_name, email),
+      clients (id, first_name, last_name, email, gdrive_folder_id),
       packages (id, name, includes_photography, includes_videography, base_price, max_hours)
     `)
     .eq("contract_sign_token", token)
@@ -145,6 +144,53 @@ export async function POST(
     // Don't abort — still try to save + notify photographer
   }
 
+  // ── Save signed PDF to Supabase Storage (always — durable backup that
+  //    doesn't depend on Google Drive being connected/working) ────────────
+  const BUCKET = "documents";
+  let storageUrl: string | null = null;
+  try {
+    const storagePath = `${booking.owner_id}/${pdfFilename}`;
+    const { data: buckets } = await supabase.storage.listBuckets();
+    if (!buckets?.find((b: any) => b.id === BUCKET)) {
+      await supabase.storage.createBucket(BUCKET, { public: false });
+    }
+    await supabase.storage.from(BUCKET).upload(storagePath, pdfBuffer, {
+      contentType: "application/pdf",
+      upsert: true,
+    });
+    const { data: signed } = await supabase.storage
+      .from(BUCKET)
+      .createSignedUrl(storagePath, 60 * 60 * 24 * 365 * 10); // 10-year link
+    storageUrl = signed?.signedUrl ?? null;
+  } catch (e: any) {
+    console.error("[sign/token] Supabase Storage upload failed:", e?.message);
+    // Non-fatal — signed PDF is still emailed to both parties
+  }
+
+  // ── Save signed PDF to Google Drive — same service-account client folder
+  //    (Year/Month/ClientName/Contracts) used by quotes, invoices & receipts,
+  //    instead of the old OAuth path that wrote to a disconnected folder tree
+  //    and silently failed whenever "Connect Google" hadn't been completed. ─
+  let driveUrl: string | null = null;
+  if (isDriveConfigured()) {
+    try {
+      const folderId = client.gdrive_folder_id
+        ? client.gdrive_folder_id
+        : await getOrCreateClientFolder(client.id, clientName, booking.event_date);
+      driveUrl = await uploadToDriveFolder(folderId, "Contracts", pdfFilename, pdfBuffer);
+    } catch (e: any) {
+      console.warn("[sign/token] Drive upload failed (non-fatal):", e?.message);
+      // Non-fatal — signed PDF is still emailed to both parties and saved to Supabase Storage
+    }
+  }
+
+  const contractUrl = driveUrl ?? storageUrl;
+  const savedWhereNote = driveUrl
+    ? "It has also been saved to their Google Drive folder."
+    : storageUrl
+      ? "It has also been saved to CRM Storage (Drive upload didn't run - check the Google Drive connection if you expected it there)."
+      : "WARNING: It could NOT be saved to storage automatically - please save the attached PDF manually.";
+
   // ── Email to photographer (notification + signed PDF) ────────────────────
   const photographerEmail = process.env.SMTP_USER ?? "johnny.nguyen@jnguyen.co";
   try {
@@ -154,7 +200,7 @@ export async function POST(
       html:    `
         <p>Hi Johnny,</p>
         <p><strong>${clientName}</strong> just signed their contract for <strong>${eventDate}</strong> (${packageName}).</p>
-        <p>The signed contract is attached. It has also been saved to their Google Drive folder.</p>
+        <p>The signed contract is attached. ${savedWhereNote}</p>
         <p>Next step: send the deposit invoice to secure the date.</p>
         <p>— JNguyen Co. CRM</p>
       `,
@@ -164,23 +210,13 @@ export async function POST(
     console.error("[sign/token] Photographer email failed:", e);
   }
 
-  // ── Save signed PDF to Google Drive (via user's OAuth) ───────────────────
-  let contractUrl: string | null = null;
-  try {
-    const authClient = await getAuthenticatedClientByOwnerId(booking.owner_id);
-    contractUrl = await uploadToDriveWithOAuth(authClient, clientName, pdfFilename, pdfBuffer);
-  } catch (e: any) {
-    console.warn("[sign/token] Drive upload failed (non-fatal):", e?.message);
-    // Non-fatal — signed PDF is still emailed to both parties
-  }
-
   // ── Mark booking as signed, clear token ──────────────────────────────────
   const { error: updateErr } = await supabase
     .from("bookings")
     .update({
       contract_signed_at:   now.toISOString(),
       contract_sign_token:  null,
-      contract_signed_url:  contractUrl ?? undefined,
+      contract_signed_url:  contractUrl,
     })
     .eq("id", booking.id);
 

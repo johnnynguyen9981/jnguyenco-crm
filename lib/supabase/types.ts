@@ -9,7 +9,8 @@ export type PaymentType      = 'DEPOSIT' | 'BALANCE' | 'EXTRA_SERVICE';
 export type PaymentStatus    = 'PENDING' | 'PAID' | 'OVERDUE' | 'WAIVED';
 export type DeliverableType  = 'PHOTO_GALLERY' | 'HIGHLIGHT_FILM' | 'TEASER' | 'RAW_FOOTAGE';
 export type DeliverableStatus = 'NOT_STARTED' | 'CULLING' | 'EDITING' | 'READY' | 'DELIVERED' | 'CLIENT_APPROVED';
-export type ContractorRole   = 'PHOTOGRAPHER' | 'VIDEOGRAPHER' | 'BOTH';
+export type ContractorRole   = 'PHOTOGRAPHER' | 'VIDEOGRAPHER' | 'BOTH' | 'PHOTO_EDITOR' | 'OTHER';
+export type ContractorRateType = 'HOURLY' | 'PER_PROJECT';
 export type InvoiceStatus    = 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE' | 'VOID';
 export type ReferralSource   = 'INSTAGRAM' | 'GOOGLE' | 'WORD_OF_MOUTH' | 'WEDDING_WIRE' | 'FACEBOOK' | 'OTHER';
 
@@ -52,6 +53,9 @@ export interface Package {
   film_duration_min?: number;
   film_duration_max?: number;
   description?: string;
+  team?: string;
+  deliverables?: string[];
+  timeline?: string[];
   is_active: boolean;
   created_at: string;
 }
@@ -83,6 +87,8 @@ export interface Booking {
   contract_sign_token?: string;
   contract_sign_expires_at?: string;
   gcal_event_id?: string;
+  checklist_state?: Record<string, boolean>;
+  checklist_sent_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -142,6 +148,11 @@ export interface Payment {
 }
 
 // ── Contractor ───────────────────────────────────────────────────────────────
+// Covers both on-shoot crew (PHOTOGRAPHER/VIDEOGRAPHER/BOTH, assigned to
+// bookings via booking_contractors) and business-services contractors hired
+// on an ongoing basis (e.g. PHOTO_EDITOR) who are not tied to a specific
+// booking. rate_type + default_rate together describe how they're paid:
+// HOURLY → default_rate is $/hr, PER_PROJECT → default_rate is a flat fee.
 export interface Contractor {
   id: string;
   owner_id: string;
@@ -150,16 +161,23 @@ export interface Contractor {
   email?: string;
   phone?: string;
   role: ContractorRole;
+  rate_type?: ContractorRateType;
   default_rate?: number;
+  start_date?: string;
   notes?: string;
   is_active: boolean;
+  contract_generated_at?: string;
+  contract_file_name?: string;
   created_at: string;
+  updated_at: string;
 }
+
+export type ContractorInsert = Omit<Contractor, 'id' | 'owner_id' | 'created_at' | 'updated_at' | 'contract_generated_at' | 'contract_file_name'>;
+export type ContractorUpdate = Partial<ContractorInsert>;
 
 // ── Deliverable ───────────────────────────────────────────────────────────────
 export interface Deliverable {
   id: string;
-  owner_id: string;
   booking_id: string;
   type: DeliverableType;
   status: DeliverableStatus;
@@ -172,6 +190,7 @@ export interface Deliverable {
   delivered_at?: string;
   client_viewed_at?: string;
   notes?: string;
+  gcal_event_id?: string;
   created_at: string;
   updated_at: string;
 }

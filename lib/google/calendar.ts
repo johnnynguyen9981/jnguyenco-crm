@@ -3,8 +3,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { google } from "googleapis";
 import { getAuthenticatedClient } from "./auth";
-import type { Booking, Client } from "@/lib/supabase/types";
-import { formatDate } from "@/lib/utils";
+import type { Booking, Client, Deliverable } from "@/lib/supabase/types";
+import { formatDate, getAppUrl } from "@/lib/utils";
 
 // JNguyen Co. Photography, Videography Booking calendar
 const BOOKING_CALENDAR_ID =
@@ -14,6 +14,20 @@ export interface CalendarSyncResult {
   gcal_event_id: string;
   html_link: string;
 }
+
+const DELIVERABLE_ICON: Record<string, string> = {
+  PHOTO_GALLERY:  "📸",
+  HIGHLIGHT_FILM: "🎬",
+  TEASER:         "🎞️",
+  RAW_FOOTAGE:    "🎥",
+};
+
+const DELIVERABLE_LABEL: Record<string, string> = {
+  PHOTO_GALLERY:  "Photo gallery",
+  HIGHLIGHT_FILM: "Highlight film",
+  TEASER:         "Teaser / reel",
+  RAW_FOOTAGE:    "Raw footage",
+};
 
 /**
  * Create or update a Google Calendar event for a booking.
@@ -54,7 +68,7 @@ export async function syncBookingToCalendar(
       booking.quoted_total ? `Quoted: $${booking.quoted_total.toLocaleString()}` : null,
       booking.special_requests ? `\nNotes: ${booking.special_requests}` : null,
       `\nStatus: ${booking.status}`,
-      `\nManage: ${process.env.NEXT_PUBLIC_APP_URL}/bookings/${booking.id}`,
+      `\nManage: ${getAppUrl()}/bookings/${booking.id}`,
     ]
       .filter(Boolean)
       .join("\n"),
@@ -97,6 +111,88 @@ export async function syncBookingToCalendar(
  * Delete a calendar event when a booking is cancelled.
  */
 export async function deleteCalendarEvent(
+  userId: string,
+  gcalEventId: string
+): Promise<void> {
+  const authClient = await getAuthenticatedClient(userId);
+  const calendar   = google.calendar({ version: "v3", auth: authClient });
+  await calendar.events.delete({ calendarId: BOOKING_CALENDAR_ID, eventId: gcalEventId });
+}
+
+/**
+ * Create or update an all-day Google Calendar reminder for a deliverable's
+ * due date (photo gallery, highlight film, teaser, raw footage). Lives on
+ * the same shared booking calendar as the shoot-day event, but with a
+ * distinct color so due-date reminders are visually separate from shoots.
+ * Returns the Google Calendar event ID to store in deliverables.gcal_event_id.
+ */
+export async function syncDeliverableToCalendar(
+  userId: string,
+  deliverable: Pick<Deliverable, "id" | "type" | "status" | "due_date" | "notes" | "gcal_event_id">,
+  booking: Pick<Booking, "id">,
+  client: Pick<Client, "first_name" | "last_name">
+): Promise<CalendarSyncResult> {
+  if (!deliverable.due_date) {
+    throw new Error("Deliverable has no due date to sync");
+  }
+
+  const authClient = await getAuthenticatedClient(userId);
+  const calendar   = google.calendar({ version: "v3", auth: authClient });
+
+  const clientName = `${client.first_name} ${client.last_name}`;
+  const icon       = DELIVERABLE_ICON[deliverable.type] ?? "📦";
+  const label      = DELIVERABLE_LABEL[deliverable.type] ?? deliverable.type;
+
+  const eventBody = {
+    summary: `${icon} ${label} due — ${clientName}`,
+    description: [
+      `Deliverable: ${label}`,
+      `Client: ${clientName}`,
+      deliverable.notes ? `Notes: ${deliverable.notes}` : null,
+      `Status: ${deliverable.status.replace(/_/g, " ")}`,
+      `\nManage: ${getAppUrl()}/bookings/${booking.id}`,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    // All-day event — a due date, not a timed appointment.
+    start: { date: deliverable.due_date },
+    end:   { date: deliverable.due_date },
+    colorId: "10", // basil (green) — distinct from booking shoot events (pink/banana)
+    reminders: {
+      useDefault: false,
+      overrides: [
+        { method: "popup", minutes: 3 * 24 * 60 }, // 3 days before
+        { method: "popup", minutes: 24 * 60 },      // 1 day before
+      ],
+    },
+  };
+
+  if (deliverable.gcal_event_id) {
+    const res = await calendar.events.update({
+      calendarId:  BOOKING_CALENDAR_ID,
+      eventId:     deliverable.gcal_event_id,
+      requestBody: eventBody,
+    });
+    return {
+      gcal_event_id: res.data.id!,
+      html_link:     res.data.htmlLink!,
+    };
+  } else {
+    const res = await calendar.events.insert({
+      calendarId:  BOOKING_CALENDAR_ID,
+      requestBody: eventBody,
+    });
+    return {
+      gcal_event_id: res.data.id!,
+      html_link:     res.data.htmlLink!,
+    };
+  }
+}
+
+/**
+ * Delete a deliverable's due-date reminder (e.g. if the deliverable is removed).
+ */
+export async function deleteDeliverableCalendarEvent(
   userId: string,
   gcalEventId: string
 ): Promise<void> {

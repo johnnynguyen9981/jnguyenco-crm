@@ -2,7 +2,7 @@
 // Google Drive integration using a Service Account (not OAuth user tokens).
 //
 // Setup requirements (one-time):
-//   1. In Google Cloud Console → IAM & Admin → Service Accounts → create a service account
+//   1. In Google Cloud Console -> IAM & Admin -> Service Accounts -> create a service account
 //   2. Create a JSON key for it and set GOOGLE_SERVICE_ACCOUNT_JSON in your env vars
 //   3. In your Google Drive, create a folder called "JNguyen Co. CRM"
 //   4. Share that folder with the service account email (Editor access)
@@ -10,10 +10,10 @@
 //
 // Folder structure created per client:
 //   JNguyen Co. CRM /
-//     └── [Client Name] /
-//           ├── Quotes/
-//           ├── Contracts/
-//           └── Invoices/
+//     |-- [Client Name] /
+//           |-- Quotes/
+//           |-- Contracts/
+//           |-- Invoices/
 
 import { google, drive_v3 } from "googleapis";
 import { Readable } from "stream";
@@ -35,8 +35,8 @@ function stripBOM(s: string): string {
   return s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
 }
 
-/** Reads the service account JSON from env — uses dynamic access to prevent webpack build-time inlining. */
-function getServiceAccountJson(): string {
+/** Reads the service account JSON from env -- uses dynamic access to prevent webpack build-time inlining. */
+export function getServiceAccountJson(): string {
   const env = process.env as Record<string, string | undefined>;
   // Prefer base64-encoded var (no encoding/newline/BOM issues)
   const b64 = stripBOM(env["GOOGLE_SERVICE_ACCOUNT_B64"] ?? "").trim();
@@ -97,30 +97,42 @@ async function findOrCreateFolder(
  */
 export async function getOrCreateClientFolder(
   clientId: string,
-  clientName: string
+  clientName: string,
+  eventDate?: string | Date | null
 ): Promise<string> {
   const env = process.env as Record<string, string | undefined>;
   const fromEnv = stripBOM(env["GOOGLE_DRIVE_ROOT_FOLDER_ID"] ?? "").trim();
-  // Fallback to known root folder ID if env var is missing/corrupt
-  // "Clients" folder inside JNguyen Co. CRM (ID: 1dzxMz7t2NNKT7sgnOgZvNGbaJTHNMVCX)
-  const rootId = fromEnv || "13R1SuLYVyUvB-s1_a9kNmJ-S5aZqZtCU";
+  // Fallback to the "JNguyen Co. CRM" Shared Drive if env var is missing/corrupt.
+  // Must be a Shared Drive (not a regular "My Drive" folder) -- the service
+  // account has no personal storage quota, so writes into a personal folder
+  // fail with "Service Accounts do not have storage quota" even when shared.
+  const rootId = fromEnv || "0AFXFUoYwRDw-Uk9PVA";
   if (!rootId) throw new Error("GOOGLE_DRIVE_ROOT_FOLDER_ID env var is not set.");
 
   const drive = getDriveClient();
 
-  // Look up booking event_date to determine Year/Month folder names
-  const supabase = await createServerClient();
-  const { data: booking } = await supabase
-    .from("bookings")
-    .select("event_date")
-    .eq("client_id", clientId)
-    .order("event_date", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  // Prefer the specific booking's event_date (passed in by the caller) so a
+  // repeat client's documents file under the Year/Month of the booking they
+  // actually belong to. If omitted, fall back to the client's earliest
+  // booking (legacy behaviour) -- used by callers with no specific booking
+  // in scope, e.g. creating a client's folder before any booking exists.
+  let resolvedDate: Date;
+  if (eventDate) {
+    resolvedDate = eventDate instanceof Date ? eventDate : new Date(eventDate);
+  } else {
+    const supabase = await createServerClient();
+    const { data: booking } = await supabase
+      .from("bookings")
+      .select("event_date")
+      .eq("client_id", clientId)
+      .order("event_date", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    resolvedDate = booking?.event_date ? new Date(booking.event_date) : new Date();
+  }
 
-  const eventDate   = booking?.event_date ? new Date(booking.event_date) : new Date();
-  const yearFolder  = String(eventDate.getUTCFullYear());
-  const monthFolder = eventDate.toLocaleString("en-AU", { month: "long", timeZone: "UTC" });
+  const yearFolder  = String(resolvedDate.getUTCFullYear());
+  const monthFolder = resolvedDate.toLocaleString("en-AU", { month: "long", timeZone: "UTC" });
 
   // Structure: Root / Year / Month / ClientName / ...
   const yearId          = await findOrCreateFolder(drive, yearFolder,   rootId);
@@ -168,7 +180,8 @@ export async function uploadToDriveFolder(
   clientFolderId: string,
   subfolder: DriveSubfolder,
   filename: string,
-  buffer: Buffer
+  buffer: Buffer,
+  mimeType: string = "application/pdf"
 ): Promise<string> {
   const drive = getDriveClient();
   const subFolderId = await findOrCreateFolder(drive, subfolder, clientFolderId);
@@ -179,7 +192,7 @@ export async function uploadToDriveFolder(
       parents: [subFolderId],
     },
     media: {
-      mimeType: "application/pdf",
+      mimeType,
       body: Readable.from(buffer),
     },
     fields: "id, webViewLink",

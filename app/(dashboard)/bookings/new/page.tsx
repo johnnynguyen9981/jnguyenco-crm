@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Check, Loader2, Camera, Video, Layers } from "lucide-react";
+import { ArrowLeft, Check, Loader2 } from "lucide-react";
 
 // ── Static fallbacks shown when no DB packages exist yet ─────────────────────
 const WEDDING_FALLBACK = [
@@ -25,12 +25,13 @@ const PORTRAIT_FALLBACK = [
     description: "Up to 2 hrs · 60–100 edited images · Online gallery" },
 ];
 
-// Hourly event options (not DB packages — just rate cards)
-const EVENT_RATES = [
-  { key: "photo", label: "Photography",        rate: "$150/hr", price: 150,
-    icon: Camera,  desc: "Photography only" },
-  { key: "both",  label: "Photo + Videography", rate: "$250/hr", price: 250,
-    icon: Layers,  desc: "Combined photography & videography" },
+// Fallback shown only if the DB has no active EVENT packages yet — mirrors the
+// real `packages` table rows (kept in sync manually; DB is the source of truth).
+const EVENT_FALLBACK = [
+  { id: "", name: "Photography",          base_price: 230,
+    description: "Photography only" },
+  { id: "", name: "Photo + Videography",  base_price: 450,
+    description: "Combined photography & videography" },
 ];
 
 const SERVICE_TYPES = [
@@ -115,7 +116,7 @@ export default function NewBookingPage() {
   useEffect(() => {
     fetch("/api/packages")
       .then((r) => r.json())
-      .then((d) => setDbPackages(d.data?.packages ?? []))
+      .then((d) => setDbPackages(d.packages ?? []))
       .catch(console.error);
   }, []);
 
@@ -159,6 +160,13 @@ export default function NewBookingPage() {
     : serviceType === "PORTRAIT" ? PORTRAIT_FALLBACK
     : [];
 
+  // Event rate cards now come from the same `packages` table (service_type = "EVENT")
+  // that drives every other section/page — previously this was a hardcoded array
+  // disconnected from the DB, so price changes here never matched the Edit Booking
+  // page, quotes, or contracts. Falls back to EVENT_FALLBACK only if DB is empty.
+  const eventPackages = dbPackages.filter((p) => p.service_type === "EVENT");
+  const displayEventPackages = eventPackages.length > 0 ? eventPackages : EVENT_FALLBACK;
+
   function selectPackage(pkg: any) {
     const alreadySelected = pkg.id ? packageId === pkg.id : packageName === pkg.name;
     if (alreadySelected) {
@@ -173,17 +181,22 @@ export default function NewBookingPage() {
     setEventRateKey("");
   }
 
-  function selectEventRate(key: string, price: number) {
+  function selectEventRate(pkg: any) {
+    const key = pkg.id || pkg.name;
     if (eventRateKey === key) {
       setEventRateKey("");
+      setPackageId("");
+      setPackageName("");
       setQuotedTotal("");
     } else {
       setEventRateKey(key);
-      setPackageId("");
-      setPackageName("");
+      // Store the real package id/name too — same as Wedding/Portrait — so the
+      // booking, quote, and contract all reference the actual DB package.
+      setPackageId(pkg.id ?? "");
+      setPackageName(pkg.name);
       // Auto-calc total if hours already entered
       if (hoursBooked) {
-        setQuotedTotal(String(price * parseFloat(hoursBooked)));
+        setQuotedTotal(String(Number(pkg.base_price) * parseFloat(hoursBooked)));
       }
     }
   }
@@ -191,9 +204,9 @@ export default function NewBookingPage() {
   // ── Recalculate event total when hours change ─────────────────────────────
   useEffect(() => {
     if (!eventRateKey || !hoursBooked) return;
-    const rate = EVENT_RATES.find((r) => r.key === eventRateKey);
-    if (rate) setQuotedTotal(String(rate.price * parseFloat(hoursBooked)));
-  }, [hoursBooked, eventRateKey]);
+    const rate = displayEventPackages.find((p: any) => (p.id || p.name) === eventRateKey);
+    if (rate) setQuotedTotal(String(Number(rate.base_price) * parseFloat(hoursBooked)));
+  }, [hoursBooked, eventRateKey, dbPackages]);
 
   // ── Submit ────────────────────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
@@ -353,16 +366,19 @@ export default function NewBookingPage() {
             <>
               <p className="text-xs text-gray-400">Events are priced hourly. Select the service rate below.</p>
               <div className="grid grid-cols-2 gap-3">
-                {EVENT_RATES.map((r) => (
-                  <OptionCard
-                    key={r.key}
-                    selected={eventRateKey === r.key}
-                    onSelect={() => selectEventRate(r.key, r.price)}
-                    label={r.label}
-                    price={r.rate}
-                    sub={r.desc}
-                  />
-                ))}
+                {displayEventPackages.map((pkg: any) => {
+                  const key = pkg.id || pkg.name;
+                  return (
+                    <OptionCard
+                      key={key}
+                      selected={eventRateKey === key}
+                      onSelect={() => selectEventRate(pkg)}
+                      label={pkg.name}
+                      price={`$${Number(pkg.base_price).toLocaleString()}/hr`}
+                      sub={pkg.description}
+                    />
+                  );
+                })}
               </div>
               <p className="text-xs text-gray-400 mt-1">
                 Enter hours booked in the Pricing section — total will calculate automatically.
@@ -377,7 +393,7 @@ export default function NewBookingPage() {
                     selected={pkg.id ? packageId === pkg.id : packageName === pkg.name}
                     onSelect={() => selectPackage(pkg)}
                     label={pkg.name}
-                    price={`$${pkg.base_price.toLocaleString()}${pkg.max_hours ? ` · up to ${pkg.max_hours} hrs` : ""}`}
+                    price={`$${pkg.base_price.toLocaleString()}${pkg.max_hours ? ` · up to ${pkg.max_hours} hrs` : "/hr"}`}
                     sub={pkg.description}
                   />
                 ))}

@@ -4,30 +4,77 @@
  */
 import React from "react";
 import {
-  Document, Page, Text, View, StyleSheet, renderToBuffer, Image,
+  Document, Page, Text, View, StyleSheet, renderToBuffer, Image, Svg, Path, Font,
 } from "@react-pdf/renderer";
 import path from "path";
 import fs from "fs";
 
-// ─── Brand colours ─────────────────────────────────────────
-const NAVY      = "#083a4f";
-const SAND      = "#a58d66";
-const TEAL      = "#407e8c";
-const PALE_BLUE = "#c0d5d6";
-const CREAM_BG  = "#f7f4f1";
-
-// ─── Logo image (PNG from public folder) ───────────────────
-function getLogoDataUri(): string {
+// ─── Font registration ──────────────────────────────────────
+// JNguyen Co. brand type system: DM Serif Display for headings/titles,
+// Montserrat for body copy and labels. Both are embedded locally (rather
+// than loaded from Google Fonts CDN) since react-pdf renders server-side.
+// Montserrat's files here are merged (fonttools) Latin+Vietnamese glyph
+// sets so any Vietnamese contractor/client names still render correctly.
+let fontsRegistered = false;
+function registerFonts() {
+  if (fontsRegistered) return;
   try {
-    const logoPath = path.join(process.cwd(), "public", "PNG", "LetterHeadNavy.png");
-    const buf = fs.readFileSync(logoPath);
-    return `data:image/png;base64,${buf.toString("base64")}`;
-  } catch {
-    return "";
+    Font.register({
+      family: "DMSerifDisplay",
+      fonts: [{ src: path.join(process.cwd(), "public", "fonts", "DMSerifDisplay-Regular.woff"), fontWeight: 400 }],
+    });
+    Font.register({
+      family: "Montserrat",
+      fonts: [{ src: path.join(process.cwd(), "public", "fonts", "Montserrat-Regular.ttf"), fontWeight: 400 }],
+    });
+    Font.register({
+      family: "Montserrat-SemiBold",
+      fonts: [{ src: path.join(process.cwd(), "public", "fonts", "Montserrat-SemiBold.ttf"), fontWeight: 600 }],
+    });
+    fontsRegistered = true;
+  } catch (e) {
+    console.error("[generate-contract] Font registration failed, falling back to Helvetica:", e);
   }
 }
+registerFonts();
 
-const LOGO_DATA_URI = getLogoDataUri();
+// ─── Brand colours — JNguyen Co. editorial brand system ────
+// Kept the original variable names (NAVY/SAND/TEAL/PALE_BLUE/CREAM_BG) so
+// every downstream style reference below is unaffected; only the hex
+// values changed, remapped onto the new palette by role:
+//   NAVY      -> Dark Chestnut/Espresso  (headings, high-emphasis text)
+//   SAND/TEAL -> Warm Terracotta         (labels, subheads, sig highlights)
+//   PALE_BLUE -> Muted Slate Blue        (dividers, subtle borders)
+//   CREAM_BG  -> Feather White           (card/notice backgrounds)
+const NAVY      = "#4F210D";
+const SAND      = "#864C2C";
+const TEAL      = "#864C2C";
+const PALE_BLUE = "#305B7E";
+const CREAM_BG  = "#FAF9F6";
+// New additions, used for a handful of specific accents below:
+const MIDNIGHT_NAVY = "#071524"; // strong header rule + logo fill
+const STEEL_BLUE    = "#1E3653"; // summary card panel accent
+
+// ─── Logo (vector, embedded inline) ─────────────────────────
+// Rendered directly from the brand SVG's path data (public/Logo/LogoNavy.svg)
+// rather than a rasterised PNG, so it stays crisp at any size and recolours
+// cleanly to the new Midnight Navy brand ink with no extra image tooling.
+const LOGO_VIEWBOX = "0 0 2030.38 1627.14";
+const JNguyenLogo = ({ width, height, fill }: { width: number; height: number; fill: string }) => (
+  <Svg viewBox={LOGO_VIEWBOX} style={{ width, height }}>
+    <Path fill={fill} d="M1338.7,590.11c-.3-13.45-1.13-25.89-2.79-38.03l-186.91,186.91-62.06-62.01,219.07-219.07c-10.05-20.98-23.11-44.74-39.86-73.15l-235.69,235.69-62.06-62.01,251.36-251.36c-11.36-19.06-23.98-40.3-37.21-62.54l-264.02,264.02-62.01-62.06,279.82-279.82c-36.82-62.1-72.24-121.81-92.69-156.4-8.14-13.71-27.98-13.71-36.08,0-19.8,33.42-53.48,90.3-88.99,150.09-49.92,84.21-103.35,174.2-126.51,212.67-23.15,38.6-39.78,68.84-51.61,95-22.19,48.96-27.72,83.6-28.16,131.69-.04,2.26-.04,4.53-.04,6.83,0,39.73,0,127.29,93.04,220.33,29.81,29.81,60.71,50.13,89.73,63.97,61.53,29.37,114.5,29.55,129.99,29.03l1.13-.09c15.14.52,66.02.35,125.72-27.02,30.24-13.88,62.75-34.73,94-65.97,93.04-93.04,93.04-180.6,93.04-220.33,0-5.61-.04-11.05-.22-16.36Z" />
+    <Path fill={fill} d="M0,1495.43c11.2-1.07,20.46-4.34,27.8-9.8,7.33-5.47,12.93-14.54,16.8-27.2,3.86-12.67,5.8-29.94,5.8-51.8v-219.2c0-10.13-.74-17.46-2.2-22-1.47-4.53-4.27-7.6-8.4-9.2-4.14-1.6-10.6-2.66-19.4-3.2v-8c13.33.8,33.46,1.2,60.4,1.2s48.53-.4,63.2-1.2v8c-9.07.54-15.6,1.6-19.6,3.2-4,1.6-6.74,4.67-8.2,9.2-1.47,4.54-2.2,11.87-2.2,22v170.8c0,37.6-2.27,64.27-6.8,80-5.6,19.46-17.54,35.2-35.8,47.2-18.27,12-42.07,18-71.4,18v-8Z" />
+    <Path fill={fill} d="M472,1153.03c-8.8,1.34-15.27,3.6-19.4,6.8-4.14,3.2-6.94,8.27-8.4,15.2-1.47,6.94-2.2,17.2-2.2,30.8v223.2l-9.6-.4-10.8.4-173.6-220v153.6c0,15.74.8,27.27,2.4,34.6,1.6,7.34,5.06,12.67,10.4,16,5.33,3.34,14,5.67,26,7v8c-10.4-.8-24.8-1.2-43.2-1.2-14.67,0-26.27.4-34.8,1.2v-8c8.8-1.33,15.26-3.6,19.4-6.8,4.13-3.2,6.93-8.26,8.4-15.2,1.46-6.93,2.2-17.2,2.2-30.8v-180c0-10.13-.74-17.46-2.2-22-1.47-4.53-4.27-7.6-8.4-9.2-4.14-1.6-10.6-2.66-19.4-3.2v-8c8.53.8,20.13,1.2,34.8,1.2,13.33,0,24.8-.4,34.4-1.2l154.8,190.8v-125.2c0-15.73-.8-27.26-2.4-34.6-1.6-7.33-5.07-12.66-10.4-16-5.34-3.33-14-5.66-26-7v-8c10.4.8,24.8,1.2,43.2,1.2,14.93,0,26.53-.4,34.8-1.2v8Z" />
+    <Path fill={fill} d="M724.6,1146.22c11.33,4.54,22.46,10.94,33.4,19.2,3.2,2.4,5.86,3.6,8,3.6,2.66,0,4.8-1.93,6.4-5.8,1.6-3.86,2.8-9.93,3.6-18.2h9.2c-1.07,18.14-1.6,50.4-1.6,96.8h-9.2c-2.14-18.13-5.27-32.8-9.4-44-4.14-11.2-11-20.66-20.6-28.4-6.4-6.13-14.27-10.93-23.6-14.4-9.34-3.46-18.94-5.2-28.8-5.2-18.67,0-34.2,6.34-46.6,19-12.4,12.67-21.54,29.4-27.4,50.2-5.87,20.8-8.8,43.6-8.8,68.4,0,92.27,25.6,138.4,76.8,138.4,11.73,0,21.2-2.66,28.4-8,3.46-2.4,5.93-5.2,7.4-8.4,1.46-3.2,2.2-7.33,2.2-12.4v-39.2c0-12.53-1.07-21.66-3.2-27.4-2.14-5.73-5.94-9.66-11.4-11.8-5.47-2.13-14.07-3.46-25.8-4v-8c16.53.8,39.33,1.2,68.4,1.2,23.73,0,41.6-.4,53.6-1.2v8c-5.34.54-9.2,1.6-11.6,3.2s-4.07,4.67-5,9.2c-.94,4.54-1.4,11.87-1.4,22v79.2h-8c-.27-5.6-1.4-10.8-3.4-15.6-2-4.8-4.74-7.2-8.2-7.2-4.54,0-11.74,2.8-21.6,8.4-23.2,13.34-45.07,20-65.6,20-46.14,0-81.47-12.6-106-37.8-24.54-25.2-36.8-60.6-36.8-106.2,0-29.86,6.2-56.13,18.6-78.8,12.4-22.66,29.53-40.26,51.4-52.8,21.86-12.53,46.8-18.8,74.8-18.8,16.53,0,30.46,2.27,41.8,6.8Z" />
+    <Path fill={fill} d="M1123.19,1153.03c-8.8,1.34-15.27,3.6-19.4,6.8-4.14,3.2-6.94,8.27-8.4,15.2-1.47,6.94-2.2,17.2-2.2,30.8v106c0,38.14-5.47,66.4-16.4,84.8-7.2,11.74-17.6,20.87-31.2,27.4-13.6,6.53-30.27,9.8-50,9.8-30.94,0-54.94-6.66-72-20-12.27-9.86-20.54-22.33-24.8-37.4-4.27-15.06-6.4-36.2-6.4-63.4v-125.6c0-10.13-.74-17.46-2.2-22-1.47-4.53-4.27-7.6-8.4-9.2-4.14-1.6-10.6-2.66-19.4-3.2v-8c13.6.8,34.4,1.2,62.4,1.2s48.93-.4,63.6-1.2v8c-9.6.54-16.6,1.6-21,3.2-4.4,1.6-7.4,4.67-9,9.2-1.6,4.54-2.4,11.87-2.4,22v150.8c0,28,4.06,48.6,12.2,61.8,8.13,13.2,22.46,19.8,43,19.8,26.66,0,45.46-9,56.4-27,10.93-18,16.4-43.53,16.4-76.6v-105.6c0-15.46-.94-26.93-2.8-34.4-1.87-7.46-5.47-12.86-10.8-16.2-5.34-3.33-13.74-5.66-25.2-7v-8c10.13.8,24.53,1.2,43.2,1.2,14.93,0,26.53-.4,34.8-1.2v8Z" />
+    <Path fill={fill} d="M1417.19,1144.63v8c-12.27,5.07-25.07,20.54-38.4,46.4l-47.2,93.6v93.2c0,10.14.73,17.47,2.2,22,1.46,4.54,4.2,7.6,8.2,9.2s10.53,2.67,19.6,3.2v8c-14.4-.8-34.94-1.2-61.6-1.2-28.54,0-49.2.4-62,1.2v-8c8.8-.53,15.26-1.6,19.4-3.2,4.13-1.6,6.93-4.66,8.4-9.2,1.46-4.53,2.2-11.86,2.2-22v-67.6l-77.2-142.8c-8.27-14.93-16-22.4-23.2-22.4v-8.4c11.73,1.34,27.46,2,47.2,2,24.8,0,49.86-.66,75.2-2v8.4c-9.34,0-16.74.87-22.2,2.6-5.47,1.74-8.2,4.87-8.2,9.4,0,2.4.93,5.34,2.8,8.8l60.8,117.2,31.2-62.4c10.4-21.06,15.6-37.6,15.6-49.6,0-9.06-2.87-15.6-8.6-19.6-5.74-4-13.94-6.26-24.6-6.8v-8c18.13.8,34.8,1.2,50,1.2,12.26,0,22.4-.4,30.4-1.2Z" />
+    <Path fill={fill} d="M1695.18,1428.22c-18.14-.8-48.67-1.2-91.6-1.2-58.14,0-101.6.4-130.4,1.2v-8c8.8-.53,15.26-1.6,19.4-3.2,4.13-1.6,6.93-4.66,8.4-9.2,1.46-4.53,2.2-11.86,2.2-22v-198.4c0-10.13-.74-17.46-2.2-22-1.47-4.53-4.27-7.6-8.4-9.2-4.14-1.6-10.6-2.66-19.4-3.2v-8c28.8.8,72.26,1.2,130.4,1.2,39.2,0,67.06-.4,83.6-1.2-1.87,22.14-2.8,41.87-2.8,59.2,0,11.74.4,20.8,1.2,27.2h-9.2c-4-28.53-11.2-48.53-21.6-60-10.4-11.46-25.07-17.2-44-17.2h-16.4c-8.27,0-14.27.67-18,2-3.74,1.34-6.27,3.94-7.6,7.8-1.34,3.87-2,10.07-2,18.6v99.2h12.8c14.13,0,24.86-5.2,32.2-15.6,7.33-10.4,12.46-22.8,15.4-37.2h9.2c-.8,11.2-1.2,23.74-1.2,37.6v19.2c0,13.6.8,32.54,2.4,56.8h-9.2c-5.6-35.2-21.87-52.8-48.8-52.8h-12.8v100.8c0,8.54.66,14.74,2,18.6,1.33,3.87,3.86,6.47,7.6,7.8,3.73,1.34,9.73,2,18,2h19.6c18.93,0,34.2-6.46,45.8-19.4,11.6-12.93,19.8-34.86,24.6-65.8h9.2c-.8,8.8-1.2,20-1.2,33.6,0,24.54.93,44.8,2.8,60.8Z" />
+    <Path fill={fill} d="M2030.38,1153.03c-8.8,1.34-15.27,3.6-19.4,6.8-4.14,3.2-6.94,8.27-8.4,15.2-1.47,6.94-2.2,17.2-2.2,30.8v223.2l-9.6-.4-10.8.4-173.6-220v153.6c0,15.74.8,27.27,2.4,34.6,1.6,7.34,5.06,12.67,10.4,16,5.33,3.34,14,5.67,26,7v8c-10.4-.8-24.8-1.2-43.2-1.2-14.67,0-26.27.4-34.8,1.2v-8c8.8-1.33,15.26-3.6,19.4-6.8,4.13-3.2,6.93-8.26,8.4-15.2,1.46-6.93,2.2-17.2,2.2-30.8v-180c0-10.13-.74-17.46-2.2-22-1.47-4.53-4.27-7.6-8.4-9.2-4.14-1.6-10.6-2.66-19.4-3.2v-8c8.53.8,20.13,1.2,34.8,1.2,13.33,0,24.8-.4,34.4-1.2l154.8,190.8v-125.2c0-15.73-.8-27.26-2.4-34.6-1.6-7.33-5.07-12.66-10.4-16-5.34-3.33-14-5.66-26-7v-8c10.4.8,24.8,1.2,43.2,1.2,14.93,0,26.53-.4,34.8-1.2v8Z" />
+    <Path fill={fill} d="M934.99,1533.84c-11.4-14.4-27.9-18.6-39-18.6-23.1,0-44.1,16.2-44.1,46.5s21.6,46.2,43.8,46.2c12.9,0,28.8-5.7,40.2-19.5v25.8c-13.5,9.9-27.9,12.9-39.6,12.9-38.7,0-66.6-27.6-66.6-65.1s28.2-66,66.6-66c19.8,0,32.7,7.8,38.7,12v25.8Z" />
+    <Path fill={fill} d="M991.09,1561.74c0-37.8,27.9-65.7,66-65.7s66,27.9,66,65.7-28.2,65.4-66,65.4-66-27.6-66-65.4ZM1013.29,1561.74c0,30.6,21.6,46.2,43.8,46.2s43.8-15.9,43.8-46.2-21-46.5-43.8-46.5-43.8,16.2-43.8,46.5Z" />
+    <Path fill={fill} d="M1199.88,1596.54c8.1,0,15,6.9,15,15s-6.9,15-15,15-15-6.9-15-15,6.9-15,15-15Z" />
+  </Svg>
+);
 
 // ─── Package metadata ──────────────────────────────────────
 const PACKAGES: Record<string, { hours: number | null; images: string | null; fee: number | null; label: string }> = {
@@ -76,12 +123,10 @@ const PACKAGE_DELIVERABLES_LIST: Record<string, string[]> = {
     "Raw footage add-on (uncut ceremony — if requested and included in package)",
   ],
   pkg_hourly: [
-    "60+ professionally edited high-resolution images per hour",
     "Online gallery delivery via Google Drive (download link)",
     "Final delivery within 4–8 weeks after the event",
   ],
   pkg_combo: [
-    "60+ professionally edited high-resolution images per hour",
     "2–3 minute cinematic event highlight reel",
     "Full event video coverage",
     "Online gallery delivery via Google Drive (download link)",
@@ -154,17 +199,80 @@ export interface EnquiryData {
   svc_both?: string;
   additional_info?: string;
   special_requests?: string;
+  // When true, overrides the standard 6.4 Model Release grant — Photographer
+  // will NOT use this Client's Images for portfolio/website/social media/
+  // marketing purposes. Set per-booking for clients who request privacy.
+  no_portfolio_marketing_use?: boolean;
   // Explicit pricing — override package-derived values when supplied
   total_fee?: string | number;
   deposit_amount?: string | number;
   remaining_balance?: string | number;
   // Original package list price (set when a discount is applied so the contract can show both)
   list_price?: string | number;
+  // Real package data pulled live from the `packages` table (preferred source —
+  // set by fill-contract route whenever the booking has a package_id). When
+  // present, this drives Section 3 directly instead of the legacy pkg_* +
+  // hardcoded-table lookup below, so editing a package's team/deliverables/
+  // timeline in the Packages admin page is reflected in the next contract
+  // generated, with no code changes required.
+  pkgData?: {
+    hours?: number | null;
+    fee?: number | null;
+    images?: string | null;
+    // Per-hour min/max photo counts for hourly (Event) packages — multiplied
+    // by hoursBooked below to show the real total for this specific booking
+    // instead of a generic "per hour" rate in Section 3's "What's Included".
+    photoCountMin?: number | null;
+    photoCountMax?: number | null;
+    team?: string | null;
+    deliverables?: string[] | null;
+    timeline?: string[] | null;
+  };
+  // Actual hours booked for this booking (from bookings.hours_booked) —
+  // distinct from pkgData.hours, which is a package's fixed max_hours and is
+  // null for hourly/Event packages. Used to compute real deliverable totals.
+  hoursBooked?: number | string | null;
 }
 
+// Legacy fallback per-hour photo counts (mirrors the live DB packages —
+// see Packages admin) for the rare case a contract is generated before a
+// booking/package_id exists (raw uploaded enquiry PDF path).
+const LEGACY_HOURLY_PHOTO_RATE: Record<string, { min: number; max: number }> = {
+  pkg_hourly: { min: 50, max: 80 },
+  pkg_combo:  { min: 50, max: 80 },
+};
+
 function resolvePackage(d: EnquiryData) {
+  if (d.pkgData) {
+    return {
+      key: null as string | null,
+      hours: d.pkgData.hours ?? null,
+      images: d.pkgData.images ?? null,
+      photoCountMin: d.pkgData.photoCountMin ?? null,
+      photoCountMax: d.pkgData.photoCountMax ?? null,
+      fee: d.pkgData.fee ?? null,
+      label: d.package_name || "Package",
+      team: d.pkgData.team || null,
+      deliverables: d.pkgData.deliverables && d.pkgData.deliverables.length ? d.pkgData.deliverables : null,
+      timeline: d.pkgData.timeline && d.pkgData.timeline.length ? d.pkgData.timeline : null,
+    };
+  }
+  // Legacy fallback — used only when no live DB package data is available
+  // (e.g. a contract generated from a raw uploaded enquiry PDF before a
+  // booking/package_id exists yet).
   for (const key of ["pkg_mini","pkg_full8","pkg_full13","pkg_hourly","pkg_combo","pkg_portrait","pkg_unsure"] as const) {
-    if (d[key] === "Yes") return { key, ...PACKAGES[key] };
+    if (d[key] === "Yes") {
+      const rate = LEGACY_HOURLY_PHOTO_RATE[key];
+      return {
+        key,
+        ...PACKAGES[key],
+        photoCountMin: rate?.min ?? null,
+        photoCountMax: rate?.max ?? null,
+        team: PACKAGE_TEAM[key] ?? null,
+        deliverables: PACKAGE_DELIVERABLES_LIST[key] ?? null,
+        timeline: PACKAGE_TIMELINE[key] ?? null,
+      };
+    }
   }
   return null;
 }
@@ -208,7 +316,7 @@ function today() {
 const s = StyleSheet.create({
   page: {
     fontSize: 8.5,
-    fontFamily: "Helvetica",
+    fontFamily: "Montserrat",
     paddingTop: "1.4cm",
     paddingBottom: "1.8cm",
     paddingHorizontal: "1.8cm",
@@ -220,44 +328,44 @@ const s = StyleSheet.create({
   headerTagline: { fontSize: 7.5, color: TEAL, marginBottom: 1, letterSpacing: 0.5 },
   headerCity:    { fontSize: 7, color: "#777" },
   headerEmail:   { fontSize: 7, color: TEAL },
-  rulePrimary:   { borderBottomWidth: 1.5, borderBottomColor: NAVY, marginBottom: 1.5 },
+  rulePrimary:   { borderBottomWidth: 1.5, borderBottomColor: MIDNIGHT_NAVY, marginBottom: 1.5 },
   ruleAccent:    { borderBottomWidth: 0.5, borderBottomColor: TEAL, marginBottom: 10 },
   contractTitle: {
-    textAlign: "center", fontFamily: "Helvetica-Bold",
+    textAlign: "center", fontFamily: "DMSerifDisplay",
     fontSize: 11, color: NAVY, letterSpacing: 2, marginBottom: 2,
   },
   contractSubtitle: { textAlign: "center", fontSize: 7.5, color: "#888", marginBottom: 10 },
   summaryCard: {
     backgroundColor: CREAM_BG, borderRadius: 5, padding: "8 12", marginBottom: 10,
-    borderLeftWidth: 2.5, borderLeftColor: TEAL, flexDirection: "row", justifyContent: "space-between",
+    borderLeftWidth: 2.5, borderLeftColor: STEEL_BLUE, flexDirection: "row", justifyContent: "space-between",
   },
-  summaryLabel: { fontSize: 6.5, color: TEAL, fontFamily: "Helvetica-Bold", marginBottom: 2, letterSpacing: 0.5 },
-  summaryValue: { fontSize: 8.5, color: NAVY, fontFamily: "Helvetica-Bold" },
+  summaryLabel: { fontSize: 6.5, color: TEAL, fontFamily: "Montserrat-SemiBold", marginBottom: 2, letterSpacing: 0.5 },
+  summaryValue: { fontSize: 8.5, color: NAVY, fontFamily: "Montserrat-SemiBold" },
   summarySub:   { fontSize: 7, color: "#666" },
-  summaryFee:   { fontSize: 13, color: NAVY, fontFamily: "Helvetica-Bold" },
+  summaryFee:   { fontSize: 13, color: NAVY, fontFamily: "Montserrat-SemiBold" },
   sectionRow:   { flexDirection: "row", alignItems: "center", marginTop: 9, marginBottom: 4 },
-  sectionBar:   { width: 2.5, height: 12, backgroundColor: TEAL, marginRight: 6, borderRadius: 1.5 },
-  sectionText:  { fontFamily: "Helvetica-Bold", fontSize: 9.5, color: NAVY, letterSpacing: 0.5 },
-  subheading:   { fontFamily: "Helvetica-Bold", fontSize: 8.5, color: TEAL, marginTop: 5, marginBottom: 2 },
+  sectionBar:   { width: 2.5, height: 12, backgroundColor: PALE_BLUE, marginRight: 6, borderRadius: 1.5 },
+  sectionText:  { fontFamily: "DMSerifDisplay", fontSize: 13, color: NAVY, letterSpacing: 0.5 },
+  subheading:   { fontFamily: "Montserrat-SemiBold", fontSize: 8.5, color: TEAL, marginTop: 5, marginBottom: 2 },
   body:    { lineHeight: 1.55, marginBottom: 3.5, color: "#1a2e3a" },
   bullet:  { marginLeft: 10, marginBottom: 2, lineHeight: 1.5 },
   field:   { flexDirection: "row", marginBottom: 3.5, alignItems: "flex-start" },
-  label:   { fontFamily: "Helvetica-Bold", width: 145, flexShrink: 0, fontSize: 7.5, color: SAND },
+  label:   { fontFamily: "Montserrat-SemiBold", width: 145, flexShrink: 0, fontSize: 7.5, color: SAND },
   value:   { flex: 1, fontSize: 8.5, color: NAVY },
   divider: { borderBottomWidth: 0.5, borderBottomColor: PALE_BLUE, marginVertical: 6 },
   bankRow:   { flexDirection: "row", marginBottom: 2 },
-  bankLabel: { width: 110, fontFamily: "Helvetica-Bold", fontSize: 8, color: SAND },
+  bankLabel: { width: 110, fontFamily: "Montserrat-SemiBold", fontSize: 8, color: SAND },
   bankValue: { fontSize: 8.5, color: NAVY },
   sigRow:    { flexDirection: "row", marginTop: 18, gap: 30 },
   sigBlock:  { flex: 1 },
-  sigName:   { fontFamily: "Helvetica-Bold", fontSize: 8.5, color: NAVY, marginBottom: 2 },
+  sigName:   { fontFamily: "Montserrat-SemiBold", fontSize: 8.5, color: NAVY, marginBottom: 2 },
   sigLine:   { borderBottomWidth: 0.75, borderBottomColor: NAVY, marginTop: 22, marginBottom: 3 },
   sigLabel:  { fontSize: 7, color: "#888" },
   footer:      { position: "absolute", bottom: "0.7cm", left: "1.8cm", right: "1.8cm" },
   footerRule:  { borderTopWidth: 0.5, borderTopColor: PALE_BLUE, marginBottom: 3 },
   footerRow:   { flexDirection: "row", justifyContent: "space-between" },
   footerLeft:  { fontSize: 6.5, color: "#aaa" },
-  footerRight: { fontSize: 6.5, color: TEAL },
+  footerRight: { fontSize: 6.5, color: PALE_BLUE },
   notice:     { backgroundColor: CREAM_BG, padding: "5 8", borderRadius: 3, marginVertical: 5 },
   noticeText: { fontSize: 7.5, color: "#555", lineHeight: 1.5 },
 });
@@ -266,11 +374,7 @@ const s = StyleSheet.create({
 const Header = () => (
   <View fixed>
     <View style={s.header}>
-      {LOGO_DATA_URI ? (
-        <Image src={LOGO_DATA_URI} style={{ width: 75, height: 60 }} />
-      ) : (
-        <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: NAVY }}>JNguyen Co.</Text>
-      )}
+      <JNguyenLogo width={75} height={60} fill={MIDNIGHT_NAVY} />
       <View style={{ flex: 1 }} />
       <View style={s.headerContact}>
         <Text style={s.headerTagline}>Photography &amp; Videography</Text>
@@ -385,27 +489,59 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
   const discountPct = hasDiscount && listPrice > 0 ? Math.round((1 - total / listPrice) * 100) : null;
 
   const location   = [d.venue, d.suburb].filter(Boolean).join(", ") || "—";
-  const hours      = pkg?.hours ?? null;
+  const hours      = pkg?.hours ?? null;        // fixed package duration (Wedding/Portrait) — null for hourly packages
   const images     = pkg?.images ?? null;
   const clientName = d.full_name || "—";
 
+  // Hourly (Event) packages have no fixed `hours` — the real duration comes
+  // from the booking itself (hours_booked). Multiply the package's per-hour
+  // photo count by the actual hours booked so Section 3 shows a real total
+  // for this booking (e.g. "200–320 images") instead of a generic per-hour rate.
+  const bookedHours = d.hoursBooked != null && d.hoursBooked !== "" ? Number(d.hoursBooked) : null;
+  const isHourlyPkg = hours == null;
+  const photoMin = pkg?.photoCountMin ?? null;
+  const photoMax = pkg?.photoCountMax ?? null;
+  const computedImagesLine: string | null =
+    isHourlyPkg && bookedHours != null && bookedHours > 0 && photoMin != null
+      ? (photoMax != null && photoMax !== photoMin
+          ? Math.round(photoMin * bookedHours) + "–" + Math.round(photoMax * bookedHours) + " professionally edited high-resolution images"
+          : Math.round(photoMin * bookedHours) + "+ professionally edited high-resolution images")
+      : null;
+
   // Pre-compute deliverable and timeline arrays (avoids complex ternaries in JSX)
-  const deliverablesList: string[] =
-    (pkg?.key && PACKAGE_DELIVERABLES_LIST[pkg.key])
-      ? PACKAGE_DELIVERABLES_LIST[pkg.key]
-      : images
-        ? ["Delivery of " + images + " professionally edited high-resolution images",
-           "Online gallery delivery via Google Drive (download link)"]
-        : ["Online gallery delivery via Google Drive (download link)"];
+  const deliverablesList: string[] = (() => {
+    const rawBase =
+      pkg?.deliverables && pkg.deliverables.length
+        ? pkg.deliverables
+        : images
+          ? ["Delivery of " + images + " professionally edited high-resolution images",
+             "Online gallery delivery via Google Drive (download link)"]
+          : ["Online gallery delivery via Google Drive (download link)"];
+
+    // When we've computed a real image total for this booking's actual hours,
+    // drop the package's generic "per hour" rate bullet so the contract
+    // doesn't show both the rate and the computed total side by side.
+    const base = computedImagesLine
+      ? rawBase.filter((line: string) => !(/\bper hour\b/i.test(line) && /\bimages?\b/i.test(line)))
+      : rawBase;
+
+    return computedImagesLine ? [computedImagesLine, ...base] : base;
+  })();
 
   const timelineList: string[] =
-    (pkg?.key && PACKAGE_TIMELINE[pkg.key])
-      ? PACKAGE_TIMELINE[pkg.key]
+    pkg?.timeline && pkg.timeline.length
+      ? pkg.timeline
       : ["All deliverables to be mutually agreed in writing prior to the event"];
+
+  const coverageHoursLabel = bookedHours != null
+    ? bookedHours + " hour" + (bookedHours === 1 ? "" : "s")
+    : null;
 
   const coverage = hours
     ? hours + " consecutive hours  ·  " + fmtTime(d.start_time) + " – " + fmtTime(d.end_time)
-    : fmtTime(d.start_time) + " – " + fmtTime(d.end_time);
+    : coverageHoursLabel
+      ? coverageHoursLabel + "  ·  " + fmtTime(d.start_time) + " – " + fmtTime(d.end_time)
+      : fmtTime(d.start_time) + " – " + fmtTime(d.end_time);
 
   return (
     <Document title={"Photography Contract – " + clientName} author="JNguyen Co.">
@@ -421,9 +557,9 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
 
         <Text style={s.body}>
           {"THIS AGREEMENT is made as of " + today() + " between "}
-          <Text style={{ fontFamily: "Helvetica-Bold" }}>{clientName}</Text>
+          <Text style={{ fontFamily: "Montserrat-SemiBold" }}>{clientName}</Text>
           {" (\"Client\") and "}
-          <Text style={{ fontFamily: "Helvetica-Bold" }}>Johnny Nguyen</Text>
+          <Text style={{ fontFamily: "Montserrat-SemiBold" }}>Johnny Nguyen</Text>
           {" (\"Photographer\")."}
         </Text>
 
@@ -503,8 +639,12 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
           The Photographer agrees to provide the following services and deliverables as part of the package selected below. All deliverables listed are included in the agreed fee unless explicitly stated as optional or subject to add-on.
         </Text>
         <Field label="Package Selected:"   value={d.package_name || pkg?.label || svc || "—"} />
-        {pkg?.key ? <Field label="Coverage Team:"    value={PACKAGE_TEAM[pkg.key] ?? "—"} /> : null}
-        {hours    ? <Field label="Coverage Duration:" value={hours + " consecutive hours"} /> : null}
+        {pkg?.team ? <Field label="Coverage Team:"    value={pkg.team} /> : null}
+        {hours
+          ? <Field label="Coverage Duration:" value={hours + " consecutive hours"} />
+          : coverageHoursLabel
+            ? <Field label="Coverage Duration:" value={coverageHoursLabel + " (hourly booking)"} />
+            : null}
 
         <Text style={s.subheading}>What's Included:</Text>
         <View>
@@ -624,15 +764,35 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
           pursuant to this Agreement.
         </Text>
         <Text style={s.subheading}>6.4 Model Release</Text>
-        <Text style={s.body}>
-          Client (on behalf of himself/herself and all persons whose likeness is captured
-          during the Services) hereby grants Photographer an irrevocable, worldwide,
-          royalty-free licence to use, display, publish and reproduce any Images containing
-          Client's or any attendee's likeness for the purposes of Photographer's portfolio,
-          website, social media, and general marketing and promotional materials. Client
-          warrants that they have obtained consent from all attendees over the age of 18 and
-          from the parent or guardian of any minors whose likeness may be captured.
-        </Text>
+        {d.no_portfolio_marketing_use ? (
+          <>
+            <Text style={s.body}>
+              Client (on behalf of himself/herself and all persons whose likeness is captured
+              during the Services) warrants that they have obtained consent from all attendees
+              over the age of 18 and from the parent or guardian of any minors whose likeness
+              may be captured, for Photographer's use of Images as set out in this Agreement.
+            </Text>
+            <View style={s.notice}>
+              <Text style={s.noticeText}>
+                By agreement with Client, Photographer will NOT use any Images from this
+                engagement for Photographer's portfolio, website, social media, or any other
+                marketing or promotional materials. Images will be used solely to produce and
+                deliver Client's Work Product under this Agreement. This supersedes
+                Photographer's standard portfolio/marketing licence for this booking only.
+              </Text>
+            </View>
+          </>
+        ) : (
+          <Text style={s.body}>
+            Client (on behalf of himself/herself and all persons whose likeness is captured
+            during the Services) hereby grants Photographer an irrevocable, worldwide,
+            royalty-free licence to use, display, publish and reproduce any Images containing
+            Client's or any attendee's likeness for the purposes of Photographer's portfolio,
+            website, social media, and general marketing and promotional materials. Client
+            warrants that they have obtained consent from all attendees over the age of 18 and
+            from the parent or guardian of any minors whose likeness may be captured.
+          </Text>
+        )}
 
         <Divider />
 
@@ -869,7 +1029,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         </View>
         <View style={s.bankRow}>
           <Text style={s.bankLabel}>Deposit Amount:</Text>
-          <Text style={[s.bankValue, { fontFamily: "Helvetica-Bold", color: TEAL }]}>
+          <Text style={[s.bankValue, { fontFamily: "Montserrat-SemiBold", color: TEAL }]}>
             {fmt(deposit)}
           </Text>
         </View>

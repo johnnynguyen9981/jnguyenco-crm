@@ -15,6 +15,10 @@ import {
 import { BookingActions, StatusUpdateForm, QuickPaymentForm, DeleteBookingButton, GenerateDepositInvoiceButton, EditPaymentModal, SendReceiptButton } from "./BookingActions";
 import { FillContractButton } from "@/app/(dashboard)/clients/[id]/FillContractButton";
 import { ContractCard } from "./ContractCard";
+import { ContractorAssignment } from "./ContractorAssignment";
+import { RunSheetEditor } from "./RunSheetEditor";
+import { DeliverableReminderButton } from "./DeliverableReminderButton";
+import { resolvePackageDeliverables } from "@/lib/deliverables";
 
 type Props = { params: { id: string } };
 
@@ -53,7 +57,11 @@ export default async function BookingDetailPage({ params }: Props) {
       packages (*),
       payments (*, id, payment_type, amount, due_date, paid_date, status, method, notes),
       deliverables (*),
-      invoices (id, invoice_number, status, total_amount, due_date, created_at)
+      invoices (id, invoice_number, status, total_amount, due_date, created_at),
+      booking_contractors (
+        *,
+        contractors (id, first_name, last_name, role)
+      )
     `)
     .eq("id", params.id)
     .eq("owner_id", ownerUserId)
@@ -63,9 +71,24 @@ export default async function BookingDetailPage({ params }: Props) {
 
   const client = booking.clients as any;
   const pkg = booking.packages as any;
+  // For hourly (Event) packages, swap the package's generic "per hour" photo
+  // rate for the real total for this specific booking's hours_booked.
+  const resolvedPkgDeliverables = resolvePackageDeliverables(pkg, booking.hours_booked);
   const payments = (booking.payments as any[]) || [];
   const deliverables = (booking.deliverables as any[]) || [];
   const invoices = (booking.invoices as any[]) || [];
+  const bookingContractors = (booking.booking_contractors as any[]) || [];
+
+  let availableContractors: any[] = [];
+  if (showFinancials) {
+    const { data: contractorsData } = await supabase
+      .from("contractors")
+      .select("id, first_name, last_name, role, rate_type, default_rate")
+      .eq("owner_id", ownerUserId)
+      .eq("is_active", true)
+      .order("first_name");
+    availableContractors = contractorsData || [];
+  }
 
   const totalPaid = payments
     .filter((p) => p.status === "PAID")
@@ -195,32 +218,93 @@ export default async function BookingDetailPage({ params }: Props) {
             <StatusUpdateForm bookingId={booking.id} currentStatus={booking.status} />
           </div>
 
-          {/* Shot list */}
-          {(booking.shot_list || booking.special_requests) && (
+          {/* Shot list + Special Note — always visible so notes are never hidden */}
+          <div className="card space-y-4">
+            <h2 className="text-sm font-semibold text-brand-navy uppercase tracking-wide">Planning</h2>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Shot List</p>
+              <p className="text-sm whitespace-pre-wrap">
+                {booking.shot_list || <span className="text-gray-400 italic">None noted</span>}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Special Note</p>
+              <p className="text-sm whitespace-pre-wrap">
+                {booking.special_requests || <span className="text-gray-400 italic">None noted</span>}
+              </p>
+            </div>
+            {booking.internal_notes && (
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Internal Notes</p>
+                <p className="text-sm whitespace-pre-wrap text-gray-600">{booking.internal_notes}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Event Run Sheet — minute-by-minute day-of schedule, distinct
+              from the per-crew Call Sheet below. Founder only, matching the
+              other editable/operational sections on this page. */}
+          {showFinancials && (
             <div className="card space-y-4">
-              <h2 className="text-sm font-semibold text-brand-navy uppercase tracking-wide">Planning</h2>
-              {booking.shot_list && (
+              <div>
+                <h2 className="text-sm font-semibold text-brand-navy uppercase tracking-wide">Event Run Sheet</h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  A shared minute-by-minute schedule for the day — generate a suggested one, adjust it, then share as a PDF.
+                </p>
+              </div>
+              <RunSheetEditor
+                bookingId={booking.id}
+                initialItems={Array.isArray((booking as any).run_sheet_items) ? (booking as any).run_sheet_items : []}
+                sourceBooking={{
+                  service_type:     booking.service_type,
+                  event_start_time: booking.event_start_time ?? null,
+                  event_end_time:   booking.event_end_time ?? null,
+                  ceremony_venue:   booking.ceremony_venue ?? null,
+                  reception_venue:  booking.reception_venue ?? null,
+                  hours_booked:     booking.hours_booked ?? null,
+                }}
+                clientName={client ? `${client.first_name} ${client.last_name}`.trim() : "Client"}
+              />
+            </div>
+          )}
+
+          {/* Package Deliverables — what's included, per the linked package.
+              Image counts are resolved to this booking's actual hours_booked
+              for hourly (Event) packages — see lib/deliverables.ts. */}
+          {pkg && (resolvedPkgDeliverables.length > 0 || (pkg.timeline && pkg.timeline.length > 0)) && (
+            <div className="card space-y-4">
+              <h2 className="text-sm font-semibold text-brand-navy uppercase tracking-wide">Package Deliverables</h2>
+              <p className="text-xs text-gray-400 -mt-2">What&apos;s included with {pkg.name}</p>
+              {resolvedPkgDeliverables.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Shot List</p>
-                  <p className="text-sm whitespace-pre-wrap">{booking.shot_list}</p>
+                  <p className="text-xs text-gray-400 mb-1.5">What&apos;s Included</p>
+                  <ul className="space-y-1">
+                    {resolvedPkgDeliverables.map((line: string, i: number) => (
+                      <li key={i} className="text-sm flex items-start gap-2">
+                        <span className="text-brand-teal mt-0.5">•</span>
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
-              {booking.special_requests && (
+              {pkg.timeline && pkg.timeline.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Special Requests</p>
-                  <p className="text-sm whitespace-pre-wrap">{booking.special_requests}</p>
-                </div>
-              )}
-              {booking.internal_notes && (
-                <div>
-                  <p className="text-xs text-gray-400 mb-1">Internal Notes</p>
-                  <p className="text-sm whitespace-pre-wrap text-gray-600">{booking.internal_notes}</p>
+                  <p className="text-xs text-gray-400 mb-1.5">Delivery Timeline</p>
+                  <ul className="space-y-1">
+                    {pkg.timeline.map((line: string, i: number) => (
+                      <li key={i} className="text-sm flex items-start gap-2">
+                        <span className="text-brand-teal mt-0.5">•</span>
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
           )}
 
-          {/* Deliverables */}
+          {/* Deliverables tracking */}
           {deliverables.length > 0 && (
             <div className="card space-y-3">
               <h2 className="text-sm font-semibold text-brand-navy uppercase tracking-wide">Deliverables</h2>
@@ -235,7 +319,10 @@ export default async function BookingDetailPage({ params }: Props) {
                       </a>
                     )}
                     {d.due_date && (
-                      <p className="text-xs text-gray-400">Due {formatDate(d.due_date)}</p>
+                      <p className="text-xs text-gray-400 flex items-center gap-2">
+                        Due {formatDate(d.due_date)}
+                        <DeliverableReminderButton deliverableId={d.id} synced={!!d.gcal_event_id} />
+                      </p>
                     )}
                   </div>
                   <span className={`badge ${DELIVERABLE_STATUS_COLORS[d.status] ?? "badge-gray"} text-xs`}>
@@ -299,6 +386,17 @@ export default async function BookingDetailPage({ params }: Props) {
                 )}
               </div>
             </div>
+          )}
+
+          {/* Crew / Contractors — founder only */}
+          {showFinancials && (
+            <ContractorAssignment
+              bookingId={booking.id}
+              assignments={bookingContractors}
+              availableContractors={availableContractors}
+              bookingStartTime={booking.event_start_time?.slice(0, 5) ?? null}
+              bookingEndTime={booking.event_end_time?.slice(0, 5) ?? null}
+            />
           )}
 
           {/* Payment milestones — founder only */}
@@ -404,7 +502,13 @@ export default async function BookingDetailPage({ params }: Props) {
 
             {client && (() => {
               const qt = booking.quoted_total ?? 0;
-              const contractDeposit   = depositAmount != null ? depositAmount : undefined;
+              // Use the QUOTED deposit (booking.deposit_amount, e.g. the 30% set on
+              // the booking) here — not the `depositAmount` variable above, which
+              // sums actual recorded DEPOSIT payments and is 0 until money has
+              // been collected. Using the payments figure here was why the
+              // contract showed "Remaining: $360" instead of "$252" for a
+              // $360 quote with a $108 (30%) deposit that hadn't been paid yet.
+              const contractDeposit   = booking.deposit_amount != null ? Number(booking.deposit_amount) : undefined;
               const contractRemaining = qt > 0 && contractDeposit != null ? qt - contractDeposit : undefined;
               return (
                 <div className="card space-y-2">

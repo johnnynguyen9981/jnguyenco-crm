@@ -114,6 +114,25 @@ export function formatPhone(phone: string | null | undefined): string {
   return phone;
 }
 
+// Public app URL for links embedded in outgoing emails (signing links, invoice
+// links, calendar descriptions, etc).
+// NEXT_PUBLIC_APP_URL is meant to be "http://localhost:3000" only during local
+// dev. If it's ever misconfigured to localhost in the deployed environment
+// (e.g. copied from a local .env into Vercel by mistake), client-facing emails
+// would silently contain dead links. Guard against that here instead of
+// trusting the env var blindly.
+export function getAppUrl(): string {
+  const PROD_URL = "https://jnguyenco-crm.vercel.app";
+  const raw = process.env.NEXT_PUBLIC_APP_URL;
+  const isDeployed = process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+
+  if (isDeployed) {
+    if (!raw || raw.includes("localhost")) return PROD_URL;
+    return raw;
+  }
+  return raw ?? "http://localhost:3000";
+}
+
 // API response helpers
 export function apiSuccess<T>(data: T, status = 200) {
   return Response.json({ data }, { status });

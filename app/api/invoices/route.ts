@@ -3,11 +3,13 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { apiSuccess, apiError } from "@/lib/utils";
+import { isCurrentUserFounder } from "@/lib/team";
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
+  if (!(await isCurrentUserFounder())) return apiError("Forbidden", 403);
 
   const sp       = new URL(req.url).searchParams;
   const status   = sp.get("status");
@@ -44,6 +46,7 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
+  if (!(await isCurrentUserFounder())) return apiError("Forbidden", 403);
 
   const { invoice, line_items } = await req.json();
   if (!invoice)              return apiError("invoice data required");

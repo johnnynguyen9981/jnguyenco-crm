@@ -104,7 +104,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         const clientName = `${clientRow.first_name} ${clientRow.last_name}`.trim();
         const folderId = clientRow.gdrive_folder_id
           ? clientRow.gdrive_folder_id
-          : await getOrCreateClientFolder(clientRow.id, clientName);
+          : await getOrCreateClientFolder(clientRow.id, clientName, booking.event_date);
         const filename = `${quoteData.quote_number}_${clientName.replace(/\s+/g, "_")}.pdf`;
         await uploadToDriveFolder(folderId, "Quotes", filename, pdfBuffer);
       }

@@ -1,61 +1,18 @@
 // POST /api/admin/sync-drive-documents
 // Generates contract + invoice PDFs for every client and uploads them to their
-// Google Drive folders using OAuth (user tokens). Safe to re-run — existing files
-// are not deleted; new versions are just uploaded alongside.
+// Google Drive folders using the service account (same path used elsewhere in
+// the app for receipts/contracts). Safe to re-run — existing files are not
+// deleted; new versions are just uploaded alongside.
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getOwnerUserId } from "@/lib/team";
 import { apiSuccess, apiError } from "@/lib/utils";
-import { getAuthenticatedClient } from "@/lib/google/auth";
-import { google } from "googleapis";
-import { Readable } from "stream";
+import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 import { generateContractPDF, EnquiryData } from "@/lib/generate-contract";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { InvoiceTemplate } from "@/lib/pdf/InvoiceTemplate";
 import { createElement } from "react";
 import type { InvoiceWithDetails } from "@/lib/supabase/types";
-
-// ─── Drive helpers (OAuth-based) ────────────────────────────
-
-async function findOrCreateFolder(
-  drive: ReturnType<typeof google.drive>,
-  name: string,
-  parentId?: string
-): Promise<string> {
-  const parentQ = parentId
-    ? ` and '${parentId}' in parents`
-    : ` and 'root' in parents`;
-  const safeName = name.replace(/'/g, "\\'");
-  const { data } = await drive.files.list({
-    q: `name = '${safeName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false${parentQ}`,
-    fields: "files(id)",
-    spaces: "drive",
-  });
-  if (data.files && data.files.length > 0) return data.files[0].id!;
-  const { data: f } = await drive.files.create({
-    requestBody: {
-      name,
-      mimeType: "application/vnd.google-apps.folder",
-      ...(parentId ? { parents: [parentId] } : {}),
-    },
-    fields: "id",
-  });
-  return f.id!;
-}
-
-async function uploadPdf(
-  drive: ReturnType<typeof google.drive>,
-  parentId: string,
-  filename: string,
-  buffer: Buffer
-): Promise<string> {
-  const { data: file } = await drive.files.create({
-    requestBody: { name: filename, parents: [parentId] },
-    media: { mimeType: "application/pdf", body: Readable.from(buffer) },
-    fields: "id, webViewLink",
-  });
-  return file.webViewLink ?? `https://drive.google.com/file/d/${file.id}/view`;
-}
 
 // ─── Package key mapper (mirrors fill-contract route) ────────
 
@@ -89,19 +46,9 @@ export async function POST(_req: NextRequest) {
     return apiError("Unauthorized", 401);
   }
 
-  // OAuth Drive client
-  let authClient: Awaited<ReturnType<typeof getAuthenticatedClient>>;
-  try {
-    authClient = await getAuthenticatedClient(user.id);
-  } catch {
-    return apiError("Google account not connected. Connect it in Settings → Integrations.", 503);
+  if (!isDriveConfigured()) {
+    return apiError("Google Drive service account is not configured.", 503);
   }
-
-  const drive = google.drive({ version: "v3", auth: authClient });
-
-  // Root folder structure
-  const rootId    = await findOrCreateFolder(drive, "JNguyen Co. CRM");
-  const clientsId = await findOrCreateFolder(drive, "Clients", rootId);
 
   // All clients
   const { data: clients, error: clientsErr } = await supabase
@@ -127,7 +74,6 @@ export async function POST(_req: NextRequest) {
     };
 
     try {
-      // Earliest booking → year/month folder
       const { data: booking } = await supabase
         .from("bookings")
         .select(
@@ -138,31 +84,12 @@ export async function POST(_req: NextRequest) {
         .limit(1)
         .maybeSingle();
 
-      const eventDate  = booking?.event_date ? new Date(booking.event_date) : new Date();
-      const yearFolder  = String(eventDate.getUTCFullYear());
-      const monthFolder = eventDate.toLocaleString("en-AU", { month: "long", timeZone: "UTC" });
-
-      // Build Drive folder path: Clients / YYYY / Month / [Client Name]
-      const yearId          = await findOrCreateFolder(drive, yearFolder, clientsId);
-      const monthId         = await findOrCreateFolder(drive, monthFolder, yearId);
-      const clientFolderId  = await findOrCreateFolder(drive, clientName, monthId);
-
-      // Ensure all subfolders exist
-      const [deliverablesId, contractsFolderId, invoicesFolderId] = await Promise.all([
-        findOrCreateFolder(drive, "Deliverables", clientFolderId),
-        findOrCreateFolder(drive, "Contracts",    clientFolderId),
-        findOrCreateFolder(drive, "Invoices",     clientFolderId),
-      ]);
-      await Promise.all([
-        findOrCreateFolder(drive, "Photos", deliverablesId),
-        findOrCreateFolder(drive, "Videos", deliverablesId),
-      ]);
-
-      // Persist gdrive_folder_id
-      await supabase
-        .from("clients")
-        .update({ gdrive_folder_id: clientFolderId })
-        .eq("id", client.id);
+      // getOrCreateClientFolder builds Root/Year/Month/[Client Name]/... (with
+      // Deliverables/Photos+Videos, Quotes, Contracts, Invoices, Receipts) and
+      // persists gdrive_folder_id back to the client row — same as every other
+      // Drive write path in this app. Pass this client's (earliest) booking
+      // date so the folder lands under the correct Year/Month.
+      const clientFolderId = await getOrCreateClientFolder(client.id, clientName, booking?.event_date);
 
       // ── Contract PDF ─────────────────────────────────────
       try {
@@ -216,7 +143,7 @@ export async function POST(_req: NextRequest) {
 
         const contractBuf      = await generateContractPDF(enquiryData);
         const contractFilename = `Contract_${clientName.replace(/\s+/g, "_")}.pdf`;
-        const contractUrl      = await uploadPdf(drive, contractsFolderId, contractFilename, contractBuf);
+        const contractUrl      = await uploadToDriveFolder(clientFolderId, "Contracts", contractFilename, contractBuf);
         clientResult.contract  = contractUrl;
       } catch (e: any) {
         clientResult.errors.push(`Contract: ${e.message}`);
@@ -241,7 +168,7 @@ export async function POST(_req: NextRequest) {
           const pdfBuf = await renderToBuffer(
             createElement(InvoiceTemplate, { invoice: invoice as unknown as InvoiceWithDetails }) as any
           );
-          const url = await uploadPdf(drive, invoicesFolderId, `${invoice.invoice_number}.pdf`, pdfBuf as Buffer);
+          const url = await uploadToDriveFolder(clientFolderId, "Invoices", `${invoice.invoice_number}.pdf`, pdfBuf as Buffer);
           clientResult.invoices.push(url);
         } catch (e: any) {
           clientResult.errors.push(`Invoice ${invoice.invoice_number}: ${e.message}`);

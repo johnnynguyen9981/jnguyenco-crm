@@ -15,15 +15,15 @@ export async function GET() {
 
   const results: { name: string; ok: boolean; error?: string }[] = [];
 
-  // 1. Event Photography Only: $200/hr
+  // 1. Event Photography Only: $230/hr
   const r1 = await admin.from("packages")
-    .update({ base_price: 200, description: "60+ professionally edited images per hour · Online gallery delivery · 4–8 week turnaround" })
+    .update({ base_price: 230, description: "60+ professionally edited images per hour · Online gallery delivery · 4–8 week turnaround" })
     .eq("id", "5d92a48d-876d-4d9a-a8de-9ffae0a06214");
   results.push({ name: "Event Photography Only", ok: !r1.error, error: r1.error?.message });
 
-  // 2. Event Photography & Videography: $350/hr
+  // 2. Event Photography & Videography: $450/hr
   const r2 = await admin.from("packages")
-    .update({ base_price: 350, description: "60+ professionally edited images per hour · 2–3 min highlight reel + full event video · Online gallery delivery · 4–8 week turnaround" })
+    .update({ base_price: 450, description: "60+ professionally edited images per hour · 2–3 min highlight reel + full event video · Online gallery delivery · 4–8 week turnaround" })
     .eq("id", "4154c8fd-b599-4673-ab92-a25869936bf6");
   results.push({ name: "Event Photography & Videography", ok: !r2.error, error: r2.error?.message });
 

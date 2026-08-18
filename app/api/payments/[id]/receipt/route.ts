@@ -8,35 +8,87 @@ import type { ReceiptData } from "@/lib/pdf/ReceiptTemplate";
 import { createElement } from "react";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
-import { apiError } from "@/lib/utils";
+import { apiError, getAppUrl } from "@/lib/utils";
 
 type Params = { params: { id: string } };
 
-// ── Shared: build receipt data from payment id ──────────────────────────────
-async function buildReceiptData(paymentId: string, supabase: any): Promise<{
+type ReceiptPayload = {
   receiptData: ReceiptData;
   clientEmail: string | null;
   clientName: string;
   clientFolderId: string | null;
   clientId: string;
-} | null> {
-  const { data: payment, error } = await supabase
+  eventDate: string | null;
+};
+
+// Plain (non-discriminated-union) result shape. This project's tsconfig has
+// "strict": false, which disables strictNullChecks -- and without
+// strictNullChecks, TypeScript's control-flow narrowing on discriminated
+// unions (the `if (!result.ok) return ...` pattern) does NOT reliably narrow
+// and fails to compile. So instead of a tagged union, this uses a flat object
+// with a nullable `data` field and a separate nullable `errorReason` field --
+// no narrowing required, just plain null checks.
+type BuildOutcome = {
+  data: ReceiptPayload | null;
+  errorReason: "NOT_FOUND" | "NOT_PAID" | "QUERY_ERROR" | null;
+  errorDetail?: string;
+};
+
+// ── Shared: build receipt data from payment id ──────────────────────────────
+// NOTE: deliberately flat, single-table queries chained together instead of
+// nested embeds (e.g. payments->bookings->packages). Multi-level PostgREST
+// embeds in this project have repeatedly proven unreliable (ambiguous/failed
+// relationship resolution), so every step below fetches one table at a time.
+async function buildReceiptData(paymentId: string, supabase: any): Promise<BuildOutcome> {
+  // Step 1: fetch the payment row itself — no joins.
+  const { data: payment, error: paymentErr } = await supabase
     .from("payments")
-    .select(`
-      *,
-      bookings (
-        id, event_date, service_type, package_name, quoted_total,
-        clients (id, first_name, last_name, email, gdrive_folder_id)
-      )
-    `)
+    .select("*")
     .eq("id", paymentId)
-    .single();
+    .maybeSingle();
 
-  if (error || !payment) return null;
-  if (payment.status !== "PAID") return null;
+  if (paymentErr) {
+    console.error("[receipt] payments query failed:", paymentErr.message);
+    return { data: null, errorReason: "QUERY_ERROR", errorDetail: paymentErr.message };
+  }
+  if (!payment) {
+    return { data: null, errorReason: "NOT_FOUND" };
+  }
+  if (payment.status !== "PAID") {
+    return { data: null, errorReason: "NOT_PAID", errorDetail: `status=${payment.status}` };
+  }
 
-  const booking = payment.bookings as any;
-  const client  = booking?.clients as any;
+  // Step 2: fetch the booking separately using payment.booking_id.
+  const { data: booking, error: bookingErr } = await supabase
+    .from("bookings")
+    .select("id, client_id, event_date, service_type, quoted_total, package_id")
+    .eq("id", payment.booking_id)
+    .maybeSingle();
+
+  if (bookingErr) {
+    console.error("[receipt] bookings query failed:", bookingErr.message);
+  }
+
+  // Step 3: fetch the package name separately using booking.package_id (if any).
+  let packageName: string | undefined;
+  if (booking?.package_id) {
+    const { data: pkg, error: pkgErr } = await supabase
+      .from("packages")
+      .select("name")
+      .eq("id", booking.package_id)
+      .maybeSingle();
+    if (pkgErr) console.error("[receipt] packages query failed:", pkgErr.message);
+    packageName = pkg?.name;
+  }
+
+  // Step 4: fetch the client separately using booking.client_id.
+  const { data: client, error: clientErr } = await supabase
+    .from("clients")
+    .select("id, first_name, last_name, email, gdrive_folder_id")
+    .eq("id", booking?.client_id)
+    .maybeSingle();
+
+  if (clientErr) console.error("[receipt] clients query failed:", clientErr.message);
 
   // Generate receipt number: REC-YYYYMM-{last6 of payment id}
   const now     = new Date();
@@ -56,7 +108,7 @@ async function buildReceiptData(paymentId: string, supabase: any): Promise<{
     // Booking
     eventType:       booking?.service_type  ?? "Event",
     eventDate:       booking?.event_date,
-    packageName:     booking?.package_name,
+    packageName:     packageName,
     totalQuoted:     booking?.quoted_total,
     // Client
     clientFirstName: client?.first_name ?? "",
@@ -71,8 +123,26 @@ async function buildReceiptData(paymentId: string, supabase: any): Promise<{
   const clientEmail    = client?.email ?? null;
   const clientFolderId = client?.gdrive_folder_id ?? null;
   const clientId       = client?.id ?? null;
+  const eventDate      = booking?.event_date ?? null;
 
-  return { receiptData, clientEmail, clientName, clientFolderId, clientId };
+  return {
+    data: { receiptData, clientEmail, clientName, clientFolderId, clientId, eventDate },
+    errorReason: null,
+  };
+}
+
+function receiptErrorResponse(
+  errorReason: "NOT_FOUND" | "NOT_PAID" | "QUERY_ERROR" | null,
+  errorDetail?: string
+) {
+  console.error("[receipt] buildReceiptData failed:", errorReason, errorDetail ?? "");
+  const message =
+    errorReason === "NOT_PAID"
+      ? "This payment has not been marked as PAID yet."
+      : errorReason === "QUERY_ERROR"
+        ? "Could not look up this payment (database error). Check server logs."
+        : "Payment not found.";
+  return NextResponse.json({ error: message }, { status: errorReason === "QUERY_ERROR" ? 500 : 404 });
 }
 
 // ── GET — return PDF as download ────────────────────────────────────────────
@@ -86,10 +156,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .from("payments").select("id").eq("id", params.id).eq("owner_id", user.id).maybeSingle();
   if (!ownerCheck) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const result = await buildReceiptData(params.id, supabase);
-  if (!result) return NextResponse.json({ error: "Payment not found or not yet PAID" }, { status: 404 });
+  const outcome = await buildReceiptData(params.id, supabase);
+  if (!outcome.data) return receiptErrorResponse(outcome.errorReason, outcome.errorDetail);
 
-  const { receiptData, clientFolderId, clientName, clientId } = result;
+  const { receiptData, clientFolderId, clientName, clientId, eventDate } = outcome.data;
 
   try {
     const pdfBuffer = await renderToBuffer(
@@ -101,7 +171,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       try {
         const folderId = clientFolderId
           ? clientFolderId
-          : await getOrCreateClientFolder(clientId, clientName);
+          : await getOrCreateClientFolder(clientId, clientName, eventDate);
         await uploadToDriveFolder(
           folderId, "Receipts",
           `${receiptData.receiptNumber}.pdf`,
@@ -137,10 +207,10 @@ export async function POST(_req: NextRequest, { params }: Params) {
     .from("payments").select("id").eq("id", params.id).eq("owner_id", user.id).maybeSingle();
   if (!ownerCheck) return apiError("Not found", 404);
 
-  const result = await buildReceiptData(params.id, supabase);
-  if (!result) return apiError("Payment not found or not yet PAID", 404);
+  const outcome = await buildReceiptData(params.id, supabase);
+  if (!outcome.data) return receiptErrorResponse(outcome.errorReason, outcome.errorDetail);
 
-  const { receiptData, clientEmail, clientName, clientFolderId, clientId } = result;
+  const { receiptData, clientEmail, clientName, clientFolderId, clientId, eventDate } = outcome.data;
 
   if (!clientEmail) return apiError("Client has no email address", 422);
 
@@ -154,7 +224,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
       try {
         const folderId = clientFolderId
           ? clientFolderId
-          : await getOrCreateClientFolder(clientId, clientName);
+          : await getOrCreateClientFolder(clientId, clientName, eventDate);
         await uploadToDriveFolder(
           folderId, "Receipts",
           `${receiptData.receiptNumber}.pdf`,
@@ -171,7 +241,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
         ? "Deposit Payment"
         : "Payment";
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.jnguyen.co";
+    const appUrl = getAppUrl();
     const logoUrl = `${appUrl}/PNG/LetterHeadNavy.png`;
 
     const html = `

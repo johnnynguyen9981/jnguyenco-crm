@@ -49,35 +49,40 @@ export function fyDateRange(fy: string): { start: Date; end: Date } {
 
 export const EXPENSE_CATEGORIES: Record<
   ExpenseCategory,
-  { label: string; color: string; bgColor: string }
+  { label: string; color: string; bgColor: string; chartColor: string }
 > = {
   SOFTWARE_SUBSCRIPTIONS: {
-    label:   "Software & Subscriptions",
-    color:   "text-blue-700",
-    bgColor: "bg-blue-50",
+    label:      "Software & Subscriptions",
+    color:      "text-blue-700",
+    bgColor:    "bg-blue-50",
+    chartColor: "#2563eb",
   },
   EQUIPMENT_GEAR: {
-    label:   "Equipment & Gear",
-    color:   "text-purple-700",
-    bgColor: "bg-purple-50",
+    label:      "Equipment & Gear",
+    color:      "text-purple-700",
+    bgColor:    "bg-purple-50",
+    chartColor: "#9333ea",
   },
   VEHICLE_TRAVEL: {
-    label:   "Vehicle & Travel",
-    color:   "text-orange-700",
-    bgColor: "bg-orange-50",
+    label:      "Vehicle & Travel",
+    color:      "text-orange-700",
+    bgColor:    "bg-orange-50",
+    chartColor: "#ea580c",
   },
   MARKETING_PROFESSIONAL: {
-    label:   "Marketing & Professional",
-    color:   "text-green-700",
-    bgColor: "bg-green-50",
+    label:      "Marketing & Professional",
+    color:      "text-green-700",
+    bgColor:    "bg-green-50",
+    chartColor: "#16a34a",
   },
 };
 
 export function getCategoryBadge(category: ExpenseCategory) {
   return EXPENSE_CATEGORIES[category] ?? {
-    label:   category,
-    color:   "text-gray-700",
-    bgColor: "bg-gray-50",
+    label:      category,
+    color:      "text-gray-700",
+    bgColor:    "bg-gray-50",
+    chartColor: "#6b7280",
   };
 }
 

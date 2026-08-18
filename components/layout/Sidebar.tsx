@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, CalendarDays,
-  FileText, FolderOpen, Settings, LogOut, ClipboardList, Inbox, Receipt,
+  FileText, FolderOpen, Settings, LogOut, ClipboardList, Inbox, Receipt, Briefcase, Package, Camera,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -18,7 +18,7 @@ interface TeamMember {
 }
 
 // Nav items only the FOUNDER (owner) can see
-const FOUNDER_ONLY_HREFS = new Set(["/enquiries", "/invoices", "/expenses", "/documents", "/forms", "/settings"]);
+const FOUNDER_ONLY_HREFS = new Set(["/enquiries", "/invoices", "/expenses", "/documents", "/forms", "/contractors", "/packages", "/settings"]);
 
 function FlameMark({ size = 40, color = "#a58d66" }: { size?: number; color?: string }) {
   return (
@@ -37,8 +37,11 @@ const navItems = [
   { href: "/enquiries",  label: "Enquiries",         icon: Inbox },
   { href: "/clients",    label: "Clients",           icon: Users },
   { href: "/bookings",   label: "Bookings",          icon: CalendarDays },
+  { href: "/deliverables",label: "Deliverables",     icon: Camera },
   { href: "/invoices",   label: "Invoices",          icon: FileText },
   { href: "/expenses",   label: "Expenses",          icon: Receipt },
+  { href: "/contractors",label: "Contractors",       icon: Briefcase },
+  { href: "/packages",   label: "Packages",          icon: Package },
   { href: "/documents",  label: "Documents",         icon: FolderOpen },
   { href: "/forms",      label: "Forms / Templates", icon: ClipboardList },
   { href: "/settings",   label: "Settings",          icon: Settings },
@@ -128,7 +131,7 @@ export function Sidebar({ role: roleProp }: { role?: string }) {
             ["Mini Wedding",   "$1,600"],
             ["Full Day Ess.",  "$3,200"],
             ["Full Day Prem.", "$4,800"],
-            ["Event / Photo",  "$200/hr"],
+            ["Event / Photo",  "$230/hr"],
           ].map(([label, price]) => (
             <div key={label} className="flex justify-between text-xs">
               <span className="text-white/50">{label}</span>

@@ -2,36 +2,38 @@
 // Uploads a receipt/bill file to Google Drive under:
 //   Business Expenses / FY YYYY-YY / [filename]
 //
-// Auth strategy (in priority order):
-//   1. Service account  — if GOOGLE_SERVICE_ACCOUNT_JSON + GOOGLE_DRIVE_ROOT_FOLDER_ID set
-//   2. User OAuth       — uses the tokens stored in google_tokens for the owner
+// Uses the service account (same as every other Drive write in this app) --
+// no longer falls back to user OAuth, since the app no longer requests a
+// Drive OAuth scope at all (see lib/google/auth.ts for why).
 //
 // Returns: { fileId, fileName, fileUrl }
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getOwnerUserId } from "@/lib/team";
-import { getAuthenticatedClientByOwnerId } from "@/lib/google/auth";
-import { isDriveConfigured } from "@/lib/google/drive";
+import { isDriveConfigured, getServiceAccountJson } from "@/lib/google/drive";
 import { google } from "googleapis";
 import { Readable } from "stream";
 import { getAustralianFY } from "@/lib/expenses";
+import { isCurrentUserFounder } from "@/lib/team";
 
-// ── Drive client helpers ─────────────────────────────────────────────────────
+// ── Drive client helper ──────────────────────────────────────────────────────
+// Reuses the same env-reading logic as lib/google/drive.ts (supports both
+// GOOGLE_SERVICE_ACCOUNT_B64 and the raw GOOGLE_SERVICE_ACCOUNT_JSON var) --
+// this used to read process.env.GOOGLE_SERVICE_ACCOUNT_JSON directly, which
+// silently broke receipt uploads (JSON.parse("") -> "Unexpected end of JSON
+// input") on any environment where only the B64 var is set.
 
 function getServiceAccountDrive() {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "";
-  const credentials = JSON.parse(raw.charCodeAt(0) === 0xFEFF ? raw.slice(1) : raw);
+  const saJson = getServiceAccountJson();
+  if (!saJson) {
+    throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON/GOOGLE_SERVICE_ACCOUNT_B64 env var is not set.");
+  }
+  const credentials = JSON.parse(saJson);
   const auth = new google.auth.GoogleAuth({
     credentials,
     scopes: ["https://www.googleapis.com/auth/drive"],
   });
   return google.drive({ version: "v3", auth });
-}
-
-async function getOAuthDrive(ownerId: string) {
-  const authClient = await getAuthenticatedClientByOwnerId(ownerId);
-  return google.drive({ version: "v3", auth: authClient });
 }
 
 async function findOrCreateFolder(
@@ -65,8 +67,7 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const ownerId = await getOwnerUserId();
+  if (!(await isCurrentUserFounder())) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const formData = await req.formData();
   const file     = formData.get("file") as File | null;
@@ -85,20 +86,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "File too large (max 20 MB)" }, { status: 400 });
   }
 
-  try {
-    let drive: ReturnType<typeof google.drive>;
-    let rootId: string;
+  if (!isDriveConfigured()) {
+    return NextResponse.json(
+      { fileId: null, fileName: null, fileUrl: null, driveSkipped: true,
+        driveMessage: "Google Drive service account is not configured — receipt not saved." },
+      { status: 200 }
+    );
+  }
 
-    if (isDriveConfigured()) {
-      // Preferred: service account with explicit root folder
-      drive  = getServiceAccountDrive();
-      const rawRootId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID ?? "";
-      rootId = rawRootId.charCodeAt(0) === 0xFEFF ? rawRootId.slice(1) : rawRootId;
-    } else {
-      // Fallback: user's personal Google Drive (token stored via Settings → Google Integration)
-      drive  = await getOAuthDrive(ownerId);
-      rootId = "root"; // Google Drive "My Drive" root
-    }
+  try {
+    const drive  = getServiceAccountDrive();
+    const rawRootId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID ?? "";
+    const rootId = rawRootId.charCodeAt(0) === 0xFEFF ? rawRootId.slice(1) : rawRootId;
 
     // Build folder path: Business Expenses / FY YYYY-YY
     const expensesFolderId = await findOrCreateFolder(drive, "Business Expenses", rootId);
@@ -134,19 +133,15 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error("[expenses/upload]", err);
 
-    // Drive not connected or not authorised — return a soft 200 so the
-    // expense form can still save the record without a receipt attachment.
-    // The user can connect Google in Settings → Google Integration to enable Drive uploads.
-    const isNotConnected = err.message?.includes("not connected");
-    const isPermission   = err.message?.includes("insufficientPermissions") ||
-                           err.code === 403 || err.status === 403;
-    const isAuthExpired  = err.message?.includes("invalid_grant") ||
-                           err.message?.includes("Token has been expired");
+    // Drive permission issue on the service account — return a soft 200 so
+    // the expense form can still save the record without a receipt attachment.
+    const isPermission = err.message?.includes("insufficientPermissions") ||
+                          err.code === 403 || err.status === 403;
 
-    if (isNotConnected || isPermission || isAuthExpired) {
+    if (isPermission) {
       return NextResponse.json(
         { fileId: null, fileName: null, fileUrl: null, driveSkipped: true,
-          driveMessage: "Google Drive not connected — receipt not saved. Connect Google in Settings to enable this." },
+          driveMessage: "Google Drive upload failed (permission issue) — receipt not saved." },
         { status: 200 }
       );
     }

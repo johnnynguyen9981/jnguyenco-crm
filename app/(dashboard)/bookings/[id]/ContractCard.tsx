@@ -2,8 +2,9 @@
 // app/(dashboard)/bookings/[id]/ContractCard.tsx
 // Shows contract status, mark-as-sent/signed actions, and signed copy link management.
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { Upload, Loader2 } from "lucide-react";
 
 type Props = {
   bookingId:          string;
@@ -42,6 +43,10 @@ export function ContractCard({
   const [message,      setMessage]      = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [sigLinkSent,  setSigLinkSent]  = useState(false);
   const [sigLinkToken, setSigLinkToken] = useState(contractSignToken);
+  const fileRef  = useRef<HTMLInputElement>(null);
+  const [uploading,    setUploading]    = useState(false);
+  const [uploadError,  setUploadError]  = useState("");
+  const [dragging,     setDragging]     = useState(false);
 
   async function patch(fields: Record<string, string | null>) {
     const key = Object.keys(fields)[0];
@@ -87,6 +92,29 @@ export function ContractCard({
       setLoading(null);
     }
   }
+
+  const handleUploadFile = useCallback(async (file: File) => {
+    setUploadError("");
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const upRes  = await fetch(`/api/bookings/${bookingId}/contract-upload`, { method: "POST", body: fd });
+      const upJson = await upRes.json();
+      if (!upRes.ok) throw new Error(upJson.error ?? "Upload failed");
+      if (upJson.driveSkipped) throw new Error(upJson.driveMessage ?? "Drive not connected");
+
+      // Uploading the signed copy also marks the contract as signed.
+      await patch({
+        contract_signed_at: new Date().toISOString(),
+        contract_signed_url: upJson.fileUrl,
+      });
+    } catch (err: any) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }, [bookingId]);
 
   const STATUS_CONFIG = {
     NOT_SENT: { label: "Not Sent",                 cls: "bg-gray-100 text-gray-600" },
@@ -168,18 +196,81 @@ export function ContractCard({
       {status === "SENT" && (
         <div className="space-y-2">
           <p className="text-xs text-gray-400">
-            Once the client returns the signed copy, upload it to their Drive folder and mark it as signed.
+            Once the client returns the signed copy, upload it below — it'll be saved to their
+            Drive folder and the contract marked as signed automatically.
           </p>
+
+          {/* Upload drop zone */}
+          <div
+            onDragOver={e => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={e => { e.preventDefault(); setDragging(false); }}
+            onDrop={e => {
+              e.preventDefault();
+              setDragging(false);
+              const f = e.dataTransfer.files?.[0];
+              if (f) handleUploadFile(f);
+            }}
+            onClick={() => !uploading && fileRef.current?.click()}
+            className={[
+              "border-2 border-dashed rounded-lg py-5 text-center cursor-pointer transition-all",
+              dragging
+                ? "border-brand-teal bg-brand-pale-blue scale-[1.01]"
+                : "border-brand-pale-blue hover:border-brand-teal hover:bg-brand-pale-blue/40",
+            ].join(" ")}
+          >
+            {uploading ? (
+              <div className="flex flex-col items-center gap-1.5">
+                <Loader2 size={18} className="animate-spin text-brand-teal" />
+                <p className="text-xs text-brand-teal font-medium">Uploading to Drive…</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-1.5">
+                <Upload size={18} className="text-gray-400" />
+                <p className="text-xs font-medium text-gray-600">Drop signed contract here</p>
+                <p className="text-[11px] text-gray-400">or click to browse (PDF or photo)</p>
+              </div>
+            )}
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
+            className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f); }}
+          />
+          {uploadError && <p className="text-xs text-red-600 bg-red-50 rounded p-2">{uploadError}</p>}
+
+          {/* Divider */}
+          <div className="flex items-center gap-2 pt-1">
+            <div className="flex-1 border-t border-gray-100" />
+            <span className="text-[10px] text-gray-300 uppercase tracking-wider">or</span>
+            <div className="flex-1 border-t border-gray-100" />
+          </div>
+
+          {sigLinkToken && (
+            <button
+              onClick={sendSigningLink}
+              disabled={loading !== null || uploading || !clientEmail}
+              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-brand-teal text-brand-teal text-xs font-semibold hover:bg-brand-pale-blue/40 transition-colors disabled:opacity-50"
+            >
+              {loading === "esign" ? "Resending…" : "🔄 Resend Signing Link"}
+            </button>
+          )}
+          {sigLinkToken && (
+            <p className="text-xs text-gray-400 text-center -mt-1">
+              Generates a fresh link and emails it again — useful if the client couldn't open the original.
+            </p>
+          )}
           <button
             onClick={() => patch({ contract_signed_at: new Date().toISOString() })}
-            disabled={loading !== null}
-            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-brand-teal text-white text-xs font-semibold hover:bg-brand-navy transition-colors"
+            disabled={loading !== null || uploading}
+            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-brand-teal text-brand-teal text-xs font-semibold hover:bg-brand-pale-blue/40 transition-colors"
           >
-            {loading === "contract_signed_at" ? "Saving…" : "✅ Mark as Signed"}
+            {loading === "contract_signed_at" ? "Saving…" : "✅ Mark as Signed (no file)"}
           </button>
           <button
             onClick={() => patch({ contract_sent_at: null })}
-            disabled={loading !== null}
+            disabled={loading !== null || uploading}
             className="text-xs text-gray-400 hover:text-red-500 underline w-full text-center"
           >
             Undo "Sent"
@@ -201,14 +292,54 @@ export function ContractCard({
               📄 Download Signed Contract
             </a>
           ) : (
-            <p className="text-xs text-gray-400 text-center">
-              Signed PDF was emailed to both parties. Paste a link below to store it here.
-            </p>
+            <>
+              <p className="text-xs text-gray-400 text-center">
+                No signed copy on file yet — upload it now.
+              </p>
+              <div
+                onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={e => { e.preventDefault(); setDragging(false); }}
+                onDrop={e => {
+                  e.preventDefault();
+                  setDragging(false);
+                  const f = e.dataTransfer.files?.[0];
+                  if (f) handleUploadFile(f);
+                }}
+                onClick={() => !uploading && fileRef.current?.click()}
+                className={[
+                  "border-2 border-dashed rounded-lg py-5 text-center cursor-pointer transition-all",
+                  dragging
+                    ? "border-brand-teal bg-brand-pale-blue scale-[1.01]"
+                    : "border-brand-pale-blue hover:border-brand-teal hover:bg-brand-pale-blue/40",
+                ].join(" ")}
+              >
+                {uploading ? (
+                  <div className="flex flex-col items-center gap-1.5">
+                    <Loader2 size={18} className="animate-spin text-brand-teal" />
+                    <p className="text-xs text-brand-teal font-medium">Uploading to Drive…</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-1.5">
+                    <Upload size={18} className="text-gray-400" />
+                    <p className="text-xs font-medium text-gray-600">Drop signed contract here</p>
+                    <p className="text-[11px] text-gray-400">or click to browse (PDF or photo)</p>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
+                className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f); }}
+              />
+              {uploadError && <p className="text-xs text-red-600 bg-red-50 rounded p-2">{uploadError}</p>}
+            </>
           )}
 
           {/* Manual URL fallback */}
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-gray-500">Store a link manually</p>
+            <p className="text-xs font-medium text-gray-500">Or store a link manually</p>
             <div className="flex gap-2">
               <input
                 className="input flex-1 py-1.5 text-xs"

@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isCurrentUserFounder } from "@/lib/team";
 
 type ParsedExpense = {
   title:    string;
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await isCurrentUserFounder())) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const rawKey = process.env.GEMINI_API_KEY ?? "";
   const apiKey = rawKey.charCodeAt(0) === 0xFEFF ? rawKey.slice(1) : rawKey;

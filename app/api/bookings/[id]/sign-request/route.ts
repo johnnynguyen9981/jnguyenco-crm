@@ -5,7 +5,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 import { contractSigningRequestHtml } from "@/lib/google/gmail";
-import { apiSuccess, apiError, formatDate } from "@/lib/utils";
+import { apiSuccess, apiError, formatDate, getAppUrl } from "@/lib/utils";
 import crypto from "crypto";
 
 export async function POST(
@@ -56,7 +56,7 @@ export async function POST(
   if (updateErr) return apiError("Failed to save signing token: " + updateErr.message, 500);
 
   // Build the public signing URL
-  const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? "https://jnguyenco-crm.vercel.app";
+  const appUrl    = getAppUrl();
   const signingUrl = `${appUrl}/sign/${token}`;
   const expiresDate = expires.toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
 

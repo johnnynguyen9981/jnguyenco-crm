@@ -5,11 +5,19 @@
 import { google } from "googleapis";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
-/** Scopes we request from the user during OAuth consent */
+/**
+ * Scopes we request from the user during OAuth consent.
+ * Both are "sensitive" scopes (free, ~10-day Google verification).
+ * Deliberately NOT requesting a Drive scope here: the full
+ * "https://www.googleapis.com/auth/drive" scope is "restricted" and
+ * requires an annual paid CASA security assessment to verify for
+ * production use. All Drive access in this app goes through the
+ * service account (lib/google/drive.ts) instead, which isn't subject
+ * to this end-user OAuth verification flow at all.
+ */
 export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/gmail.send",       // Send email as johnny.nguyen@jnguyen.co
   "https://www.googleapis.com/auth/calendar.events",  // Create/update calendar events
-  "https://www.googleapis.com/auth/drive",             // Upload files to Google Drive (full access needed for folder listing)
 ];
 
 /** Build an OAuth2 client from environment credentials */
@@ -105,18 +113,33 @@ export async function getAuthenticatedClient(userId: string) {
   const expiryMs   = new Date(row.token_expiry).getTime();
   const bufferMs   = 5 * 60 * 1000; // 5 minutes
   if (Date.now() >= expiryMs - bufferMs) {
-    const { credentials } = await oauthClient.refreshAccessToken();
-    oauthClient.setCredentials(credentials);
+    try {
+      const { credentials } = await oauthClient.refreshAccessToken();
+      oauthClient.setCredentials(credentials);
 
-    // Persist the refreshed access token (refresh_token stays the same)
-    await supabase
-      .from("google_tokens")
-      .update({
-        access_token: credentials.access_token!,
-        token_expiry: new Date(credentials.expiry_date!).toISOString(),
-        updated_at:   new Date().toISOString(),
-      })
-      .eq("owner_id", userId);
+      // Persist the refreshed access token (refresh_token stays the same)
+      await supabase
+        .from("google_tokens")
+        .update({
+          access_token: credentials.access_token!,
+          token_expiry: new Date(credentials.expiry_date!).toISOString(),
+          updated_at:   new Date().toISOString(),
+        })
+        .eq("owner_id", userId);
+    } catch (refreshErr: any) {
+      // "invalid_grant" means Google has revoked/expired the refresh token itself
+      // (common causes: OAuth consent screen still in "Testing" mode — Google
+      // expires those refresh tokens after 7 days regardless of use — or the
+      // user revoked access / changed their Google password). No amount of
+      // retrying will fix this; the user must go through the consent screen
+      // again to get a brand-new refresh token.
+      if (refreshErr.message?.includes("invalid_grant")) {
+        throw new Error(
+          "Your Google account connection has expired and needs to be reconnected. Go to Settings → Integrations and click \"Re-connect Google\"."
+        );
+      }
+      throw refreshErr;
+    }
   }
 
   return oauthClient;
@@ -148,16 +171,25 @@ export async function getAuthenticatedClientByOwnerId(ownerId: string) {
 
   const expiryMs = new Date(row.token_expiry).getTime();
   if (Date.now() >= expiryMs - 5 * 60 * 1000) {
-    const { credentials } = await oauthClient.refreshAccessToken();
-    oauthClient.setCredentials(credentials);
-    await supabase
-      .from("google_tokens")
-      .update({
-        access_token: credentials.access_token!,
-        token_expiry: new Date(credentials.expiry_date!).toISOString(),
-        updated_at:   new Date().toISOString(),
-      })
-      .eq("owner_id", ownerId);
+    try {
+      const { credentials } = await oauthClient.refreshAccessToken();
+      oauthClient.setCredentials(credentials);
+      await supabase
+        .from("google_tokens")
+        .update({
+          access_token: credentials.access_token!,
+          token_expiry: new Date(credentials.expiry_date!).toISOString(),
+          updated_at:   new Date().toISOString(),
+        })
+        .eq("owner_id", ownerId);
+    } catch (refreshErr: any) {
+      if (refreshErr.message?.includes("invalid_grant")) {
+        throw new Error(
+          "Google account connection has expired for this owner and needs to be reconnected in Settings → Integrations."
+        );
+      }
+      throw refreshErr;
+    }
   }
 
   return oauthClient;

@@ -8,6 +8,7 @@ import { InvoiceTemplate } from "@/lib/pdf/InvoiceTemplate";
 import { createElement } from "react";
 import type { InvoiceWithDetails } from "@/lib/supabase/types";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
+import { isCurrentUserFounder } from "@/lib/team";
 
 type Params = { params: { id: string } };
 
@@ -17,6 +18,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
   if (authErr || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (!(await isCurrentUserFounder())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   // Fetch the full invoice data needed for the PDF
   const { data: invoice, error } = await supabase
@@ -24,6 +28,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .select(`
       *,
       clients (id, first_name, last_name, email, phone, address, gdrive_folder_id),
+      bookings (event_date),
       invoice_line_items (id, description, quantity, unit_price, total, sort_order)
     `)
     .eq("id", params.id)
@@ -51,13 +56,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
       if (clientRow?.id) {
         const clientName = `${clientRow.first_name ?? ""} ${clientRow.last_name ?? ""}`.trim();
         try {
-          console.log("[drive] step1: gdrive_folder_id =", clientRow.gdrive_folder_id);
+          const bookingRow = invoice.bookings as any;
           const folderId = clientRow.gdrive_folder_id
             ? clientRow.gdrive_folder_id
-            : await getOrCreateClientFolder(clientRow.id, clientName);
-          console.log("[drive] step2: folderId =", folderId);
+            : await getOrCreateClientFolder(clientRow.id, clientName, bookingRow?.event_date);
           await uploadToDriveFolder(folderId, "Invoices", `${invoice.invoice_number}.pdf`, pdfBuffer as Buffer);
-          console.log("[drive] step3: upload complete");
         } catch (e: any) {
           console.warn("[drive] Invoice upload failed:", e?.message, e?.stack?.split("\n")[1]);
         }

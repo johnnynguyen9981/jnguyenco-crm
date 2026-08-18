@@ -1,19 +1,17 @@
+// app/api/admin/clear-drive-folders/route.ts
+// RETIRED — this was a one-off admin utility to bulk-clear clients.gdrive_folder_id
+// (e.g. to force folders to be rebuilt). It had NO authentication check and used
+// the Supabase service-role key, meaning anyone who discovered the URL could wipe
+// every client's Drive folder pointer on the live deployed app with a single POST.
+//
+// Left disabled rather than deleted (file deletion isn't permitted in this
+// environment's mount). If this utility is needed again, recreate it with a
+// founder-role check (see lib/team.ts `isCurrentUserFounder()`) before re-enabling.
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
 export async function POST() {
-  const admin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  return NextResponse.json(
+    { error: "This admin route has been retired for security reasons (was unauthenticated)." },
+    { status: 410 }
   );
-
-  const { data, error } = await admin
-    .from("clients")
-    .update({ gdrive_folder_id: null })
-    .not("gdrive_folder_id", "is", null)
-    .select("id, first_name, last_name");
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  return NextResponse.json({ cleared: data?.length ?? 0, clients: data });
 }

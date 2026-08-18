@@ -4,6 +4,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { apiSuccess, apiError } from "@/lib/utils";
+import { isCurrentUserFounder } from "@/lib/team";
 
 type Params = { params: { id: string } };
 
@@ -11,6 +12,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
+  if (!(await isCurrentUserFounder())) return apiError("Forbidden", 403);
 
   const { data, error } = await supabase
     .from("invoices")
@@ -36,6 +38,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
+  if (!(await isCurrentUserFounder())) return apiError("Forbidden", 403);
 
   const body = await req.json();
   const { owner_id: _, invoice_number: __, ...safe } = body;
@@ -62,6 +65,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
+  if (!(await isCurrentUserFounder())) return apiError("Forbidden", 403);
 
   // Only allow deletion of DRAFT invoices
   const { data: inv } = await supabase

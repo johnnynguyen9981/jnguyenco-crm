@@ -10,6 +10,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Expense, ExpenseCategory } from "@/lib/supabase/types";
 import { Receipt, ExternalLink, RefreshCw, FolderOpen } from "lucide-react";
 import { AddExpenseButton, BulkImportButton, EditExpenseButton, DeleteExpenseButton, AttachReceiptButton } from "./ExpenseActions";
+import { ReferralSourceChart } from "@/components/dashboard/ReferralSourceChart";
 
 export const metadata = { title: "Expenses — JNguyen Co. CRM" };
 
@@ -108,6 +109,24 @@ export default async function ExpensesPage({ searchParams }: Props) {
             );
           })}
         </div>
+
+        {/* ── By category chart ──────────────────────────────── */}
+        {grandTotal > 0 && (
+          <div className="card">
+            <h2 className="text-base font-semibold text-brand-navy mb-4">
+              Expenses by category — FY {fy}
+            </h2>
+            <ReferralSourceChart
+              segments={CATEGORY_KEYS
+                .map(cat => ({
+                  label: getCategoryBadge(cat).label,
+                  count: categoryTotals[cat] ?? 0,
+                  color: getCategoryBadge(cat).chartColor,
+                }))
+                .filter(s => s.count > 0)}
+            />
+          </div>
+        )}
 
         {/* Grand total */}
         <div className="card p-4 bg-brand-navy text-white flex items-center justify-between">
@@ -310,7 +329,7 @@ export default async function ExpensesPage({ searchParams }: Props) {
           <p className="text-sm font-semibold text-amber-800 mb-1">💡 Tax time tip</p>
           <p className="text-xs text-amber-700">
             All receipts are stored in your Google Drive under <strong>Business Expenses / FY {fy}</strong>.
-            Share that folder with your accountant at tax time. The totals above r            Share that folder with your accountant at tax time. The totals above reflect the full financial
+            Share that folder with your accountant at tax time. The totals above reflect the full financial
             year (1 Jul – 30 Jun).
           </p>
         </div>

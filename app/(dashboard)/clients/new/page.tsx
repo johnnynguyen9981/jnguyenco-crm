@@ -18,19 +18,6 @@ const EVENT_SUB_TYPES = [
   "Birthday", "Baptism", "Party / Celebration", "Corporate Event", "Other",
 ];
 
-const BUDGET_OPTIONS = [
-  { id: "under_1k",  label: "Under $1,000"    },
-  { id: "1k_2.5k",  label: "$1,000 – $2,500" },
-  { id: "2.5k_4.5k",label: "$2,500 – $4,500" },
-  { id: "4.5k_plus", label: "$4,500+"          },
-];
-
-const SERVICES_OPTIONS = [
-  { id: "PHOTO", label: "Photography" },
-  { id: "VIDEO", label: "Videography" },
-  { id: "BOTH",  label: "Both"        },
-];
-
 const REFERRAL_OPTIONS = [
   { value: "INSTAGRAM",    label: "Instagram"      },
   { value: "GOOGLE",       label: "Google Search"  },
@@ -125,11 +112,7 @@ export default function NewClientPage() {
     event_date: "", event_start_time: "", event_end_time: "",
     venue_name: "", venue_address: "",
     guest_count: "",
-    // 05 — Services Required
-    services_required: "",
-    // 06 — Budget
-    budget_range: "",
-    // 08 — Additional Information
+    // 06 — Additional Information
     shot_list: "",
     special_requests: "",
   });
@@ -245,8 +228,6 @@ export default function NewClientPage() {
         if (form.guest_count)        noteParts.push(`Est. guests: ${form.guest_count}`);
         if (selectedDbPkg)           noteParts.push(`Package interest: ${selectedDbPkg.name}${basePrice ? ` ($${basePrice.toLocaleString("en-AU")}${isHourly ? "/hr" : ""})` : ""}`);
         if (discountPct > 0 && basePrice != null) noteParts.push(`Discount applied: ${discountPct}% → $${savingsAmt.toLocaleString("en-AU")} saving`);
-        if (form.services_required)  noteParts.push(`Services: ${form.services_required}`);
-        if (form.budget_range)       noteParts.push(`Budget: ${BUDGET_OPTIONS.find(b => b.id === form.budget_range)?.label ?? form.budget_range}`);
 
         await fetch("/api/bookings", {
           method: "POST",
@@ -521,44 +502,10 @@ export default function NewClientPage() {
           </div>
         </div>
 
-        {/* ── 05 SERVICES REQUIRED ─────────────────────────────────────── */}
-        <div className="card space-y-3">
-          <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
-            05 — Services Required
-          </h2>
-          <div className="grid grid-cols-3 gap-3">
-            {SERVICES_OPTIONS.map(s => (
-              <OptionCard
-                key={s.id}
-                selected={form.services_required === s.id}
-                onSelect={() => set("services_required", form.services_required === s.id ? "" : s.id)}
-                label={s.label}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* ── 06 APPROXIMATE BUDGET ────────────────────────────────────── */}
-        <div className="card space-y-3">
-          <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
-            06 — Approximate Budget
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            {BUDGET_OPTIONS.map(b => (
-              <OptionCard
-                key={b.id}
-                selected={form.budget_range === b.id}
-                onSelect={() => set("budget_range", form.budget_range === b.id ? "" : b.id)}
-                label={b.label}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* ── 07 PRICING ───────────────────────────────────────────────── */}
+        {/* ── 05 PRICING ───────────────────────────────────────────────── */}
         <div className="card space-y-4">
           <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
-            07 — Pricing
+            05 — Pricing
           </h2>
           <p className="text-xs text-gray-400 -mt-2">
             Auto-filled from the package above. Apply a discount % to reduce the price — deliverables stay the same.
@@ -637,10 +584,10 @@ export default function NewClientPage() {
           </div>
         </div>
 
-        {/* ── 08 ADDITIONAL INFORMATION ────────────────────────────────── */}
+        {/* ── 06 ADDITIONAL INFORMATION ────────────────────────────────── */}
         <div className="card space-y-4">
           <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest border-b border-brand-pale-blue pb-2">
-            08 — Additional Information
+            06 — Additional Information
           </h2>
           <p className="text-xs text-gray-400 -mt-2">Any special requests or notes for this booking.</p>
 

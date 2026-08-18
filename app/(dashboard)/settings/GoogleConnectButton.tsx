@@ -11,6 +11,8 @@ export function GoogleConnectButton({ isConnected }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [backfillLoading, setBackfillLoading] = useState(false);
+  const [backfillResult, setBackfillResult] = useState<string | null>(null);
 
   async function handleConnect() {
     setLoading(true);
@@ -42,27 +44,66 @@ export function GoogleConnectButton({ isConnected }: Props) {
     }
   }
 
+  async function handleBackfill() {
+    setBackfillLoading(true);
+    setBackfillResult(null);
+    setError(null);
+    try {
+      const res  = await fetch("/api/google/calendar/backfill-deliverables", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Backfill failed");
+      const { synced, failed, skipped, total_checked } = data.data;
+      if (total_checked === 0) {
+        setBackfillResult("Every deliverable already has a Calendar reminder ✓");
+      } else {
+        setBackfillResult(
+          `${synced} reminder${synced !== 1 ? "s" : ""} added` +
+          (failed > 0 ? ` · ${failed} failed` : "") +
+          (skipped > 0 ? ` · ${skipped} skipped (no linked client)` : "")
+        );
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setBackfillLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-2">
       {error && (
         <p className="text-sm text-red-600">{error}</p>
       )}
       {isConnected ? (
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleConnect}
-            disabled={loading}
-            className="btn-secondary text-sm"
-          >
-            {loading ? "Redirecting…" : "Re-connect Google"}
-          </button>
-          <button
-            onClick={handleDisconnect}
-            disabled={loading}
-            className="btn-danger text-sm"
-          >
-            Disconnect
-          </button>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleConnect}
+              disabled={loading}
+              className="btn-secondary text-sm"
+            >
+              {loading ? "Redirecting…" : "Re-connect Google"}
+            </button>
+            <button
+              onClick={handleDisconnect}
+              disabled={loading}
+              className="btn-danger text-sm"
+            >
+              Disconnect
+            </button>
+          </div>
+          <div className="pt-3 border-t border-gray-100">
+            <button
+              onClick={handleBackfill}
+              disabled={backfillLoading}
+              className="btn-secondary text-sm"
+            >
+              {backfillLoading ? "Adding reminders…" : "Add Calendar reminders to existing deliverables"}
+            </button>
+            {backfillResult && (
+              <p className="text-xs text-gray-500 mt-2">{backfillResult}</p>
+            )}
+          </div>
         </div>
       ) : (
         <button

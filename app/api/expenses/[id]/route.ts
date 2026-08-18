@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAustralianFY } from "@/lib/expenses";
+import { isCurrentUserFounder } from "@/lib/team";
 
 type Params = { params: { id: string } };
 
@@ -10,6 +11,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await isCurrentUserFounder())) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const updates: Record<string, any> = {};
@@ -45,6 +47,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await isCurrentUserFounder())) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Optionally cascade: delete child recurring entries too
   const { searchParams } = new URL(req.url);

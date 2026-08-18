@@ -26,6 +26,7 @@ type Props = {
     status?: string;
     service?: string;
     search?: string;
+    filter?: string; // "awaiting-signature"
     page?: string;
   };
 };
@@ -41,6 +42,7 @@ export default async function BookingsPage({ searchParams }: Props) {
   const activeStatus = (searchParams.status as BookingStatus) || "ALL";
   const activeService = (searchParams.service as ServiceType) || "ALL";
   const search = searchParams.search?.trim() || "";
+  const activeFilter = searchParams.filter || "";
   const page = Math.max(1, parseInt(searchParams.page || "1", 10));
   const pageSize = 20;
 
@@ -48,6 +50,7 @@ export default async function BookingsPage({ searchParams }: Props) {
     .from("bookings")
     .select(
       `id, service_type, status, event_date, event_start_time, quoted_total,
+       contract_sent_at, contract_signed_at,
        clients (id, first_name, last_name),
        packages (name)`,
       { count: "exact" }
@@ -58,6 +61,12 @@ export default async function BookingsPage({ searchParams }: Props) {
 
   if (activeStatus !== "ALL") query = query.eq("status", activeStatus);
   if (activeService !== "ALL") query = query.eq("service_type", activeService);
+  if (activeFilter === "awaiting-signature") {
+    query = query
+      .not("contract_sent_at", "is", null)
+      .is("contract_signed_at", null)
+      .not("status", "in", "(CANCELLED,COMPLETED)");
+  }
 
   const { data: bookings = [], count } = await query;
 
@@ -76,10 +85,14 @@ export default async function BookingsPage({ searchParams }: Props) {
 
   function buildHref(params: Record<string, string | undefined>) {
     const sp = new URLSearchParams();
-    const merged = { status: activeStatus, service: activeService, search, ...params };
+    const merged = { status: activeStatus, service: activeService, search, filter: activeFilter, ...params };
     Object.entries(merged).forEach(([k, v]) => { if (v && v !== "ALL") sp.set(k, v); });
     const qs = sp.toString();
     return `/bookings${qs ? `?${qs}` : ""}`;
+  }
+
+  function isAwaitingSignature(b: { contract_sent_at?: string | null; contract_signed_at?: string | null }) {
+    return !!b.contract_sent_at && !b.contract_signed_at;
   }
 
   return (
@@ -96,6 +109,18 @@ export default async function BookingsPage({ searchParams }: Props) {
           + New Booking
         </Link>
       </div>
+
+      {/* Awaiting-signature quick filter banner */}
+      {activeFilter === "awaiting-signature" && (
+        <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5">
+          <p className="text-sm text-amber-800 font-medium">
+            Showing only bookings with a contract sent but not yet signed back.
+          </p>
+          <Link href={buildHref({ filter: undefined, page: "1" })} className="text-xs text-amber-700 hover:underline font-medium shrink-0 ml-3">
+            Clear filter ✕
+          </Link>
+        </div>
+      )}
 
       {/* Status filter tabs */}
       <div className="flex gap-1 flex-wrap border-b border-gray-200 pb-0">
@@ -167,7 +192,7 @@ export default async function BookingsPage({ searchParams }: Props) {
           <div className="p-12 text-center text-gray-400">
             <p className="text-lg font-medium text-gray-500">No bookings found</p>
             <p className="text-sm mt-1">
-              {activeStatus !== "ALL" || search
+              {activeStatus !== "ALL" || search || activeFilter
                 ? "Try adjusting your filters."
                 : "Create your first booking to get started."}
             </p>
@@ -193,7 +218,10 @@ export default async function BookingsPage({ searchParams }: Props) {
                   ? `${client.first_name} ${client.last_name}`
                   : "—";
                 return (
-                  <tr key={booking.id} className="table-row">
+                  <tr
+                    key={booking.id}
+                    className={`table-row ${isAwaitingSignature(booking) ? "bg-amber-50/40" : ""}`}
+                  >
                     <td className="table-cell font-medium text-brand-navy">
                       <Link href={`/bookings/${booking.id}`} className="hover:underline">
                         {clientName}
@@ -205,7 +233,17 @@ export default async function BookingsPage({ searchParams }: Props) {
                       {booking.packages?.name ?? "Custom"}
                     </td>
                     <td className="table-cell">
-                      <span className={`badge ${badge.class}`}>{badge.label}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`badge ${badge.class}`}>{badge.label}</span>
+                        {isAwaitingSignature(booking) && (
+                          <span
+                            title="Contract sent but not yet signed back"
+                            className="badge bg-amber-100 text-amber-800 whitespace-nowrap"
+                          >
+                            ✎ Awaiting signature
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="table-cell text-right font-medium">
                       {booking.quoted_total

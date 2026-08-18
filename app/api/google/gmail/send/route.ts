@@ -18,7 +18,7 @@ import {
 } from "@/lib/google/gmail";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 import { apiSuccess, apiError } from "@/lib/utils";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getAppUrl } from "@/lib/utils";
 
 type EmailTemplate   = "booking_confirmation" | "invoice_sent" | "payment_reminder" | "pre_event_checklist" | "gallery_delivery" | "review_request" | "contract_signing_request" | "custom";
 type FromAccount     = "gmail" | "godaddy";
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
           venueName:    booking.venue_name,
           packageName:  booking.packages?.name,
           quotedTotal:  booking.quoted_total,
-          bookingUrl:   `${process.env.NEXT_PUBLIC_APP_URL}/bookings/${booking.id}`,
+          bookingUrl:   `${getAppUrl()}/bookings/${booking.id}`,
         });
         emailSubject = emailSubject || `Booking Confirmed — ${formatDate(booking.event_date)} — JNguyen Co.`;
         break;
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
           invoiceNumber: invoice.invoice_number,
           totalAmount:   invoice.total_amount,
           dueDate:       formatDate(invoice.due_date),
-          invoiceUrl:    `${process.env.NEXT_PUBLIC_APP_URL}/invoices/${invoice.id}`,
+          invoiceUrl:    `${getAppUrl()}/invoices/${invoice.id}`,
         });
         emailSubject  = emailSubject || `Invoice ${invoice.invoice_number} — JNguyen Co.`;
         pdfAttachment = { filename: `${invoice.invoice_number}.pdf`, data: pdf_base64 };
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
         emailHtml = preEventChecklistHtml({
           clientName:  `${booking.clients.first_name} ${booking.clients.last_name}`,
           eventDate:   formatDate(booking.event_date),
-          bookingUrl:  `${process.env.NEXT_PUBLIC_APP_URL}/bookings/${booking.id}`,
+          bookingUrl:  `${getAppUrl()}/bookings/${booking.id}`,
         });
         emailSubject = emailSubject || `Getting Ready for Your Event — JNguyen Co.`;
         break;

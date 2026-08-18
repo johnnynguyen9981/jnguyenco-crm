@@ -2,12 +2,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAustralianFY, currentAustralianFY } from "@/lib/expenses";
+import { isCurrentUserFounder } from "@/lib/team";
 
 // GET /api/expenses?fy=2024-25&category=SOFTWARE_SUBSCRIPTIONS&search=adobe&page=1
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await isCurrentUserFounder())) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const fy       = searchParams.get("fy") || currentAustralianFY();
@@ -59,6 +61,7 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await isCurrentUserFounder())) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const {

@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trash2, Loader2, FileText, Send, ClipboardList, FolderOpen, Star, ListChecks, Pencil } from "lucide-react";
+import { Trash2, Loader2, FileText, Send, ClipboardList, FolderOpen, Star, ListChecks, Pencil, Smartphone } from "lucide-react";
 
 const BOOKING_STATUSES = ["INQUIRY","QUOTED","CONTRACTED","CONFIRMED","COMPLETED","CANCELLED"];
 
@@ -542,8 +542,26 @@ export function BookingActions({ booking, client }: Props) {
       const res  = await fetch(`/api/bookings/${booking.id}/deliverables`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
-      msg("success", data.data?.created > 0 ? `${data.data.created} deliverable${data.data.created !== 1 ? "s" : ""} created ✓` : "Deliverables already up to date ✓");
+      const created  = data.data?.created ?? 0;
+      const synced   = data.data?.calendar_synced ?? 0;
+      const reminderNote = created > 0
+        ? synced > 0
+          ? ` · ${synced} Calendar reminder${synced !== 1 ? "s" : ""} added`
+          : " · connect Google in Settings to add Calendar reminders"
+        : "";
+      msg("success", (created > 0 ? `${created} deliverable${created !== 1 ? "s" : ""} created ✓` : "Deliverables already up to date ✓") + reminderNote);
       window.location.reload();
+    } catch (err: any) { msg("error", err.message); }
+    finally { setActionLoading(null); }
+  }
+
+  async function sendChecklistNow() {
+    setActionLoading("checklist");
+    try {
+      const res  = await fetch(`/api/bookings/${booking.id}/checklist`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      msg("success", `Checklist link sent to ${data.data?.sent_to} ✓`);
     } catch (err: any) { msg("error", err.message); }
     finally { setActionLoading(null); }
   }
@@ -630,6 +648,14 @@ export function BookingActions({ booking, client }: Props) {
             className="btn-primary text-sm py-1.5 flex items-center gap-1.5">
             <N n={8} />
             {gcalLoading ? "Syncing…" : booking.gcal_event_id ? "Re-sync Calendar" : "Sync to Calendar"}
+          </button>
+
+          {/* 9 — Send night-before checklist */}
+          <button onClick={sendChecklistNow} disabled={!!actionLoading}
+            className="btn-secondary text-sm py-1.5 flex items-center gap-1.5" title="Email yourself the tickable mobile checklist for this booking now">
+            <N n={9} />
+            {busy("checklist") ? <Loader2 size={14} className="animate-spin" /> : <Smartphone size={14} />}
+            Send Checklist Now
           </button>
 
         </div>

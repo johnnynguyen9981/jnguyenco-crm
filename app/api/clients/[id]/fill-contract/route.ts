@@ -108,9 +108,21 @@ export async function POST(
     if (booking.event_start_time)        enquiryData.start_time       = booking.event_start_time;
     if (booking.event_end_time)          enquiryData.end_time         = booking.event_end_time;
     if (booking.venue_name)              enquiryData.venue            = booking.venue_name;
+    if (booking.hours_booked   != null)  enquiryData.hoursBooked      = booking.hours_booked;
     if (booking.quoted_total   != null)  enquiryData.total_fee        = booking.quoted_total;
     if (booking.deposit_amount != null)  enquiryData.deposit_amount   = booking.deposit_amount;
     if (booking.special_requests)        enquiryData.special_requests = booking.special_requests;
+
+    // Always recompute remaining_balance from the authoritative DB values above
+    // rather than trusting whatever the caller prefilled — a stale/incorrect
+    // client-side remaining_balance (e.g. computed from unpaid-deposit amounts
+    // instead of the quoted deposit) would otherwise pass through unchanged,
+    // since nothing else in this route touches remaining_balance.
+    if (booking.quoted_total != null && booking.deposit_amount != null) {
+      enquiryData.remaining_balance = booking.quoted_total - booking.deposit_amount;
+    } else {
+      delete enquiryData.remaining_balance;
+    }
 
     if (booking.package_id) {
       (["pkg_mini","pkg_full8","pkg_full13","pkg_hourly","pkg_combo","pkg_portrait","pkg_unsure"] as const)
@@ -121,7 +133,7 @@ export async function POST(
 
       const { data: pkg } = await supabase
         .from("packages")
-        .select("name, includes_photography, includes_videography, base_price, max_hours")
+        .select("name, includes_photography, includes_videography, base_price, max_hours, team, deliverables, timeline, photo_count_min, photo_count_max")
         .eq("id", booking.package_id)
         .single();
 
@@ -144,6 +156,26 @@ export async function POST(
         } else {
           enquiryData.svc_photo = "Yes";
         }
+
+        // Live package data — drives Section 3 of the contract directly
+        // (see resolvePackage() in lib/generate-contract.tsx). Editing a
+        // package's team/deliverables/timeline in the Packages admin page
+        // is reflected here automatically, no code changes needed.
+        enquiryData.pkgData = {
+          hours: pkg.max_hours ?? null,
+          fee:   pkg.base_price ?? null,
+          images: (pkg.photo_count_min != null && pkg.photo_count_max != null)
+            ? `${pkg.photo_count_min}–${pkg.photo_count_max}`
+            : null,
+          // Raw per-hour min/max counts, passed through separately so the
+          // contract generator can multiply by the actual hours booked for
+          // hourly (max_hours = null) packages — see generate-contract.tsx.
+          photoCountMin: pkg.photo_count_min ?? null,
+          photoCountMax: pkg.photo_count_max ?? null,
+          team: pkg.team ?? null,
+          deliverables: pkg.deliverables ?? null,
+          timeline: pkg.timeline ?? null,
+        };
       }
     }
   }
@@ -188,7 +220,7 @@ export async function POST(
         const displayName = `${clientRow.first_name} ${clientRow.last_name}`.trim();
         const folderId = clientRow.gdrive_folder_id
           ? clientRow.gdrive_folder_id
-          : await getOrCreateClientFolder(clientRow.id, displayName);
+          : await getOrCreateClientFolder(clientRow.id, displayName, booking?.event_date);
         await uploadToDriveFolder(folderId, "Contracts", fileName, pdfBuffer);
       }
     } catch (e: any) {
