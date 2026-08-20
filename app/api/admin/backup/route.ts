@@ -11,6 +11,11 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { isCurrentUserFounder } from "@/lib/team";
 import { uploadBackupToDrive, isDriveConfigured, getDriveFolderUrl } from "@/lib/google/drive";
 
+// Force dynamic rendering -- this route must never be statically cached or
+// ISR'd; every hit should re-run auth + a fresh export.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const TABLES = [
   "clients",
   "contractors",
