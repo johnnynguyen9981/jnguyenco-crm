@@ -38,10 +38,25 @@ function stripBOM(s: string): string {
 /** Reads the service account JSON from env -- uses dynamic access to prevent webpack build-time inlining. */
 export function getServiceAccountJson(): string {
   const env = process.env as Record<string, string | undefined>;
-  // Prefer base64-encoded var (no encoding/newline/BOM issues)
+  // Prefer base64-encoded var (no encoding/newline/BOM issues) -- but only if
+  // it actually decodes to valid service-account JSON. A stray/placeholder
+  // value in GOOGLE_SERVICE_ACCOUNT_B64 (e.g. leftover junk from env var
+  // setup) would otherwise silently take precedence over a perfectly good
+  // GOOGLE_SERVICE_ACCOUNT_JSON and break every Drive call with a cryptic
+  // "not valid JSON" error.
   const b64 = stripBOM(env["GOOGLE_SERVICE_ACCOUNT_B64"] ?? "").trim();
-    if (b64) return Buffer.from(b64, "base64").toString("utf8");
-    // Fall back to raw JSON var
+  if (b64) {
+    try {
+      const decoded = Buffer.from(b64, "base64").toString("utf8");
+      const parsed = JSON.parse(decoded);
+      if (parsed && typeof parsed.private_key === "string" && typeof parsed.client_email === "string") {
+        return decoded;
+      }
+    } catch {
+      // fall through to the raw JSON var below
+    }
+  }
+  // Fall back to raw JSON var
   return stripBOM(env["GOOGLE_SERVICE_ACCOUNT_JSON"] ?? "").trim();
 }
 
