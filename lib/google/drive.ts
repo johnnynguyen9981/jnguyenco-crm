@@ -208,6 +208,40 @@ export function getDriveFolderUrl(folderId: string): string {
 }
 
 /**
+ * Uploads a full-database backup file into a top-level "Backups" folder
+ * under the CRM's Drive root (sibling to the per-client Year/Month folders).
+ * Used by the one-off/scheduled Supabase data export, since the Free Supabase
+ * plan has no built-in backups. Returns the file's webViewLink.
+ */
+export async function uploadBackupToDrive(
+  filename: string,
+  buffer: Buffer,
+  mimeType: string = "application/json"
+): Promise<string> {
+  const env = process.env as Record<string, string | undefined>;
+  const fromEnv = stripBOM(env["GOOGLE_DRIVE_ROOT_FOLDER_ID"] ?? "").trim();
+  const rootId = fromEnv || "0AFXFUoYwRDw-Uk9PVA";
+
+  const drive = getDriveClient();
+  const backupsFolderId = await findOrCreateFolder(drive, "Backups", rootId);
+
+  const { data: file } = await drive.files.create({
+    requestBody: {
+      name: filename,
+      parents: [backupsFolderId],
+    },
+    media: {
+      mimeType,
+      body: Readable.from(buffer),
+    },
+    fields: "id, webViewLink",
+    supportsAllDrives: true,
+  });
+
+  return file.webViewLink ?? `https://drive.google.com/file/d/${file.id}/view`;
+}
+
+/**
  * Uploads a PDF buffer to Google Drive using the user's personal OAuth client
  * (no service account required). Creates a "JNguyen Co. CRM / [clientName] / Contracts"
  * folder structure automatically. Returns the file's webViewLink.
