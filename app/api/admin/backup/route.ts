@@ -76,7 +76,27 @@ async function runBackup() {
       webViewLink,
     });
   } catch (e: any) {
-    return NextResponse.json({ error: `Drive upload failed: ${e.message}` }, { status: 500 });
+    // Temporary verbose diagnostics -- surfaces the underlying Google API
+    // error (status/body/code) instead of just the top-level parse error,
+    // so we can see WHY the Drive upload failed instead of guessing.
+    const diag: Record<string, unknown> = {
+      message: e?.message,
+      name: e?.name,
+      code: e?.code,
+      status: e?.response?.status,
+      statusText: e?.response?.statusText,
+    };
+    try {
+      const raw = e?.response?.data;
+      diag.responseData =
+        typeof raw === "string" ? raw.slice(0, 2000) : JSON.stringify(raw)?.slice(0, 2000);
+    } catch {
+      diag.responseData = "(unserializable)";
+    }
+    try {
+      diag.stack = String(e?.stack ?? "").split("\n").slice(0, 8).join(" | ");
+    } catch {}
+    return NextResponse.json({ error: `Drive upload failed`, diag }, { status: 500 });
   }
 }
 
