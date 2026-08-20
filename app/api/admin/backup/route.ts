@@ -7,31 +7,14 @@
 // to the "Backups" folder in the CRM's Google Drive, alongside the
 // per-client Year/Month folders.
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { isCurrentUserFounder } from "@/lib/team";
-import { uploadBackupToDrive, isDriveConfigured, getDriveFolderUrl, getServiceAccountJson } from "@/lib/google/drive";
+import { isDriveConfigured, getDriveFolderUrl, getServiceAccountJson } from "@/lib/google/drive";
+import { runFullBackup } from "@/lib/backup";
 
 // Force dynamic rendering -- this route must never be statically cached or
 // ISR'd; every hit should re-run auth + a fresh export.
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-const TABLES = [
-  "clients",
-  "contractors",
-  "partners",
-  "venues",
-  "packages",
-  "team_members",
-  "bookings",
-  "booking_venues",
-  "booking_contractors",
-  "deliverables",
-  "invoices",
-  "invoice_line_items",
-  "payments",
-  "expenses",
-] as const;
 
 async function runBackup() {
   if (!(await isCurrentUserFounder())) {
@@ -42,44 +25,9 @@ async function runBackup() {
     return NextResponse.json({ error: "Google Drive is not configured on this deployment." }, { status: 503 });
   }
 
-  // Service-role client -- bypasses RLS so the backup captures everything,
-  // not just rows visible to whichever team member happens to trigger it.
-  const admin = createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  const backup: Record<string, unknown> = {
-    exported_at: new Date().toISOString(),
-    source: "jnguyenco-crm Supabase project",
-  };
-  const counts: Record<string, number | string> = {};
-
-  for (const table of TABLES) {
-    const { data, error } = await admin.from(table).select("*");
-    if (error) {
-      backup[table] = [];
-      counts[table] = `ERROR: ${error.message}`;
-      continue;
-    }
-    backup[table] = data ?? [];
-    counts[table] = data?.length ?? 0;
-  }
-
-  const json = JSON.stringify(backup, null, 2);
-  const buffer = Buffer.from(json, "utf-8");
-  const stamp = new Date().toISOString().slice(0, 10);
-  const filename = `jnguyenco-crm-backup-${stamp}.json`;
-
   try {
-    const webViewLink = await uploadBackupToDrive(filename, buffer, "application/json");
-    return NextResponse.json({
-      success: true,
-      filename,
-      sizeBytes: buffer.length,
-      counts,
-      webViewLink,
-    });
+    const result = await runFullBackup();
+    return NextResponse.json(result);
   } catch (e: any) {
     // Temporary verbose diagnostics -- surfaces the underlying Google API
     // error (status/body/code) instead of just the top-level parse error,

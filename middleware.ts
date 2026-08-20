@@ -47,7 +47,13 @@ export async function middleware(request: NextRequest) {
     !request.nextUrl.pathname.startsWith("/sign") &&
     !request.nextUrl.pathname.startsWith("/api/reviews") &&
     !request.nextUrl.pathname.startsWith("/api/admin/test-drive") &&
-    !request.nextUrl.pathname.startsWith("/api/admin/debug-drive-env")
+    !request.nextUrl.pathname.startsWith("/api/admin/debug-drive-env") &&
+    // Vercel Cron invocations carry no session cookie -- these routes
+    // authenticate themselves via CRON_SECRET (Authorization: Bearer header)
+    // instead, checked inside each route handler. Without this bypass,
+    // middleware would redirect every cron hit to /login before the route's
+    // own secret check ever runs, silently breaking the scheduled job.
+    !request.nextUrl.pathname.startsWith("/api/cron")
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
