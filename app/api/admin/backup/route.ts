@@ -6,10 +6,10 @@
 // credentials, not business data) into a single JSON file and uploads it
 // to the "Backups" folder in the CRM's Google Drive, alongside the
 // per-client Year/Month folders.
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { isCurrentUserFounder } from "@/lib/team";
-import { uploadBackupToDrive, isDriveConfigured, getDriveFolderUrl } from "@/lib/google/drive";
+import { uploadBackupToDrive, isDriveConfigured, getDriveFolderUrl, getServiceAccountJson } from "@/lib/google/drive";
 
 // Force dynamic rendering -- this route must never be statically cached or
 // ISR'd; every hit should re-run auth + a fresh export.
@@ -109,11 +109,66 @@ export async function POST() {
   return runBackup();
 }
 
+// Founder-gated, non-secret-leaking diagnostic for the service-account env
+// var parsing bug. Reports lengths/prefixes/whether-it-parses-as-JSON only --
+// never the actual key material. Visit /api/admin/backup?envcheck=1
+function checkServiceAccountEnv() {
+  const env = process.env as Record<string, string | undefined>;
+  const b64Raw = env["GOOGLE_SERVICE_ACCOUNT_B64"] ?? "";
+  const jsonRaw = env["GOOGLE_SERVICE_ACCOUNT_JSON"] ?? "";
+
+  function inspect(label: string, raw: string, isB64: boolean) {
+    const info: Record<string, unknown> = {
+      label,
+      present: raw.length > 0,
+      rawLength: raw.length,
+      hasLeadingBOM: raw.charCodeAt(0) === 0xFEFF,
+      hasWhitespaceEnds: raw !== raw.trim(),
+      first10: JSON.stringify(raw.slice(0, 10)),
+      last10: JSON.stringify(raw.slice(-10)),
+    };
+    if (!raw) return info;
+    try {
+      const decoded = isB64 ? Buffer.from(raw.trim(), "base64").toString("utf8") : raw.trim();
+      info.decodedLength = decoded.length;
+      info.decodedFirst20 = JSON.stringify(decoded.slice(0, 20));
+      try {
+        const parsed = JSON.parse(decoded);
+        info.parsesAsJson = true;
+        info.hasType = typeof parsed.type;
+        info.hasClientEmail = typeof parsed.client_email;
+        info.hasPrivateKey = typeof parsed.private_key;
+      } catch (e: any) {
+        info.parsesAsJson = false;
+        info.parseError = e?.message;
+      }
+    } catch (e: any) {
+      info.decodeError = e?.message;
+    }
+    return info;
+  }
+
+  return {
+    actualFunctionOutputLength: getServiceAccountJson().length,
+    b64: inspect("GOOGLE_SERVICE_ACCOUNT_B64", b64Raw, true),
+    json: inspect("GOOGLE_SERVICE_ACCOUNT_JSON", jsonRaw, false),
+  };
+}
+
 // GET alias -- lets the backup be triggered by visiting the URL directly in a
 // logged-in browser tab (e.g. https://.../api/admin/backup), which is more
 // reliable for one-off manual triggering than firing a fetch() from a
 // non-page JS context (browser extensions etc.) where auth cookies may not
 // be attached the same way as a real top-level navigation.
-export async function GET() {
+//
+// ?envcheck=1 -- runs the safe, non-secret-leaking service-account env
+// diagnostic instead of the actual backup (still founder-gated).
+export async function GET(req: NextRequest) {
+  if (req.nextUrl.searchParams.has("envcheck")) {
+    if (!(await isCurrentUserFounder())) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return NextResponse.json(checkServiceAccountEnv());
+  }
   return runBackup();
 }
