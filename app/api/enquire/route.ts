@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
+import { sendSms, isSmsConfigured } from "@/lib/sms";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -206,6 +207,25 @@ export async function POST(req: NextRequest) {
     });
   } catch (e) {
     console.error("Notification email failed:", e);
+  }
+
+  // 5. SMS alert to owner's phone -- best-effort, mirrors the email
+  // notification above. Lets you know about a new enquiry the moment it
+  // comes in even if you're away from email during the day (Twilio must be
+  // configured -- see lib/sms.ts for setup).
+  if (isSmsConfigured()) {
+    const ownerMobile = process.env.OWNER_MOBILE_NUMBER;
+    if (ownerMobile) {
+      try {
+        const smsBody =
+          `New enquiry: ${firstName} ${lastName}` +
+          (body.event_date ? ` — ${body.event_date}` : "") +
+          `. jnguyenco-crm.vercel.app/enquiries`;
+        await sendSms(ownerMobile, smsBody);
+      } catch (e) {
+        console.error("SMS notification failed:", e);
+      }
+    }
   }
 
   return NextResponse.json({ success: true, clientId: client.id });
