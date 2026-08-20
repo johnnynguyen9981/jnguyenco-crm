@@ -2,6 +2,7 @@
 // app/(dashboard)/bookings/[id]/ContractorAssignment.tsx
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Plus, X, Loader2, Check, FileText, Pencil } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
@@ -344,7 +345,13 @@ export function ContractorAssignment({
               <div key={a.id} className="py-1.5 border-b border-gray-50 last:border-0">
                 <div className="flex items-start justify-between text-sm">
                   <div>
-                    <p className="font-medium">{name}</p>
+                    {c ? (
+                      <Link href={`/contractors/${c.id}`} className="font-medium hover:text-brand-teal hover:underline">
+                        {name}
+                      </Link>
+                    ) : (
+                      <p className="font-medium">{name}</p>
+                    )}
                     <p className="text-xs text-gray-400">
                       {ROLE_LABELS[a.role] ?? a.role}
                       {a.rate_type === "PER_PROJECT" && " · flat fee"}
