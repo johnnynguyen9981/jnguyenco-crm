@@ -28,7 +28,7 @@ const TABLES = [
   "expenses",
 ] as const;
 
-export async function POST() {
+async function runBackup() {
   if (!(await isCurrentUserFounder())) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -78,4 +78,17 @@ export async function POST() {
   } catch (e: any) {
     return NextResponse.json({ error: `Drive upload failed: ${e.message}` }, { status: 500 });
   }
+}
+
+export async function POST() {
+  return runBackup();
+}
+
+// GET alias -- lets the backup be triggered by visiting the URL directly in a
+// logged-in browser tab (e.g. https://.../api/admin/backup), which is more
+// reliable for one-off manual triggering than firing a fetch() from a
+// non-page JS context (browser extensions etc.) where auth cookies may not
+// be attached the same way as a real top-level navigation.
+export async function GET() {
+  return runBackup();
 }
