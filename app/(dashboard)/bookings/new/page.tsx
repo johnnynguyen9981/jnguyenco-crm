@@ -8,21 +8,21 @@ import { ArrowLeft, Check, Loader2 } from "lucide-react";
 
 // ── Static fallbacks shown when no DB packages exist yet ─────────────────────
 const WEDDING_FALLBACK = [
-  { id: "", name: "Mini Wedding / Elopement", base_price: 1600, max_hours: 4,
+  { id: "", name: "Mini Wedding / Elopement", base_price: 2300, max_hours: 4,
     description: "1 Photographer & 1 Videographer · 200–350 edited images · 3–5 min film · Next-day teaser" },
-  { id: "", name: "Full Day Essential",       base_price: 3200, max_hours: 8,
+  { id: "", name: "Full Day Essential",       base_price: 4500, max_hours: 8,
     description: "1 Photographer & 1 Videographer · 400–600 edited images · 5–7 min highlight film · Full ceremony" },
-  { id: "", name: "Full Day Premium",         base_price: 4800, max_hours: 13,
+  { id: "", name: "Full Day Premium",         base_price: 7300, max_hours: 13,
     description: "2 Photographers & 2 Videographers · 700–1,000 images · 6–8 min cinematic film · Full ceremony & speeches" },
 ];
 
 const PORTRAIT_FALLBACK = [
-  { id: "", name: "Headshot Session",  base_price: 300, max_hours: 1,
+  { id: "", name: "Headshot Session",  base_price: 375, max_hours: 1,
     description: "1 hr · 20–40 edited images · Online gallery" },
-  { id: "", name: "Couples Portrait",  base_price: 450, max_hours: 2,
-    description: "Up to 2 hrs · 50–80 edited images · Online gallery" },
-  { id: "", name: "Family Portrait",   base_price: 550, max_hours: 2,
-    description: "Up to 2 hrs · 60–100 edited images · Online gallery" },
+  { id: "", name: "Couples Portrait",  base_price: 250, max_hours: undefined,
+    description: "$250/hr · 50–80 edited images per hour · Online gallery" },
+  { id: "", name: "Family Portrait",   base_price: 250, max_hours: undefined,
+    description: "$250/hr · 60–100 edited images per hour · Online gallery" },
 ];
 
 // Fallback shown only if the DB has no active EVENT packages yet — mirrors the
@@ -30,7 +30,7 @@ const PORTRAIT_FALLBACK = [
 const EVENT_FALLBACK = [
   { id: "", name: "Photography",          base_price: 230,
     description: "Photography only" },
-  { id: "", name: "Photo + Videography",  base_price: 450,
+  { id: "", name: "Photo + Videography",  base_price: 425,
     description: "Combined photography & videography" },
 ];
 

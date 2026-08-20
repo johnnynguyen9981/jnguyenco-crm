@@ -128,9 +128,9 @@ export function Sidebar({ role: roleProp }: { role?: string }) {
         </p>
         <div className="space-y-1.5">
           {[
-            ["Mini Wedding",   "$1,600"],
-            ["Full Day Ess.",  "$3,200"],
-            ["Full Day Prem.", "$4,800"],
+            ["Mini Wedding",   "$2,300"],
+            ["Full Day Ess.",  "$4,500"],
+            ["Full Day Prem.", "$7,300"],
             ["Event / Photo",  "$230/hr"],
           ].map(([label, price]) => (
             <div key={label} className="flex justify-between text-xs">

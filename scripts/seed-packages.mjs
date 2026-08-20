@@ -21,7 +21,7 @@ const packages = [
   {
     name: "Mini Wedding / Elopement",
     service_type: "WEDDING",
-    base_price: 1600,
+    base_price: 2300,
     max_hours: 4,
     includes_photography: true,
     includes_videography: true,
@@ -37,7 +37,7 @@ const packages = [
   {
     name: "Full Day Essential",
     service_type: "WEDDING",
-    base_price: 3200,
+    base_price: 4500,
     max_hours: 8,
     includes_photography: true,
     includes_videography: true,
@@ -53,7 +53,7 @@ const packages = [
   {
     name: "Full Day Premium",
     service_type: "WEDDING",
-    base_price: 4800,
+    base_price: 7300,
     max_hours: 13,
     includes_photography: true,
     includes_videography: true,
@@ -70,7 +70,7 @@ const packages = [
   {
     name: "Headshot Session",
     service_type: "PORTRAIT",
-    base_price: 300,
+    base_price: 375,
     max_hours: 1,
     includes_photography: true,
     includes_videography: false,
@@ -84,29 +84,29 @@ const packages = [
   {
     name: "Couples Portrait",
     service_type: "PORTRAIT",
-    base_price: 450,
-    max_hours: 2,
+    base_price: 250,
+    max_hours: null,
     includes_photography: true,
     includes_videography: false,
     photo_count_min: 50,
     photo_count_max: 80,
     description:
       "Romantic couples session capturing connection and personality. " +
-      "Up to 2 hrs · 50–80 edited images · Online gallery delivery.",
+      "$250/hr · 50–80 edited images per hour · Online gallery delivery.",
     is_active: true,
   },
   {
     name: "Family Portrait",
     service_type: "PORTRAIT",
-    base_price: 550,
-    max_hours: 2,
+    base_price: 250,
+    max_hours: null,
     includes_photography: true,
     includes_videography: false,
     photo_count_min: 60,
     photo_count_max: 100,
     description:
       "Relaxed family session perfect for milestone moments. " +
-      "Up to 2 hrs · 60–100 edited images · Online gallery delivery.",
+      "$250/hr · 60–100 edited images per hour · Online gallery delivery.",
     is_active: true,
   },
 ];

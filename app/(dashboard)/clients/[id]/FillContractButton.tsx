@@ -24,11 +24,11 @@ interface Props {
 }
 
 const PACKAGES = [
-  { key: "pkg_mini",   label: "Mini Wedding / Elopement",  detail: "Up to 4 hrs · $1,600" },
-  { key: "pkg_full8",  label: "Full Day Essential",         detail: "Up to 8 hrs · $3,200" },
-  { key: "pkg_full13", label: "Full Day Premium",           detail: "Up to 13 hrs · $4,800" },
-  { key: "pkg_hourly", label: "Hourly – Photography",       detail: "$150/hr" },
-  { key: "pkg_combo",  label: "Hourly – Photo + Video",     detail: "$250/hr" },
+  { key: "pkg_mini",   label: "Mini Wedding / Elopement",  detail: "Up to 4 hrs · $2,300" },
+  { key: "pkg_full8",  label: "Full Day Essential",         detail: "Up to 8 hrs · $4,500" },
+  { key: "pkg_full13", label: "Full Day Premium",           detail: "Up to 13 hrs · $7,300" },
+  { key: "pkg_hourly", label: "Hourly – Photography",       detail: "$230/hr" },
+  { key: "pkg_combo",  label: "Hourly – Photo + Video",     detail: "$425/hr" },
   { key: "pkg_unsure", label: "TBD / Unsure",               detail: "" },
 ] as const;
 
