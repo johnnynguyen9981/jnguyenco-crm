@@ -75,6 +75,12 @@ export const EXPENSE_CATEGORIES: Record<
     bgColor:    "bg-green-50",
     chartColor: "#16a34a",
   },
+  CONTRACTOR_PAYMENTS: {
+    label:      "Contractor Payments",
+    color:      "text-rose-700",
+    bgColor:    "bg-rose-50",
+    chartColor: "#e11d48",
+  },
 };
 
 export function getCategoryBadge(category: ExpenseCategory) {

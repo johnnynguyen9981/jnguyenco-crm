@@ -239,7 +239,8 @@ export type ExpenseCategory =
   | 'SOFTWARE_SUBSCRIPTIONS'
   | 'EQUIPMENT_GEAR'
   | 'VEHICLE_TRAVEL'
-  | 'MARKETING_PROFESSIONAL';
+  | 'MARKETING_PROFESSIONAL'
+  | 'CONTRACTOR_PAYMENTS';
 
 export type RecurringFrequency = 'MONTHLY' | 'ANNUAL';
 
@@ -260,6 +261,7 @@ export interface Expense {
   gdrive_file_url?: string;
   financial_year: string;
   parent_expense_id?: string;
+  source_booking_contractor_id?: string;
   created_at: string;
 }
 
