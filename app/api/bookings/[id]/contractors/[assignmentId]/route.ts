@@ -49,6 +49,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     rate_type?: "HOURLY" | "PER_PROJECT" | null;
     coverage_start_time?: string | null;
     coverage_end_time?: string | null;
+    deadline?: string | null;
   };
   try {
     body = await req.json();
@@ -69,8 +70,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (body.rate_type !== undefined) coverageUpdate.rate_type = body.rate_type;
   if (body.coverage_start_time !== undefined) coverageUpdate.coverage_start_time = body.coverage_start_time;
   if (body.coverage_end_time !== undefined) coverageUpdate.coverage_end_time = body.coverage_end_time;
+  if (body.deadline !== undefined) coverageUpdate.deadline = body.deadline;
 
-  const selectCols = "id, role, agreed_rate, confirmed, paid, contractors (id, first_name, last_name, email, phone, role)";
+  const selectCols = "id, role, agreed_rate, confirmed, paid, deadline, contractors (id, first_name, last_name, email, phone, role)";
 
   let { data, error } = await supabase
     .from("booking_contractors")

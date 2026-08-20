@@ -62,9 +62,26 @@ interface Assignment {
   rate_type?: RateType | null;
   coverage_start_time?: string | null;
   coverage_end_time?: string | null;
+  deadline?: string | null;
   confirmed: boolean;
   paid: boolean;
   contractors: { id: string; first_name: string; last_name: string; role: string } | null;
+}
+
+/** "2026-08-25" -> "25 Aug 2026" */
+function formatDeadlineLabel(d?: string | null): string {
+  if (!d) return "";
+  const dt = new Date(`${d}T00:00:00`);
+  if (Number.isNaN(dt.getTime())) return d;
+  return dt.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function isOverdue(d?: string | null): boolean {
+  if (!d) return false;
+  const dt = new Date(`${d}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return dt.getTime() < today.getTime();
 }
 
 interface AvailableContractor {
@@ -101,6 +118,7 @@ export function ContractorAssignment({
   const [agreedRate, setAgreedRate] = useState("");
   const [coverageStart, setCoverageStart] = useState("");
   const [coverageEnd, setCoverageEnd] = useState("");
+  const [deadline, setDeadline] = useState("");
 
   const [callSheetId, setCallSheetId] = useState<string | null>(null);
   const [callSheetError, setCallSheetError] = useState<string | null>(null);
@@ -111,6 +129,7 @@ export function ContractorAssignment({
   const [editAgreedRate, setEditAgreedRate] = useState("");
   const [editCoverageStart, setEditCoverageStart] = useState("");
   const [editCoverageEnd, setEditCoverageEnd] = useState("");
+  const [editDeadline, setEditDeadline] = useState("");
   const [editSaving, setEditSaving] = useState(false);
 
   function selectContractor(id: string) {
@@ -173,6 +192,7 @@ export function ContractorAssignment({
           rate_type: rateType,
           coverage_start_time: rateType === "HOURLY" && coverageStart ? coverageStart : null,
           coverage_end_time:   rateType === "HOURLY" && coverageEnd   ? coverageEnd   : null,
+          deadline: deadline || null,
         }),
       });
       const json = await res.json();
@@ -185,6 +205,7 @@ export function ContractorAssignment({
       setAgreedRate("");
       setCoverageStart("");
       setCoverageEnd("");
+      setDeadline("");
       router.refresh();
     } catch {
       setError("Network error. Please try again.");
@@ -213,6 +234,7 @@ export function ContractorAssignment({
     setEditAgreedRate(a.agreed_rate != null ? String(a.agreed_rate) : "");
     setEditCoverageStart(a.coverage_start_time?.slice(0, 5) ?? "");
     setEditCoverageEnd(a.coverage_end_time?.slice(0, 5) ?? "");
+    setEditDeadline(a.deadline ?? "");
   }
 
   const editHours = editRateType === "HOURLY" ? hoursBetween(editCoverageStart, editCoverageEnd) : null;
@@ -229,6 +251,7 @@ export function ContractorAssignment({
           rate_type: editRateType,
           coverage_start_time: editRateType === "HOURLY" && editCoverageStart ? editCoverageStart : null,
           coverage_end_time:   editRateType === "HOURLY" && editCoverageEnd   ? editCoverageEnd   : null,
+          deadline: editDeadline || null,
         }),
       });
       if (!res.ok) {
@@ -328,6 +351,11 @@ export function ContractorAssignment({
                     </p>
                     {coverageLabel && (
                       <p className="text-xs text-gray-400">Coverage: {coverageLabel}</p>
+                    )}
+                    {a.deadline && (
+                      <p className={`text-xs ${isOverdue(a.deadline) ? "text-red-600 font-medium" : "text-gray-400"}`}>
+                        Deadline: {formatDeadlineLabel(a.deadline)}{isOverdue(a.deadline) && " (overdue)"}
+                      </p>
                     )}
                     <div className="flex items-center gap-2 mt-1">
                       <button
@@ -433,6 +461,11 @@ export function ContractorAssignment({
                         {editHours} hrs × {formatCurrency(parseFloat(editAgreedRate))}/hr = <span className="font-medium text-brand-navy">{formatCurrency(editTotal)}</span>
                       </p>
                     )}
+                    <div>
+                      <label className="label text-xs">Deadline (internal — when this work is due back)</label>
+                      <input type="date" className={ic} value={editDeadline}
+                        onChange={(e) => setEditDeadline(e.target.value)} />
+                    </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
@@ -544,6 +577,12 @@ export function ContractorAssignment({
               {newAssignHours} hrs × {formatCurrency(parseFloat(agreedRate))}/hr = <span className="font-medium text-brand-navy">{formatCurrency(newAssignTotal)}</span>
             </p>
           )}
+
+          <div>
+            <label className="label text-xs">Deadline (internal — when this work is due back, optional)</label>
+            <input type="date" className={ic} value={deadline}
+              onChange={(e) => setDeadline(e.target.value)} />
+          </div>
 
           <div className="flex gap-2 pt-1">
             <button type="submit" disabled={saving} className="btn-primary py-1 text-xs">

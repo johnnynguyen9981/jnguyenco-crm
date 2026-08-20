@@ -38,6 +38,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     rate_type?: "HOURLY" | "PER_PROJECT" | null;
     coverage_start_time?: string | null;
     coverage_end_time?: string | null;
+    deadline?: string | null;
   };
   try {
     body = await req.json();
@@ -78,8 +79,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     rate_type: body.rate_type ?? null,
     coverage_start_time: body.coverage_start_time ?? null,
     coverage_end_time: body.coverage_end_time ?? null,
+    deadline: body.deadline ?? null,
   };
-  const selectCols = "id, role, agreed_rate, confirmed, paid, contractors (id, first_name, last_name, email, phone, role)";
+  const selectCols = "id, role, agreed_rate, confirmed, paid, deadline, contractors (id, first_name, last_name, email, phone, role)";
 
   let { data, error } = await supabase
     .from("booking_contractors")

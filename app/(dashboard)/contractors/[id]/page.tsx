@@ -38,10 +38,25 @@ export default async function ContractorDetailPage({ params }: Params) {
 
   if (error || !contractor) notFound();
 
-  const { data: assignments } = await supabase
-    .from("booking_contractors")
-    .select("id, role, agreed_rate, confirmed, paid, bookings (id, event_date, service_type, status)")
-    .eq("contractor_id", params.id);
+  // deadline column may not exist yet if the 20260820_contractor_deadline.sql
+  // migration hasn't been run in Supabase — degrade gracefully rather than
+  // 500ing this whole page.
+  let assignments: any[] | null = null;
+  {
+    const { data, error: assignErr } = await supabase
+      .from("booking_contractors")
+      .select("id, role, agreed_rate, confirmed, paid, deadline, bookings (id, event_date, service_type, status)")
+      .eq("contractor_id", params.id);
+    if (assignErr) {
+      const { data: fallback } = await supabase
+        .from("booking_contractors")
+        .select("id, role, agreed_rate, confirmed, paid, bookings (id, event_date, service_type, status)")
+        .eq("contractor_id", params.id);
+      assignments = fallback;
+    } else {
+      assignments = data;
+    }
+  }
 
   return (
     <>
@@ -168,27 +183,40 @@ export default async function ContractorDetailPage({ params }: Params) {
                       <th className="table-header">Service</th>
                       <th className="table-header">Role</th>
                       <th className="table-header text-right">Agreed Rate</th>
+                      <th className="table-header">Deadline</th>
                       <th className="table-header">Paid</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {assignments.map((a: any) => (
-                      <tr key={a.id} className="table-row">
-                        <td className="table-cell">
-                          <Link href={`/bookings/${a.bookings?.id}`} className="font-medium hover:text-brand-teal">
-                            {formatDate(a.bookings?.event_date)}
-                          </Link>
-                        </td>
-                        <td className="table-cell text-sm text-gray-600">{a.bookings?.service_type ?? "—"}</td>
-                        <td className="table-cell text-sm text-gray-600">{ROLE_LABELS[a.role] ?? a.role}</td>
-                        <td className="table-cell text-right font-semibold text-sm">{formatCurrency(a.agreed_rate)}</td>
-                        <td className="table-cell">
-                          <span className={a.paid ? "badge badge-confirmed" : "badge badge-pending"}>
-                            {a.paid ? "Paid" : "Unpaid"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {assignments.map((a: any) => {
+                      const overdue = a.deadline && new Date(`${a.deadline}T00:00:00`) < new Date(new Date().toDateString());
+                      return (
+                        <tr key={a.id} className="table-row">
+                          <td className="table-cell">
+                            <Link href={`/bookings/${a.bookings?.id}`} className="font-medium hover:text-brand-teal">
+                              {formatDate(a.bookings?.event_date)}
+                            </Link>
+                          </td>
+                          <td className="table-cell text-sm text-gray-600">{a.bookings?.service_type ?? "—"}</td>
+                          <td className="table-cell text-sm text-gray-600">{ROLE_LABELS[a.role] ?? a.role}</td>
+                          <td className="table-cell text-right font-semibold text-sm">{formatCurrency(a.agreed_rate)}</td>
+                          <td className="table-cell text-sm">
+                            {a.deadline ? (
+                              <span className={overdue ? "text-red-600 font-medium" : "text-gray-600"}>
+                                {formatDate(a.deadline)}{overdue && " (overdue)"}
+                              </span>
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </td>
+                          <td className="table-cell">
+                            <span className={a.paid ? "badge badge-confirmed" : "badge badge-pending"}>
+                              {a.paid ? "Paid" : "Unpaid"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
