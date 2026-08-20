@@ -45,12 +45,12 @@ export default async function ContractorDetailPage({ params }: Params) {
   {
     const { data, error: assignErr } = await supabase
       .from("booking_contractors")
-      .select("id, role, agreed_rate, confirmed, paid, deadline, bookings (id, event_date, service_type, status)")
+      .select("id, role, agreed_rate, confirmed, paid, deadline, bookings (id, event_date, service_type, status, clients (first_name, last_name))")
       .eq("contractor_id", params.id);
     if (assignErr) {
       const { data: fallback } = await supabase
         .from("booking_contractors")
-        .select("id, role, agreed_rate, confirmed, paid, bookings (id, event_date, service_type, status)")
+        .select("id, role, agreed_rate, confirmed, paid, bookings (id, event_date, service_type, status, clients (first_name, last_name))")
         .eq("contractor_id", params.id);
       assignments = fallback;
     } else {
@@ -179,6 +179,7 @@ export default async function ContractorDetailPage({ params }: Params) {
                 <table className="w-full">
                   <thead>
                     <tr>
+                      <th className="table-header">Client / Project</th>
                       <th className="table-header">Date</th>
                       <th className="table-header">Service</th>
                       <th className="table-header">Role</th>
@@ -190,12 +191,17 @@ export default async function ContractorDetailPage({ params }: Params) {
                   <tbody>
                     {assignments.map((a: any) => {
                       const overdue = a.deadline && new Date(`${a.deadline}T00:00:00`) < new Date(new Date().toDateString());
+                      const client = a.bookings?.clients;
+                      const clientName = client ? `${client.first_name} ${client.last_name}` : "—";
                       return (
                         <tr key={a.id} className="table-row">
                           <td className="table-cell">
                             <Link href={`/bookings/${a.bookings?.id}`} className="font-medium hover:text-brand-teal">
-                              {formatDate(a.bookings?.event_date)}
+                              {clientName}
                             </Link>
+                          </td>
+                          <td className="table-cell text-sm text-gray-600">
+                            {formatDate(a.bookings?.event_date)}
                           </td>
                           <td className="table-cell text-sm text-gray-600">{a.bookings?.service_type ?? "—"}</td>
                           <td className="table-cell text-sm text-gray-600">{ROLE_LABELS[a.role] ?? a.role}</td>
