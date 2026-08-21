@@ -10,7 +10,7 @@ const PACKAGES = [
     name: "Hybrid Mini Session",
     service_type: "PORTRAIT",
     base_price: 375,
-    max_hours: 1.5,
+    max_hours: 2, // stored as integer (DB constraint); actual duration is 1.5 hrs — see description
     hourly_rate: 250,
     includes_photography: true,
     includes_videography: true,
@@ -36,7 +36,7 @@ const PACKAGES = [
     name: "Hybrid Mini Session — Extended",
     service_type: "PORTRAIT",
     base_price: 625,
-    max_hours: 2.5,
+    max_hours: 3, // stored as integer (DB constraint); actual duration is 2.5 hrs — see description
     hourly_rate: 250,
     includes_photography: true,
     includes_videography: true,
