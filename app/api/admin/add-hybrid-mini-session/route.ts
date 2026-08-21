@@ -1,6 +1,8 @@
 // GET /api/admin/add-hybrid-mini-session
 // One-time: inserts "Hybrid Mini Session" + "Hybrid Mini Session — Extended" packages
-// (PORTRAIT category, photo + video bundle, matches live jnguyen.co/services listing).
+// under WEDDING / ELOPEMENT (photo + video bundle, matches live jnguyen.co/services listing).
+// Idempotent: if these already exist (e.g. from an earlier run under PORTRAIT), this
+// updates them in place to service_type WEDDING instead of inserting duplicates.
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
@@ -8,7 +10,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 const PACKAGES = [
   {
     name: "Hybrid Mini Session",
-    service_type: "PORTRAIT",
+    service_type: "WEDDING",
     base_price: 375,
     max_hours: 2, // stored as integer (DB constraint); actual duration is 1.5 hrs — see description
     hourly_rate: 250,
@@ -34,7 +36,7 @@ const PACKAGES = [
   },
   {
     name: "Hybrid Mini Session — Extended",
-    service_type: "PORTRAIT",
+    service_type: "WEDDING",
     base_price: 625,
     max_hours: 3, // stored as integer (DB constraint); actual duration is 2.5 hrs — see description
     hourly_rate: 250,
@@ -73,24 +75,42 @@ export async function GET() {
 
   const { data: existing } = await admin
     .from("packages")
-    .select("name")
+    .select("id, name")
     .in("name", PACKAGES.map((p) => p.name));
 
-  const existingNames = new Set((existing ?? []).map((p) => p.name));
-  const toInsert = PACKAGES.filter((p) => !existingNames.has(p.name));
+  const existingByName = new Map((existing ?? []).map((p) => [p.name, p.id]));
 
-  if (toInsert.length === 0) {
-    return NextResponse.json({ success: true, message: "Already exists" });
+  const toInsert = PACKAGES.filter((p) => !existingByName.has(p.name));
+  const toUpdate = PACKAGES.filter((p) => existingByName.has(p.name));
+
+  const results: any[] = [];
+
+  if (toInsert.length > 0) {
+    const { data: inserted, error: insertErr } = await admin
+      .from("packages")
+      .insert(toInsert)
+      .select("id, name, base_price, service_type");
+
+    if (insertErr) {
+      return NextResponse.json({ error: "Insert failed: " + insertErr.message }, { status: 500 });
+    }
+    results.push(...(inserted ?? []));
   }
 
-  const { data: inserted, error: insertErr } = await admin
-    .from("packages")
-    .insert(toInsert)
-    .select("id, name, base_price, service_type");
+  for (const pkg of toUpdate) {
+    const id = existingByName.get(pkg.name)!;
+    const { name, ...fields } = pkg;
+    const { data: updated, error: updateErr } = await admin
+      .from("packages")
+      .update(fields)
+      .eq("id", id)
+      .select("id, name, base_price, service_type");
 
-  if (insertErr) {
-    return NextResponse.json({ error: "Insert failed: " + insertErr.message }, { status: 500 });
+    if (updateErr) {
+      return NextResponse.json({ error: `Update failed for ${name}: ` + updateErr.message }, { status: 500 });
+    }
+    results.push(...(updated ?? []));
   }
 
-  return NextResponse.json({ success: true, packages: inserted });
+  return NextResponse.json({ success: true, packages: results });
 }
