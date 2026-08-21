@@ -11,9 +11,9 @@ const PACKAGES = [
   {
     name: "Hybrid Mini Session",
     service_type: "WEDDING",
-    base_price: 375,
+    base_price: 400,
     max_hours: 2, // stored as integer (DB constraint); actual duration is 1.5 hrs — see description
-    hourly_rate: 250,
+    hourly_rate: 267, // ~400/1.5hr, effective rate
     includes_photography: true,
     includes_videography: true,
     photo_count_min: 40,
@@ -22,7 +22,7 @@ const PACKAGES = [
       "Portrait + video reel bundle — 1.5 hours · 40–60 professionally edited hi-res images · " +
       "30-second vertical reel (Instagram/TikTok-ready, colour-graded to match wedding aesthetic) · " +
       "Photos delivered in 5–7 business days · Reel delivered in 48 hours. " +
-      "Positioned as a portrait + video bundle (effectively $250/hr), not a plain rate increase over the $230/hr portrait rate.",
+      "Positioned as a portrait + video bundle, not a plain rate increase over the $230/hr portrait rate.",
     team: "1 Photographer & 1 Videographer",
     deliverables: [
       "40-60 professionally edited hi-res images",
@@ -37,9 +37,9 @@ const PACKAGES = [
   {
     name: "Hybrid Mini Session — Extended",
     service_type: "WEDDING",
-    base_price: 625,
+    base_price: 700,
     max_hours: 3, // stored as integer (DB constraint); actual duration is 2.5 hrs — see description
-    hourly_rate: 250,
+    hourly_rate: 280, // ~700/2.5hr, effective rate
     includes_photography: true,
     includes_videography: true,
     photo_count_min: 80,
