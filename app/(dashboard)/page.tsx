@@ -16,6 +16,7 @@ import {
 import type { ReferralSource } from "@/lib/supabase/types";
 import { fetchReviews } from "@/lib/reviews";
 import { ReferralSourceChart, type ReferralSegment } from "@/components/dashboard/ReferralSourceChart";
+import { ProductionTimeline, type TimelineRow } from "@/components/dashboard/ProductionTimeline";
 
 // Fixed display order + brand color per referral source, so the legend and
 // slice colors stay stable regardless of which sources happen to have data.
@@ -27,13 +28,6 @@ const REFERRAL_SOURCE_STYLE: Record<string, string> = {
   FACEBOOK:       "#305f6a", // brand-teal-700
   OTHER:          "#c0d5d6", // brand-pale-blue
   NOT_SPECIFIED:  "#d9d3cb", // muted neutral
-};
-
-const DELIVERABLE_LABEL: Record<string, string> = {
-  PHOTO_GALLERY:  "Photo gallery",
-  HIGHLIGHT_FILM: "Highlight film",
-  TEASER:         "Teaser",
-  RAW_FOOTAGE:    "Raw footage",
 };
 
 function formatReferralLabel(key: string) {
@@ -147,11 +141,11 @@ export default async function DashboardPage() {
     supabase
       .from("deliverables")
       .select(`id, type, status, due_date,
-               bookings (id, clients (first_name, last_name))`)
+               bookings (id, event_date, clients (first_name, last_name))`)
       .not("status", "in", "(DELIVERED,CLIENT_APPROVED)")
       .not("due_date", "is", null)
       .order("due_date", { ascending: true })
-      .limit(6),
+      .limit(10),
 
     // Pipeline volume by stage.
     supabase
@@ -227,6 +221,21 @@ export default async function DashboardPage() {
       color: REFERRAL_SOURCE_STYLE[key],
     }));
 
+  // Production timeline rows — one per active (not yet delivered/approved) deliverable.
+  const timelineRows: TimelineRow[] = (productionQueue ?? []).map((d: any) => {
+    const booking = d.bookings;
+    const client  = booking?.clients;
+    return {
+      id: d.id,
+      bookingId: booking?.id,
+      clientName: client ? `${client.first_name} ${client.last_name}` : "—",
+      type: d.type,
+      eventDate: booking?.event_date ?? null,
+      dueDate: d.due_date ?? null,
+      status: d.status,
+    };
+  });
+
   return (
     <>
       <TopBar
@@ -297,50 +306,8 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        {/* ── In production ────────────────────────────────── */}
-        {productionQueue && productionQueue.length > 0 && (
-          <div className="card p-0 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-brand-pale-blue">
-              <h2 className="text-base font-semibold text-brand-navy">In Production</h2>
-              <Link href="/deliverables" className="text-xs text-brand-teal hover:underline font-medium">
-                View all →
-              </Link>
-            </div>
-            <div className="divide-y divide-brand-pale-blue">
-              {productionQueue.map((d: any) => {
-                const booking  = d.bookings;
-                const client   = booking?.clients;
-                const dueDate  = d.due_date ? new Date(d.due_date) : null;
-                const daysLeft = dueDate ? Math.round((dueDate.getTime() - Date.now()) / 86400000) : null;
-                const overdue  = daysLeft !== null && daysLeft < 0;
-                const dueSoon  = daysLeft !== null && daysLeft >= 0 && daysLeft <= 7;
-                return (
-                  <Link
-                    key={d.id}
-                    href={booking ? `/bookings/${booking.id}` : "#"}
-                    className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-brand-pale-blue/20 transition-colors"
-                  >
-                    <p className="text-sm truncate">
-                      {client?.first_name} {client?.last_name}
-                      <span className="text-gray-400"> · {DELIVERABLE_LABEL[d.type] ?? d.type}</span>
-                    </p>
-                    <span
-                      className={`text-xs font-medium shrink-0 ${
-                        overdue ? "text-red-600" : dueSoon ? "text-amber-700" : "text-gray-400"
-                      }`}
-                    >
-                      {overdue
-                        ? `${Math.abs(daysLeft!)} day${Math.abs(daysLeft!) === 1 ? "" : "s"} overdue`
-                        : daysLeft === 0
-                        ? "Due today"
-                        : `Due in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* ── Production timeline (Gantt-style stage tracker) ─ */}
+        <ProductionTimeline rows={timelineRows} />
 
         {/* ── Pipeline + financial snapshot ────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
