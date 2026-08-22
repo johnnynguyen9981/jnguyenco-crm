@@ -9,6 +9,7 @@ import { formatDate } from "@/lib/utils";
 import type { DeliverableStatus, DeliverableType } from "@/lib/supabase/types";
 import { ChevronRight, Camera } from "lucide-react";
 import { GenerateAllButton } from "./GenerateAllButton";
+import { DeliverableStatusSelect } from "./DeliverableStatusSelect";
 
 const STATUS_TABS: { label: string; value: DeliverableStatus | "ALL" }[] = [
   { label: "All",              value: "ALL" },
@@ -33,24 +34,6 @@ const TYPE_LABEL: Record<DeliverableType, string> = {
   HIGHLIGHT_FILM: "Highlight film",
   TEASER:         "Teaser",
   RAW_FOOTAGE:    "Raw footage",
-};
-
-const STATUS_BADGE: Record<DeliverableStatus, string> = {
-  NOT_STARTED:      "badge badge-inquiry",
-  CULLING:          "badge badge-quoted",
-  EDITING:          "badge badge-contracted",
-  READY:            "badge badge-confirmed",
-  DELIVERED:        "badge badge-completed",
-  CLIENT_APPROVED:  "badge badge-completed",
-};
-
-const STATUS_LABEL: Record<DeliverableStatus, string> = {
-  NOT_STARTED:      "Not started",
-  CULLING:          "Culling",
-  EDITING:          "Editing",
-  READY:            "Ready",
-  DELIVERED:        "Delivered",
-  CLIENT_APPROVED:  "Client approved",
 };
 
 export const metadata = { title: "Deliverables — JNguyen Co. CRM" };
@@ -283,9 +266,10 @@ export default async function DeliverablesPage({ searchParams }: Props) {
                         {overdue && <span className="ml-1.5 text-xs text-red-500">({Math.abs(daysLeft!)}d overdue)</span>}
                       </td>
                       <td className="table-cell">
-                        <span className={STATUS_BADGE[d.status as DeliverableStatus]}>
-                          {STATUS_LABEL[d.status as DeliverableStatus] ?? d.status}
-                        </span>
+                        <DeliverableStatusSelect
+                          deliverableId={d.id}
+                          currentStatus={d.status as DeliverableStatus}
+                        />
                       </td>
                       <td className="table-cell text-right">
                         {booking && (

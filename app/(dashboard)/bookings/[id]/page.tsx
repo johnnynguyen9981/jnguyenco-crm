@@ -18,6 +18,8 @@ import { ContractCard } from "./ContractCard";
 import { ContractorAssignment } from "./ContractorAssignment";
 import { RunSheetEditor } from "./RunSheetEditor";
 import { DeliverableReminderButton } from "./DeliverableReminderButton";
+import { DeliverableStatusSelect } from "@/app/(dashboard)/deliverables/DeliverableStatusSelect";
+import type { DeliverableStatus } from "@/lib/supabase/types";
 import { resolvePackageDeliverables } from "@/lib/deliverables";
 
 type Props = { params: { id: string } };
@@ -27,15 +29,6 @@ const DELIVERABLE_LABELS: Record<string, string> = {
   HIGHLIGHT_FILM: "Highlight Film",
   TEASER: "Teaser / Reel",
   RAW_FOOTAGE: "Raw Footage",
-};
-
-const DELIVERABLE_STATUS_COLORS: Record<string, string> = {
-  NOT_STARTED: "badge-gray",
-  CULLING:     "badge-yellow",
-  EDITING:     "badge-yellow",
-  READY:       "badge-blue",
-  DELIVERED:   "badge-green",
-  CLIENT_APPROVED: "badge-green",
 };
 
 export default async function BookingDetailPage({ params }: Props) {
@@ -325,9 +318,10 @@ export default async function BookingDetailPage({ params }: Props) {
                       </p>
                     )}
                   </div>
-                  <span className={`badge ${DELIVERABLE_STATUS_COLORS[d.status] ?? "badge-gray"} text-xs`}>
-                    {d.status.replace(/_/g, " ")}
-                  </span>
+                  <DeliverableStatusSelect
+                    deliverableId={d.id}
+                    currentStatus={d.status as DeliverableStatus}
+                  />
                 </div>
               ))}
             </div>
