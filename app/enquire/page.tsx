@@ -9,7 +9,6 @@ const PACKAGES = [
   { id: "full_day_premium",   label: "Full Day Premium",                      price: "$7,300",  desc: "Up to 13 hrs · 2 Photographers + 2 Videographers · 700-1,000 images" },
   { id: "wedding_photo_only", label: "Wedding Photography Only",              price: "$3,700",  desc: "7-10 hrs · Photographer only, no videographer · 400-600 images" },
   { id: "wedding_video_only", label: "Wedding Videography Only (Cinematic)",  price: "$3,600",  desc: "7-10 hrs · Videographer only, no photographer · 5-7 min cinematic film" },
-  { id: "hybrid_mini_session",label: "Hybrid Mini Session",                   price: "$400",    desc: "1.5 hrs · Photo + video reel bundle · 40-60 images + 30-sec reel · Extended option (2.5 hrs, $700) available" },
   { id: "hourly_photo",       label: "Event Photography Only",                price: "$230/hr", desc: "50-80 edited images per hour · Online gallery · 2-4 week turnaround" },
   { id: "hourly_video",       label: "Event Videography Only",                price: "$280/hr", desc: "1-2 min highlight reel per hour of coverage · Online gallery · 6-8 week turnaround" },
   { id: "hourly_photo_video", label: "Event Photography & Videography",       price: "$425/hr", desc: "50-80 images/hr + 1-2 min highlight reel per hour · Online gallery" },
