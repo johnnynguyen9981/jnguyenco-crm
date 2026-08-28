@@ -87,6 +87,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     coverage_start_time?: string | null;
     coverage_end_time?: string | null;
     deadline?: string | null;
+    work_received_at?: string | null;
   };
   try {
     body = await req.json();
@@ -109,17 +110,37 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (body.coverage_end_time !== undefined) coverageUpdate.coverage_end_time = body.coverage_end_time;
   if (body.deadline !== undefined) coverageUpdate.deadline = body.deadline;
 
+  // work_received_at is set/cleared explicitly by the "Mark work received"
+  // toggle — never bundled with the deadline edit, so closing out an
+  // assignment never touches the original agreed deadline. Kept in its own
+  // object (like coverageUpdate) so it degrades gracefully — same pattern
+  // as rate_type/coverage_* — until the 20260828 migration has been run.
+  const receivedUpdate: Record<string, unknown> = {};
+  if (body.work_received_at !== undefined) receivedUpdate.work_received_at = body.work_received_at;
+
   const selectCols =
-    "id, role, agreed_rate, confirmed, paid, deadline, rate_type, coverage_start_time, coverage_end_time, " +
+    "id, role, agreed_rate, confirmed, paid, deadline, work_received_at, rate_type, coverage_start_time, coverage_end_time, " +
     "contractors (id, first_name, last_name, email, phone, role, default_rate, rate_type)";
 
   let { data, error } = await supabase
     .from("booking_contractors")
-    .update({ ...update, ...coverageUpdate })
+    .update({ ...update, ...coverageUpdate, ...receivedUpdate })
     .eq("id", params.assignmentId)
     .eq("booking_id", params.id)
     .select(selectCols)
     .single();
+
+  // work_received_at doesn't exist yet — retry without it so
+  // confirmed/paid/deadline/coverage updates still work.
+  if (error && isMissingColumnError(error) && Object.keys(receivedUpdate).length > 0) {
+    ({ data, error } = await supabase
+      .from("booking_contractors")
+      .update({ ...update, ...coverageUpdate })
+      .eq("id", params.assignmentId)
+      .eq("booking_id", params.id)
+      .select(selectCols.replace(", work_received_at", ""))
+      .single());
+  }
 
   // rate_type/coverage columns don't exist yet — retry with only the
   // original fields so confirmed/paid/agreed_rate updates still work.
@@ -133,9 +154,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       .single());
   }
 
-  // The select itself references columns (rate_type/coverage_*/default_rate)
-  // that may not exist yet — fall back to a minimal select so the core
-  // confirmed/paid toggle never breaks because of this newer amount-calc data.
+  // The select itself references columns (rate_type/coverage_*/default_rate/
+  // work_received_at) that may not exist yet — fall back to a minimal select
+  // so the core confirmed/paid toggle never breaks because of newer columns.
   const minimalSelectCols = "id, role, agreed_rate, confirmed, paid, deadline, contractors (id, first_name, last_name, email, phone, role)";
   if (error && isMissingColumnError(error)) {
     ({ data, error } = await supabase
