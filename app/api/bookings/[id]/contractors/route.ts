@@ -81,7 +81,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     coverage_end_time: body.coverage_end_time ?? null,
     deadline: body.deadline ?? null,
   };
-  const selectCols = "id, role, agreed_rate, confirmed, paid, deadline, contractors (id, first_name, last_name, email, phone, role)";
+  const selectCols = "id, role, agreed_rate, confirmed, paid, deadline, work_received_at, contractors (id, first_name, last_name, email, phone, role)";
 
   let { data, error } = await supabase
     .from("booking_contractors")
@@ -96,6 +96,16 @@ export async function POST(req: NextRequest, { params }: Params) {
       .from("booking_contractors")
       .insert(baseInsert)
       .select(selectCols)
+      .single());
+  }
+
+  // work_received_at doesn't exist yet either (20260828 migration not run) —
+  // drop it from the select too so assigning crew still works.
+  if (error && isMissingColumnError(error)) {
+    ({ data, error } = await supabase
+      .from("booking_contractors")
+      .insert(baseInsert)
+      .select(selectCols.replace(", work_received_at", ""))
       .single());
   }
 

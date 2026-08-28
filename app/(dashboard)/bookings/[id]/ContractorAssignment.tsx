@@ -64,6 +64,7 @@ interface Assignment {
   coverage_start_time?: string | null;
   coverage_end_time?: string | null;
   deadline?: string | null;
+  work_received_at?: string | null;
   confirmed: boolean;
   paid: boolean;
   contractors: { id: string; first_name: string; last_name: string; role: string } | null;
@@ -77,12 +78,46 @@ function formatDeadlineLabel(d?: string | null): string {
   return dt.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function isOverdue(d?: string | null): boolean {
-  if (!d) return false;
-  const dt = new Date(`${d}T00:00:00`);
+function daysBetween(a: string, b: string): number {
+  const dA = new Date(`${a}T00:00:00`).getTime();
+  const dB = new Date(`${b}T00:00:00`).getTime();
+  return Math.round((dB - dA) / 86400000);
+}
+
+/**
+ * Deadline/completion badge state for one assignment.
+ *
+ * `deadline` is the fixed, agreed-upon due date — set once, never edited
+ * after the fact (that's the point: it's the audit trail for future
+ * contractor performance/rate conversations). `work_received_at` is the
+ * separate, explicit "the work actually came back" marker toggled via
+ * "Mark work received". The badge is derived from both, so closing out a
+ * finished assignment never requires touching the original deadline:
+ *   - received + on/before deadline (or no deadline set)  -> "on time"
+ *   - received + after deadline                            -> "N day(s) late"
+ *   - not received + deadline in the past                  -> "overdue"
+ *   - not received + deadline today/future, or no deadline -> plain "due" label
+ */
+function deadlineBadge(
+  deadline?: string | null,
+  workReceivedAt?: string | null
+): { label: string; tone: "red" | "green" | "gray" } | null {
+  if (workReceivedAt) {
+    if (!deadline) {
+      return { label: `Received ${formatDeadlineLabel(workReceivedAt)}`, tone: "green" };
+    }
+    const late = daysBetween(deadline, workReceivedAt);
+    return late > 0
+      ? { label: `Received ${formatDeadlineLabel(workReceivedAt)} — ${late} day${late === 1 ? "" : "s"} late`, tone: "green" }
+      : { label: `Received ${formatDeadlineLabel(workReceivedAt)} — on time`, tone: "green" };
+  }
+  if (!deadline) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  return dt.getTime() < today.getTime();
+  const overdue = new Date(`${deadline}T00:00:00`).getTime() < today.getTime();
+  return overdue
+    ? { label: `Deadline: ${formatDeadlineLabel(deadline)} (overdue)`, tone: "red" }
+    : { label: `Deadline: ${formatDeadlineLabel(deadline)}`, tone: "gray" };
 }
 
 interface AvailableContractor {
@@ -229,6 +264,25 @@ export function ContractorAssignment({
     }
   }
 
+  // Sets/clears work_received_at only — deliberately separate from the
+  // Deadline edit form so closing out an assignment never overwrites the
+  // original agreed deadline.
+  async function markReceived(assignmentId: string, value: boolean) {
+    setBusyId(assignmentId);
+    try {
+      await fetch(`/api/bookings/${bookingId}/contractors/${assignmentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          work_received_at: value ? new Date().toISOString().slice(0, 10) : null,
+        }),
+      });
+      router.refresh();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   function startEdit(a: Assignment) {
     setEditingId(a.id);
     setEditRateType(a.rate_type === "HOURLY" || a.rate_type === "PER_PROJECT" ? a.rate_type : defaultRateTypeForRole(a.role));
@@ -359,11 +413,15 @@ export function ContractorAssignment({
                     {coverageLabel && (
                       <p className="text-xs text-gray-400">Coverage: {coverageLabel}</p>
                     )}
-                    {a.deadline && (
-                      <p className={`text-xs ${isOverdue(a.deadline) ? "text-red-600 font-medium" : "text-gray-400"}`}>
-                        Deadline: {formatDeadlineLabel(a.deadline)}{isOverdue(a.deadline) && " (overdue)"}
-                      </p>
-                    )}
+                    {(() => {
+                      const badge = deadlineBadge(a.deadline, a.work_received_at);
+                      if (!badge) return null;
+                      const toneClass =
+                        badge.tone === "red" ? "text-red-600 font-medium"
+                        : badge.tone === "green" ? "text-green-700 font-medium"
+                        : "text-gray-400";
+                      return <p className={`text-xs ${toneClass}`}>{badge.label}</p>;
+                    })()}
                     <div className="flex items-center gap-2 mt-1">
                       <button
                         type="button"
@@ -381,6 +439,17 @@ export function ContractorAssignment({
                       >
                         {a.paid ? "Paid" : "Unpaid"}
                       </button>
+                      {a.deadline && (
+                        <button
+                          type="button"
+                          disabled={isBusy}
+                          onClick={() => markReceived(a.id, !a.work_received_at)}
+                          title={a.work_received_at ? "Clear — work not actually received" : "Mark the work as received back from this contractor today"}
+                          className={`badge text-xs ${a.work_received_at ? "badge-confirmed" : "badge-pending"}`}
+                        >
+                          {a.work_received_at ? "Received" : "Mark received"}
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="text-right flex flex-col items-end gap-1">
@@ -472,6 +541,11 @@ export function ContractorAssignment({
                       <label className="label text-xs">Deadline (internal — when this work is due back)</label>
                       <input type="date" className={ic} value={editDeadline}
                         onChange={(e) => setEditDeadline(e.target.value)} />
+                      {a.deadline && editDeadline !== a.deadline && (
+                        <p className="text-[11px] text-amber-600 mt-1">
+                          This overwrites the original agreed deadline ({formatDeadlineLabel(a.deadline)}) with no record of the change — use "Mark received" instead to close out finished work without losing that date.
+                        </p>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <button

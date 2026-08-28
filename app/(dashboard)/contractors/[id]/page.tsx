@@ -38,21 +38,29 @@ export default async function ContractorDetailPage({ params }: Params) {
 
   if (error || !contractor) notFound();
 
-  // deadline column may not exist yet if the 20260820_contractor_deadline.sql
-  // migration hasn't been run in Supabase — degrade gracefully rather than
-  // 500ing this whole page.
+  // deadline/work_received_at columns may not exist yet if their migrations
+  // haven't been run in Supabase — degrade gracefully rather than 500ing
+  // this whole page.
   let assignments: any[] | null = null;
   {
     const { data, error: assignErr } = await supabase
       .from("booking_contractors")
-      .select("id, role, agreed_rate, confirmed, paid, deadline, bookings (id, event_date, service_type, status, clients (first_name, last_name))")
+      .select("id, role, agreed_rate, confirmed, paid, deadline, work_received_at, bookings (id, event_date, service_type, status, clients (first_name, last_name))")
       .eq("contractor_id", params.id);
     if (assignErr) {
-      const { data: fallback } = await supabase
+      const { data: withoutReceived, error: receivedErr } = await supabase
         .from("booking_contractors")
-        .select("id, role, agreed_rate, confirmed, paid, bookings (id, event_date, service_type, status, clients (first_name, last_name))")
+        .select("id, role, agreed_rate, confirmed, paid, deadline, bookings (id, event_date, service_type, status, clients (first_name, last_name))")
         .eq("contractor_id", params.id);
-      assignments = fallback;
+      if (receivedErr) {
+        const { data: fallback } = await supabase
+          .from("booking_contractors")
+          .select("id, role, agreed_rate, confirmed, paid, bookings (id, event_date, service_type, status, clients (first_name, last_name))")
+          .eq("contractor_id", params.id);
+        assignments = fallback;
+      } else {
+        assignments = withoutReceived;
+      }
     } else {
       assignments = data;
     }
@@ -190,7 +198,12 @@ export default async function ContractorDetailPage({ params }: Params) {
                   </thead>
                   <tbody>
                     {assignments.map((a: any) => {
-                      const overdue = a.deadline && new Date(`${a.deadline}T00:00:00`) < new Date(new Date().toDateString());
+                      // Received work is never "overdue" regardless of how the
+                      // date compares to today — see ContractorAssignment.tsx's
+                      // deadlineBadge() for the fuller version of this logic
+                      // used on the booking detail page; kept in sync here.
+                      const overdue = !a.work_received_at && a.deadline &&
+                        new Date(`${a.deadline}T00:00:00`) < new Date(new Date().toDateString());
                       const client = a.bookings?.clients;
                       const clientName = client ? `${client.first_name} ${client.last_name}` : "—";
                       return (
@@ -207,7 +220,11 @@ export default async function ContractorDetailPage({ params }: Params) {
                           <td className="table-cell text-sm text-gray-600">{ROLE_LABELS[a.role] ?? a.role}</td>
                           <td className="table-cell text-right font-semibold text-sm">{formatCurrency(a.agreed_rate)}</td>
                           <td className="table-cell text-sm">
-                            {a.deadline ? (
+                            {a.work_received_at ? (
+                              <span className="text-green-700 font-medium">
+                                Received {formatDate(a.work_received_at)}
+                              </span>
+                            ) : a.deadline ? (
                               <span className={overdue ? "text-red-600 font-medium" : "text-gray-600"}>
                                 {formatDate(a.deadline)}{overdue && " (overdue)"}
                               </span>
