@@ -12,7 +12,7 @@ import { isCurrentUserFounder } from "@/lib/team";
 
 type Params = { params: { id: string } };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) {
@@ -21,6 +21,14 @@ export async function GET(_req: NextRequest, { params }: Params) {
   if (!(await isCurrentUserFounder())) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  // The "Send Invoice to Client" flow fetches this PDF to attach to the email
+  // *before* the invoice is marked SENT (that happens once the email actually
+  // goes out, so a failed send doesn't leave the invoice incorrectly marked as
+  // sent). Without this flag the attachment would still say "DRAFT" even
+  // though the client is receiving it right now. asSent only changes what's
+  // rendered on this copy — it never writes to the DB.
+  const asSent = new URL(req.url).searchParams.get("asSent") === "true";
 
   // Fetch the full invoice data needed for the PDF
   const { data: invoice, error } = await supabase
@@ -43,6 +51,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
   invoice.invoice_line_items = (invoice.invoice_line_items ?? []).sort(
     (a: any, b: any) => a.sort_order - b.sort_order
   );
+
+  if (asSent && invoice.status === "DRAFT") {
+    invoice.status = "SENT";
+  }
 
   try {
     // Render PDF to a Node.js Buffer using renderToBuffer
