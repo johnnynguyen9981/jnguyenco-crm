@@ -27,8 +27,11 @@ export function InvoiceDetailActions({ invoice, client }: Props) {
     setSendLoading(true);
     setMessage(null);
     try {
-      // 1. Fetch the invoice PDF and convert to base64
-      const pdfRes = await fetch(`/api/invoices/${invoice.id}/pdf`);
+      // 1. Fetch the invoice PDF and convert to base64.
+      // asSent=true renders the PDF as "Sent" — the invoice.status DB write only
+      // happens below once the email actually succeeds, so this is a display-only
+      // override that keeps the attachment from saying "DRAFT" while it's mid-send.
+      const pdfRes = await fetch(`/api/invoices/${invoice.id}/pdf?asSent=true`);
       if (!pdfRes.ok) throw new Error("Could not generate invoice PDF.");
       const pdfBlob   = await pdfRes.blob();
       const pdfBase64 = await new Promise<string>((resolve, reject) => {
