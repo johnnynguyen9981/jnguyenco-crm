@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
         description: li.description,
         quantity:    li.quantity,
         unit_price:  li.unit_price,
+        total:       li.quantity * li.unit_price,
         sort_order:  i,
       }))
     );
