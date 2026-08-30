@@ -42,13 +42,14 @@ export async function POST(
   const token   = crypto.randomBytes(32).toString("hex");
     const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
-  // Save token to booking
+  // Save token to booking. contract_sent_at is written separately, only
+  // after the email actually sends (below) — otherwise a failed send still
+  // leaves the booking showing the contract as sent.
   const { error: updateErr } = await supabase
       .from("bookings")
       .update({
               contract_sign_token:      token,
               contract_sign_expires_at: expires.toISOString(),
-              contract_sent_at:         new Date().toISOString(),
       })
       .eq("id", bookingId)
       .eq("owner_id", user.id);
@@ -80,6 +81,13 @@ export async function POST(
         console.error("[sign-request] Email send failed:", emailErr);
         return apiError("Token saved but email failed to send: " + emailErr.message, 500);
   }
+
+  // Email sent successfully — now it's safe to mark the contract as sent.
+  await supabase
+      .from("bookings")
+      .update({ contract_sent_at: new Date().toISOString() })
+      .eq("id", bookingId)
+      .eq("owner_id", user.id);
 
   return apiSuccess({
         message:      "Signing link sent to " + client.email,
