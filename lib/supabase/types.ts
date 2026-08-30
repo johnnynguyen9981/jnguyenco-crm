@@ -128,7 +128,9 @@ export interface InvoiceLineItem {
   sort_order: number;
 }
 
-export type InvoiceLineItemInsert = Omit<InvoiceLineItem, 'id' | 'total'>;
+// `total` is computed by the API route (quantity * unit_price) before insert — it
+// isn't a DB-generated column, so callers must still provide it.
+export type InvoiceLineItemInsert = Omit<InvoiceLineItem, 'id'>;
 
 // ── Payment ──────────────────────────────────────────────────────────────────
 export interface Payment {

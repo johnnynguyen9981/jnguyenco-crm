@@ -141,15 +141,15 @@ export default async function InvoiceDetailPage({ params }: Props) {
                   <span>Subtotal</span>
                   <span>{formatCurrency(invoice.subtotal)}</span>
                 </div>
-                {Number(invoice.gst) > 0 && (
+                {Number(invoice.gst_amount) > 0 && (
                   <div className="flex justify-between text-gray-500">
                     <span>GST (10%)</span>
-                    <span>{formatCurrency(invoice.gst)}</span>
+                    <span>{formatCurrency(invoice.gst_amount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-brand-navy text-base pt-2 border-t border-gray-200">
                   <span>Total</span>
-                  <span>{formatCurrency(invoice.total)}</span>
+                  <span>{formatCurrency(invoice.total_amount)}</span>
                 </div>
               </div>
             </div>
@@ -183,7 +183,9 @@ export default async function InvoiceDetailPage({ params }: Props) {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Amount Due</span>
-                <span className="font-bold text-brand-navy">{formatCurrency(invoice.total)}</span>
+                <span className="font-bold text-brand-navy">
+                  {formatCurrency(Math.max(0, Number(invoice.total_amount) - Number(invoice.amount_paid || 0)))}
+                </span>
               </div>
               {invoice.paid_at && (
                 <div className="flex justify-between">
