@@ -45,7 +45,7 @@ export default async function SignContractPage({ params }: Props) {
 
   const client  = booking.clients as any;
   const pkg     = booking.packages as any;
-  const deposit = booking.deposit_amount ?? Math.round((booking.quoted_total ?? 0) * 0.25);
+  const deposit = booking.deposit_amount ?? Math.round((booking.quoted_total ?? 0) * 0.30);
 
   return (
     <div className="min-h-screen" style={{ background: "#f7f4f1" }}>
