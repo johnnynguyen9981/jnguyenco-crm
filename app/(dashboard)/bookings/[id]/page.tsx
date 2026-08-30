@@ -468,7 +468,7 @@ export default async function BookingDetailPage({ params }: Props) {
             {/* Deposit invoice shortcut */}
             {client && (() => {
               const qt = booking.quoted_total ?? 0;
-              const depAmt = depositAmount > 0 ? depositAmount : (qt > 0 ? Math.round(qt * 0.5) : 0);
+              const depAmt = depositAmount > 0 ? depositAmount : (qt > 0 ? Math.round(qt * 0.30) : 0);
               return depAmt > 0 ? (
                 <GenerateDepositInvoiceButton
                   bookingId={booking.id}
