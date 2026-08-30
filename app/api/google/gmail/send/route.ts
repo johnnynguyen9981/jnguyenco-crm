@@ -43,6 +43,10 @@ export async function POST(req: NextRequest) {
     let emailHtml    = "";
     let emailSubject = subject ?? "";
     let pdfAttachment: { filename: string; data: string } | undefined;
+    // Set only by the invoice_sent case — the actual DB write happens after
+    // the send call succeeds below, not here, so a failed send doesn't leave
+    // the invoice incorrectly marked as sent.
+    let markInvoiceSentId: string | undefined;
 
     switch (template) {
       // ── Booking confirmation ────────────────────────────────────────────
@@ -97,11 +101,10 @@ export async function POST(req: NextRequest) {
         emailSubject  = emailSubject || `Invoice ${invoice.invoice_number} — JNguyen Co.`;
         pdfAttachment = { filename: `${invoice.invoice_number}.pdf`, data: pdf_base64 };
 
-        // Mark invoice as sent
-        await supabase
-          .from("invoices")
-          .update({ status: "SENT", sent_at: new Date().toISOString() })
-          .eq("id", invoice_id);
+        // Mark invoice as sent — deferred until after the send actually
+        // succeeds (see markInvoiceSentId below), so a failed send doesn't
+        // leave the invoice incorrectly marked as sent.
+        markInvoiceSentId = invoice_id;
         break;
       }
 
@@ -276,6 +279,14 @@ export async function POST(req: NextRequest) {
     const sentFrom = from_account === "gmail"
       ? (process.env.NEXT_PUBLIC_BUSINESS_EMAIL ?? "johnny.nguyen9981@gmail.com")
       : (process.env.SMTP_USER ?? "johnny.nguyen@jnguyen.co");
+
+    // The send call above succeeded — safe to mark the invoice as sent now.
+    if (markInvoiceSentId) {
+      await supabase
+        .from("invoices")
+        .update({ status: "SENT", sent_at: new Date().toISOString() })
+        .eq("id", markInvoiceSentId);
+    }
 
     return apiSuccess({ messageId, sent_to: to, sent_from: sentFrom, subject: emailSubject });
 

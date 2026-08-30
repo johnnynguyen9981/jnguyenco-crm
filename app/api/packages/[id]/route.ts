@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { isCurrentUserFounder } from "@/lib/team";
 
 function adminClient() {
   return createServiceClient(
@@ -36,6 +37,13 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Package pricing/config is founder-only — GET is shared with staff (they
+  // need it for bookings) but writes are not. This uses the service-role
+  // client below, which bypasses RLS, so this check is the only thing
+  // stopping a logged-in staff account from editing pricing directly.
+  if (!(await isCurrentUserFounder())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const body = await req.json();
 
