@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 
 const PACKAGES = [
+  { id: "quiet_elopement",  label: "The Quiet Elopement",           price: "$1,200",  desc: "Up to 1 hr · 1 Photographer · 60-80 images · Photography only · Sun-Thu only" },
   { id: "mini_wedding",       label: "Mini Wedding / Elopement",              price: "$2,300",  desc: "Up to 4 hrs · 1 Photographer + 1 Videographer · 200–350 images · 3–5 min film" },
   { id: "full_day_essential", label: "Full Day Essential",                    price: "$4,500",  desc: "Up to 8 hrs · 1 Photographer + 1 Videographer · 400–600 images · 5–7 min highlight film" },
   { id: "full_day_premium",   label: "Full Day Premium",                      price: "$7,300",  desc: "Up to 13 hrs · 2 Photographers + 2 Videographers · 700–1,000 images" },
@@ -10,7 +11,7 @@ const PACKAGES = [
   { id: "hourly_photo",       label: "Event Photography Only",                price: "$230/hr", desc: "50–80 edited images per hour · Online gallery · 2–4 week turnaround" },
   { id: "hourly_video",       label: "Event Videography Only",                price: "$280/hr", desc: "1–2 min highlight reel per hour of coverage · Online gallery · 6–8 week turnaround" },
   { id: "hourly_photo_video", label: "Event Photography & Videography",       price: "$425/hr", desc: "50–80 images/hr + 1–2 min highlight reel per hour · Online gallery" },
-  { id: "portrait",           label: "Portrait Session",                      price: "$250/hr", desc: "Couples · Family · Newborn/Maternity — $250/hr · Headshot — flat $375 · Online gallery" },
+  { id: "portrait",           label: "Portrait Session",                      price: "$250/hr", desc: "Couples · Family · Newborn/Maternity · Individual — $250/hr · Headshot — flat $375 · Online gallery" },
   { id: "not_sure",           label: "Not sure — please advise me",           price: null,      desc: "" },
 ];
 
