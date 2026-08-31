@@ -2,12 +2,12 @@
 import { useState, useEffect, useRef } from "react";
 
 const PACKAGES = [
-  { id: "quiet_elopement",  label: "The Quiet Elopement",           price: "$1,200",  desc: "Up to 1 hr · 1 Photographer · 60-80 images · Photography only · Sun-Thu only" },
+  { id: "quiet_elopement",  label: "The Quiet Elopement",           price: "$999",  desc: "Up to 2 hrs · 1 Photographer · 80–100 images · Photography only · Sun-Thu only" },
   { id: "mini_wedding",       label: "Mini Wedding / Elopement",              price: "$2,300",  desc: "Up to 4 hrs · 1 Photographer + 1 Videographer · 200–350 images · 3–5 min film" },
   { id: "full_day_essential", label: "Full Day Essential",                    price: "$4,500",  desc: "Up to 8 hrs · 1 Photographer + 1 Videographer · 400–600 images · 5–7 min highlight film" },
-  { id: "full_day_premium",   label: "Full Day Premium",                      price: "$7,300",  desc: "Up to 13 hrs · 2 Photographers + 2 Videographers · 700–1,000 images" },
-  { id: "wedding_photo_only", label: "Wedding Photography Only",              price: "$3,700",  desc: "7–10 hrs · Photographer only, no videographer · 400–600 images" },
-  { id: "wedding_video_only", label: "Wedding Videography Only (Cinematic)",  price: "$3,600",  desc: "7–10 hrs · Videographer only, no photographer · 5–7 min cinematic film" },
+  { id: "full_day_premium",   label: "Full Day Premium",                      price: "$7,300",  desc: "Up to 10 hrs · 2 Photographers + 2 Videographers · 700–1,000 images" },
+  { id: "wedding_photo_only", label: "Wedding Photography Only",              price: "$2,650",  desc: "Up to 8 hrs · Photographer only, no videographer · 400–600 images" },
+  { id: "wedding_video_only", label: "Wedding Videography Only (Cinematic)",  price: "$2,650",  desc: "Up to 8 hrs · Videographer only, no photographer · 5–7 min cinematic film" },
   { id: "hourly_photo",       label: "Event Photography Only",                price: "$230/hr", desc: "50–80 edited images per hour · Online gallery · 2–4 week turnaround" },
   { id: "hourly_video",       label: "Event Videography Only",                price: "$280/hr", desc: "1–2 min highlight reel per hour of coverage · Online gallery · 6–8 week turnaround" },
   { id: "hourly_photo_video", label: "Event Photography & Videography",       price: "$425/hr", desc: "50–80 images/hr + 1–2 min highlight reel per hour · Online gallery" },
@@ -16,6 +16,14 @@ const PACKAGES = [
 ];
 
 const EVENT_TYPES = ["Wedding / Elopement","Birthday","Baptism","Party / Celebration","Corporate Event","Portrait Session","Other"];
+
+// Qualifying question — shown for wedding/elopement enquiries only, before package selection,
+// to steer intent toward Mini Wedding (ceremony + reception) vs The Quiet Elopement (ceremony only)
+// rather than relying on a couple reading FAQ copy. See crm/packages.md cannibalization guardrail note.
+const CEREMONY_SCOPE_OPTIONS = [
+  { id: "ceremony_reception", label: "Ceremony & reception",  sub: "Full wedding day — ceremony, reception, speeches, dancing" },
+  { id: "ceremony_only",      label: "Just the ceremony",     sub: "e.g. courthouse, registry office, elopement — no reception" },
+];
 const BUDGET_OPTIONS = [
   { id: "under_1k",   label: "Under $1,000" },
   { id: "1k_2.5k",   label: "$1,000 – $2,500" },
@@ -48,6 +56,8 @@ const NEEDS_PARTNER    = (eventType: string, pkg: string) =>
 const SERVICES_INFERRED = (pkg: string) => WEDDING_PACKAGES.has(pkg); // wedding pkgs include both
 const BUDGET_NEEDED     = (pkg: string) => !pkg || pkg === "not_sure";
 const REFERRAL_HAS_NOTES = (src: string) => src === "WORD_OF_MOUTH" || src === "OTHER";
+const IS_WEDDING_EVENT_TYPE = (eventType: string) =>
+  eventType.toLowerCase().includes("wedding") || eventType.toLowerCase().includes("elopement");
 
 function SectionHeader({ num, title, note }: { num: string; title: string; note?: string }) {
   return (
@@ -94,7 +104,7 @@ export default function EnquireEmbedPage() {
     referral_source: "", referral_notes: "",
     partner_first: "", partner_last: "", partner_email: "", partner_phone: "",
     event_type: "", event_date: "", event_start_time: "", event_end_time: "",
-    venue_name: "", venue_suburb: "", guest_count: "",
+    venue_name: "", venue_suburb: "", guest_count: "", ceremony_scope: "",
     selected_package: "", services_required: "", budget_range: "", special_requests: "",
   });
 
@@ -112,6 +122,21 @@ export default function EnquireEmbedPage() {
 
   function set(field: keyof typeof form, val: string) {
     setForm(prev => ({ ...prev, [field]: val }));
+  }
+
+  // Toggles the ceremony-scope qualifying answer and, unless the couple has already picked a
+  // specific package themselves, pre-selects the matching one in step 03 (still changeable there).
+  function selectCeremonyScope(id: string) {
+    setForm(prev => {
+      const nextScope = prev.ceremony_scope === id ? "" : id;
+      let nextPackage = prev.selected_package;
+      if (nextScope === "ceremony_reception" && (prev.selected_package === "" || prev.selected_package === "quiet_elopement")) {
+        nextPackage = "mini_wedding";
+      } else if (nextScope === "ceremony_only" && (prev.selected_package === "" || prev.selected_package === "mini_wedding")) {
+        nextPackage = "quiet_elopement";
+      }
+      return { ...prev, ceremony_scope: nextScope, selected_package: nextPackage };
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -203,6 +228,18 @@ export default function EnquireEmbedPage() {
               {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
+          {IS_WEDDING_EVENT_TYPE(form.event_type) && (
+            <div>
+              <label className={lbl}>Will your day include a ceremony and reception, or just the ceremony?</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {CEREMONY_SCOPE_OPTIONS.map(o => (
+                  <OptionCard key={o.id} selected={form.ceremony_scope === o.id}
+                    onSelect={() => selectCeremonyScope(o.id)}
+                    label={o.label} sub={o.sub} />
+                ))}
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-4">
             <div><label className={lbl}>Event Date</label><input type="date" min={TODAY} className={inp} value={form.event_date} onChange={e => set("event_date", e.target.value)} /></div>
             <div><label className={lbl}>Start Time</label><input type="time" className={inp} value={form.event_start_time} onChange={e => set("event_start_time", e.target.value)} /></div>
