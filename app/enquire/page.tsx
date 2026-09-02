@@ -5,6 +5,7 @@ import { useState } from "react";
 // ─── Package options ──────────────────────────────────────────────────────────
 const PACKAGES = [
   { id: "quiet_elopement",  label: "The Quiet Elopement",           price: "$999",  desc: "Up to 2 hrs · 1 Photographer · 80-100 images · Photography only · Sun-Thu only" },
+  { id: "vietnamese_tea_ceremony", label: "Vietnamese Tea Ceremony",       price: "$1,650",  desc: "Up to 2 hrs · 1 Photographer + 1 Videographer · 200-350 images · Full ceremony coverage · 2-3 min film" },
   { id: "mini_wedding",       label: "Mini Wedding / Elopement",              price: "$2,300",  desc: "Up to 4 hrs · 1 Photographer + 1 Videographer · 200-350 images · 3-5 min film" },
   { id: "full_day_essential", label: "Full Day Essential",                    price: "$4,500",  desc: "Up to 8 hrs · 1 Photographer + 1 Videographer · 400-600 images · 5-7 min highlight film" },
   { id: "full_day_premium",   label: "Full Day Premium",                      price: "$7,300",  desc: "Up to 10 hrs · 2 Photographers + 2 Videographers · 700-1,000 images" },
