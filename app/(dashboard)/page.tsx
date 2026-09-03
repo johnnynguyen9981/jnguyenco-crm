@@ -10,11 +10,10 @@ import {
 } from "@/lib/utils";
 import Link from "next/link";
 import {
-  Plus, ArrowRight, AlertTriangle, TrendingUp, CalendarCheck, Users, Star,
+  Plus, ArrowRight, AlertTriangle, TrendingUp, CalendarCheck, Users,
   Inbox, FileWarning, Clock, Camera, Check, X, ChevronRight,
 } from "lucide-react";
 import type { ReferralSource } from "@/lib/supabase/types";
-import { fetchReviews } from "@/lib/reviews";
 import { ReferralSourceChart, type ReferralSegment } from "@/components/dashboard/ReferralSourceChart";
 import { ProductionTimeline, type TimelineRow } from "@/components/dashboard/ProductionTimeline";
 
@@ -47,7 +46,6 @@ export default async function DashboardPage() {
   const yearStart   = `${new Date().getFullYear()}-01-01`;
 
   const [
-    { reviews: googleReviewsList, rating: googleRating, totalReviews: googleTotal },
     { data: thisWeekBookings },
     { data: upcomingBookings },
     { data: overdueInvoices },
@@ -61,8 +59,6 @@ export default async function DashboardPage() {
     { data: productionQueue },
     { data: pipelineRows },
   ] = await Promise.all([
-    fetchReviews(),
-
     // This week's shoots, with everything needed to judge readiness.
     supabase
       .from("bookings")
@@ -443,7 +439,7 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* ── Secondary: referral sources + reviews ────────── */}
+        {/* ── Secondary: referral sources ──────────────────── */}
         <div className="pt-2 border-t border-brand-pale-blue/60">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Insights</h2>
           <div className="space-y-6">
@@ -453,57 +449,6 @@ export default async function DashboardPage() {
                   How Clients Heard About Us
                 </h2>
                 <ReferralSourceChart segments={referralSegments} />
-              </div>
-            )}
-
-            {googleReviewsList.length > 0 && (
-              <div className="card p-0 overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-brand-pale-blue">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-semibold text-brand-navy">Google Reviews</h2>
-                    <span className="flex items-center gap-1 bg-amber-50 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded-full border border-amber-200">
-                      <Star size={11} className="fill-amber-400 text-amber-400" />
-                      {googleRating.toFixed(1)} · {googleTotal} reviews
-                    </span>
-                  </div>
-                  <a
-                    href="https://share.google/sUmfJfpLfCDYnQMsz"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-brand-teal hover:underline font-medium"
-                  >
-                    View on Google →
-                  </a>
-                </div>
-                <div className="divide-y divide-brand-pale-blue">
-                  {googleReviewsList.slice(0, 5).map((r, i) => (
-                    <div key={i} className="px-5 py-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          {r.profile_photo_url ? (
-                            <img src={r.profile_photo_url} alt={r.author_name} className="w-8 h-8 rounded-full shrink-0 object-cover" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-brand-sand/20 border border-brand-sand/30 flex items-center justify-center shrink-0">
-                              <span className="text-brand-sand text-xs font-bold">{r.author_name[0]}</span>
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-brand-navy truncate">{r.author_name}</p>
-                            <p className="text-xs text-gray-400">{r.relative_time_description}</p>
-                          </div>
-                        </div>
-                        <div className="flex shrink-0">
-                          {[1,2,3,4,5].map(s => (
-                            <Star key={s} size={13} className={s <= r.rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"} />
-                          ))}
-                        </div>
-                      </div>
-                      {r.text && (
-                        <p className="mt-2.5 text-sm text-gray-600 leading-relaxed line-clamp-3">{r.text}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
           </div>
