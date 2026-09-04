@@ -11,11 +11,12 @@ import {
 import Link from "next/link";
 import {
   Plus, ArrowRight, AlertTriangle, TrendingUp, CalendarCheck, Users,
-  Inbox, FileWarning, Clock, Camera, Check, X, ChevronRight,
+  Inbox, FileWarning, Clock, Camera, Check, X, ChevronRight, Banknote,
 } from "lucide-react";
 import type { ReferralSource } from "@/lib/supabase/types";
 import { ReferralSourceChart, type ReferralSegment } from "@/components/dashboard/ReferralSourceChart";
 import { ProductionTimeline, type TimelineRow } from "@/components/dashboard/ProductionTimeline";
+import { ContractorPayments, countContractorPaymentAlerts, type UnpaidAssignment } from "@/components/dashboard/ContractorPayments";
 
 // Fixed display order + brand color per referral source, so the legend and
 // slice colors stay stable regardless of which sources happen to have data.
@@ -58,6 +59,7 @@ export default async function DashboardPage() {
     { count: deliverablesDueSoonCount },
     { data: productionQueue },
     { data: pipelineRows },
+    { data: unpaidContractorAssignments },
   ] = await Promise.all([
     // This week's shoots, with everything needed to judge readiness.
     supabase
@@ -148,6 +150,16 @@ export default async function DashboardPage() {
       .from("bookings")
       .select("status")
       .in("status", ["INQUIRY", "QUOTED", "CONTRACTED", "CONFIRMED"]),
+
+    // Contractor payments not yet marked paid — feeds the dashboard's
+    // "Contractor Payments" panel (per-event hourly crew once their event
+    // has passed, and the Photo Editor's every-5-projects batch payout).
+    supabase
+      .from("booking_contractors")
+      .select(`id, role, agreed_rate, rate_type, coverage_start_time, coverage_end_time, work_received_at,
+               contractors (id, first_name, last_name, default_rate, rate_type),
+               bookings (id, event_date, clients (first_name, last_name))`)
+      .eq("paid", false),
   ]);
 
   // ── Compute stats ────────────────────────────────────────────────────────
@@ -162,6 +174,30 @@ export default async function DashboardPage() {
   (pipelineRows ?? []).forEach((b: { status: keyof typeof pipelineCounts }) => {
     if (b.status in pipelineCounts) pipelineCounts[b.status]++;
   });
+
+  // Unpaid contractor assignments — feeds the "Contractor Payments" panel.
+  const unpaidAssignmentRows: UnpaidAssignment[] = (unpaidContractorAssignments ?? []).map((a: any) => {
+    const contractor = a.contractors;
+    const booking    = a.bookings;
+    const client     = booking?.clients;
+    return {
+      id: a.id,
+      role: a.role,
+      agreedRate: a.agreed_rate,
+      rateType: a.rate_type,
+      coverageStartTime: a.coverage_start_time,
+      coverageEndTime: a.coverage_end_time,
+      workReceivedAt: a.work_received_at,
+      contractorId: contractor?.id,
+      contractorName: contractor ? `${contractor.first_name} ${contractor.last_name}` : "—",
+      contractorDefaultRate: contractor?.default_rate ?? null,
+      contractorRateType: contractor?.rate_type ?? null,
+      bookingId: booking?.id,
+      eventDate: booking?.event_date ?? null,
+      clientName: client ? `${client.first_name} ${client.last_name}` : "—",
+    };
+  });
+  const contractorPaymentAlertCount = countContractorPaymentAlerts(unpaidAssignmentRows);
 
   const attentionItems = [
     {
@@ -198,6 +234,13 @@ export default async function DashboardPage() {
       icon: <Camera size={16} />,
       tone: "accent" as const,
       href: "/deliverables?filter=due-soon",
+    },
+    {
+      count: contractorPaymentAlertCount,
+      label: `Contractor payment${contractorPaymentAlertCount === 1 ? "" : "s"} due`,
+      icon: <Banknote size={16} />,
+      tone: "warning" as const,
+      href: "/contractors",
     },
   ].filter((item) => item.count > 0);
 
@@ -304,6 +347,9 @@ export default async function DashboardPage() {
 
         {/* ── Production timeline (Gantt-style stage tracker) ─ */}
         <ProductionTimeline rows={timelineRows} />
+
+        {/* ── Contractor payments awaiting action ──────────── */}
+        <ContractorPayments assignments={unpaidAssignmentRows} />
 
         {/* ── Pipeline + financial snapshot ────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
