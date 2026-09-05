@@ -135,7 +135,7 @@ export function SigningForm({ token, clientName }: Props) {
         <h2 style={{ color: "#083a4f", margin: "12px 0 8px" }}>Contract Signed!</h2>
         <p style={{ color: "#555", lineHeight: 1.7 }}>
           Thank you! A signed copy of your contract has been emailed to you.<br />
-          We'll be in touch soon with your invoice and next steps.
+          We&apos;ll be in touch soon with your invoice and next steps.
         </p>
         <p style={{ color: "#888", fontSize: 13, marginTop: 12 }}>
           Questions? <a href="mailto:johnny.nguyen@jnguyen.co" style={{ color: "#407e8c" }}>johnny.nguyen@jnguyen.co</a>
@@ -151,7 +151,7 @@ export function SigningForm({ token, clientName }: Props) {
       <div style={{ background: "#fff", border: "1px solid #c0d5d6", borderRadius: 8, padding: "20px 24px" }}>
         <h2 style={{ color: "#083a4f", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Your Signature</h2>
         <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>
-          Choose how you'd like to sign — drawn or typed.
+          Choose how you&apos;d like to sign — drawn or typed.
         </p>
 
         {/* Tab switcher */}

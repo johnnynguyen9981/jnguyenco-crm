@@ -111,7 +111,7 @@ export function ChecklistClient({ bookingId, clientName, eventDate, sections, in
       {allDone && (
         <div className="mx-4 mt-4 rounded-lg px-4 py-3 text-sm font-medium text-center"
           style={{ background: "#f0faf4", border: "1px solid #6fcf97", color: "#27ae60" }}>
-          ✅ All packed — you're ready. Have a great shoot!
+          ✅ All packed — you&apos;re ready. Have a great shoot!
         </div>
       )}
 

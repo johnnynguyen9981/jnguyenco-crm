@@ -571,7 +571,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         <Text style={s.body}>
           Subject to the terms set out herein, Client engages Photographer to provide, and
           Photographer agrees to provide, the photography services described in this Section 1.1
-          (the "Services").
+          (the &quot;Services&quot;).
         </Text>
         <Field label="Date of Event:"           value={fmtDate(d.event_date)} />
         <Field label="Location of Event:"       value={location} />
@@ -583,7 +583,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         <Text style={s.body}>
           As part of the Services, the Photographer will produce or take similar action to
           create materials from Images and provide related deliverables pursuant to the
-          provision of the Services ("Work Product"). "Images" means photographic material,
+          provision of the Services (&quot;Work Product&quot;). &quot;Images&quot; means photographic material,
           whether still or moving, created by Photographer pursuant to this Agreement and
           includes transparencies, negatives, prints or digital files, captured, recorded,
           stored or delivered in any type of analogue, photographic, optical, electronic,
@@ -602,7 +602,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         <Section title="2. Fees and Deposit" />
         <Text style={s.subheading}>2.1 Fees</Text>
         <Text style={s.body}>
-          Client will pay Photographer the fees set out herein in this Section 2.1 ("Fees"),
+          Client will pay Photographer the fees set out herein in this Section 2.1 (&quot;Fees&quot;),
           including any applicable federal or state/provincial sales or value-added taxes due
           on such Fees.
         </Text>
@@ -625,7 +625,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         <Text style={s.subheading}>2.3 Deposit</Text>
         <Text style={s.body}>
           Client acknowledges and agrees that the deposit amount set out above is due upon
-          the signing of this Agreement and is not refundable ("Deposit"), so as to fairly
+          the signing of this Agreement and is not refundable (&quot;Deposit&quot;), so as to fairly
           compensate Photographer for committing his/her time to provide the Services and
           turning down other potential projects or clients. Both parties agree that the
           Deposit will be credited towards the total Fees payable by Client.
@@ -646,7 +646,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
             ? <Field label="Coverage Duration:" value={coverageHoursLabel + " (hourly booking)"} />
             : null}
 
-        <Text style={s.subheading}>What's Included:</Text>
+        <Text style={s.subheading}>What&apos;s Included:</Text>
         <View>
           {deliverablesList.map((item, i) => (
             <Text key={i} style={s.bullet}>{"•  " + item}</Text>
@@ -676,23 +676,23 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         <Text style={s.subheading}>4.1 Delivery Method</Text>
         <Text style={s.body}>
           All final deliverables — edited images (JPEG format) and highlight film (MP4 format) — will be
-          delivered exclusively via a private shared Google Drive download link ("Gallery Link"). The Gallery
+          delivered exclusively via a private shared Google Drive download link (&quot;Gallery Link&quot;). The Gallery
           Link will be issued to the Client at the email address provided in this Agreement once the full
           balance has been cleared. Gallery passwords are not used; the link is shared directly and securely.
         </Text>
         <Text style={s.subheading}>4.2 Access Window</Text>
         <Text style={s.body}>
           The Gallery Link will remain active for a period of three (3) calendar months from the date of
-          actual delivery ("Access Period"). The Client is solely responsible for downloading all files
+          actual delivery (&quot;Access Period&quot;). The Client is solely responsible for downloading all files
           before the Access Period expires. The Photographer will send a reminder notification to the
-          Client's registered email address approximately 14 days prior to expiry as a courtesy; however,
-          failure to send such reminder does not extend the Access Period or affect the Photographer's
+          Client&apos;s registered email address approximately 14 days prior to expiry as a courtesy; however,
+          failure to send such reminder does not extend the Access Period or affect the Photographer&apos;s
           obligations under this Agreement.
         </Text>
         <Text style={s.subheading}>4.3 Permanent Deletion — No Recovery</Text>
         <Text style={s.body}>
           Upon expiry of the Access Period, the Gallery Link will be permanently disabled and all
-          associated files will be permanently deleted from the Photographer's storage. The Photographer
+          associated files will be permanently deleted from the Photographer&apos;s storage. The Photographer
           is under no obligation to retain, recover, re-upload or re-deliver any files after this date.
           No refund or compensation will be provided for files not downloaded within the Access Period,
           and no exceptions will be made regardless of the reason for non-download.
@@ -701,10 +701,10 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         <Text style={s.body}>
           The Photographer strongly recommends that the Client download all delivered files immediately
           upon receipt of the Gallery Link and create at least one personal backup copy. The Photographer
-          shall not be held liable for any loss of files resulting from: (a) the Client's failure to
+          shall not be held liable for any loss of files resulting from: (a) the Client&apos;s failure to
           download within the Access Period; (b) third-party platform outages or changes to Google
-          Drive's terms of service; or (c) any other circumstances outside the Photographer's reasonable
-          control. It is the Client's sole responsibility to ensure files are saved and secured.
+          Drive&apos;s terms of service; or (c) any other circumstances outside the Photographer&apos;s reasonable
+          control. It is the Client&apos;s sole responsibility to ensure files are saved and secured.
         </Text>
         <Text style={s.subheading}>4.5 Physical Media (USB) Add-On</Text>
         <Text style={s.body}>
@@ -718,7 +718,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         </Text>
         <Text style={s.subheading}>4.6 Delays</Text>
         <Text style={s.body}>
-          In the event that circumstances beyond the Photographer's reasonable control — including
+          In the event that circumstances beyond the Photographer&apos;s reasonable control — including
           illness, equipment failure, extreme weather, or third-party platform outages — cause a delay
           in delivery, the Photographer will notify the Client in writing as soon as practicable and
           provide a revised delivery date. The three-month Access Period will commence from the actual
@@ -730,8 +730,8 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         {/* 5 */}
         <Section title="5. Photo Editing and Revisions" />
         <Text style={s.body}>
-          After you receive your edited photos, you'll have up to 7 days to share your
-          feedback. We're happy to provide one round of re-edits free of charge. If you'd
+          After you receive your edited photos, you&apos;ll have up to 7 days to share your
+          feedback. We&apos;re happy to provide one round of re-edits free of charge. If you&apos;d
           like further adjustments beyond that, an additional fee of $15 per photo or $250
           per video will apply.
         </Text>
@@ -770,15 +770,15 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
               Client (on behalf of himself/herself and all persons whose likeness is captured
               during the Services) warrants that they have obtained consent from all attendees
               over the age of 18 and from the parent or guardian of any minors whose likeness
-              may be captured, for Photographer's use of Images as set out in this Agreement.
+              may be captured, for Photographer&apos;s use of Images as set out in this Agreement.
             </Text>
             <View style={s.notice}>
               <Text style={s.noticeText}>
                 By agreement with Client, Photographer will NOT use any Images from this
-                engagement for Photographer's portfolio, website, social media, or any other
+                engagement for Photographer&apos;s portfolio, website, social media, or any other
                 marketing or promotional materials. Images will be used solely to produce and
-                deliver Client's Work Product under this Agreement. This supersedes
-                Photographer's standard portfolio/marketing licence for this booking only.
+                deliver Client&apos;s Work Product under this Agreement. This supersedes
+                Photographer&apos;s standard portfolio/marketing licence for this booking only.
               </Text>
             </View>
           </>
@@ -787,7 +787,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
             Client (on behalf of himself/herself and all persons whose likeness is captured
             during the Services) hereby grants Photographer an irrevocable, worldwide,
             royalty-free licence to use, display, publish and reproduce any Images containing
-            Client's or any attendee's likeness for the purposes of Photographer's portfolio,
+            Client&apos;s or any attendee&apos;s likeness for the purposes of Photographer&apos;s portfolio,
             website, social media, and general marketing and promotional materials. Client
             warrants that they have obtained consent from all attendees over the age of 18 and
             from the parent or guardian of any minors whose likeness may be captured.
@@ -806,7 +806,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         <Text style={s.body}>
           Photographer will ensure that the Services are performed in a good, expedient,
           workmanlike and safe manner, and in such a manner as to avoid unreasonable
-          interference with Client's activities.
+          interference with Client&apos;s activities.
         </Text>
         <Text style={s.subheading}>7.3 Photography Staff</Text>
         <Text style={s.body}>
@@ -826,7 +826,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         <Text style={s.subheading}>8.1 Consistency</Text>
         <Text style={s.body}>
           Photographer will use reasonable efforts to ensure that the Services are produced
-          in a style consistent with Photographer's current portfolio, and Photographer will
+          in a style consistent with Photographer&apos;s current portfolio, and Photographer will
           use reasonable efforts to consult with Client and incorporate any reasonable
           suggestions.
         </Text>
@@ -853,13 +853,13 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         <Text style={s.body}>
           This Agreement will begin on the Effective Date and continue until the latter of
           (i) the date where all outstanding Fees under this Agreement are paid in full; or
-          (ii) the date where all final Work Product has been delivered ("Term").
+          (ii) the date where all final Work Product has been delivered (&quot;Term&quot;).
         </Text>
         <Text style={s.subheading}>9.2 Cancellation</Text>
         <Text style={s.body}>
-          Client may terminate the Agreement ("Cancellation") and/or reschedule the Services
-          ("Rescheduling") by providing Photographer with written notice no later than 30
-          days before the original date of the Event (the "Minimum Notice"). Client
+          Client may terminate the Agreement (&quot;Cancellation&quot;) and/or reschedule the Services
+          (&quot;Rescheduling&quot;) by providing Photographer with written notice no later than 30
+          days before the original date of the Event (the &quot;Minimum Notice&quot;). Client
           acknowledges and agrees that Client is not relieved of any payment obligations for
           Cancellations and Rescheduling unless the Minimum Notice is duly provided or unless
           the parties otherwise agree in writing.
@@ -867,8 +867,8 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         <Text style={s.subheading}>9.3 Rescheduling</Text>
         <Text style={s.body}>
           In the event of Rescheduling, Photographer will use commercially reasonable
-          efforts to accommodate Client's change. If Photographer is not able to accommodate
-          Client's change despite using commercially reasonable efforts, the parties agree
+          efforts to accommodate Client&apos;s change. If Photographer is not able to accommodate
+          Client&apos;s change despite using commercially reasonable efforts, the parties agree
           that such Rescheduling will be deemed as Cancellation by Client and that
           Photographer will be under no obligation to perform the Services other than on the
           original date of the event.
@@ -881,7 +881,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         <Text style={s.subheading}>9.5 Replacement</Text>
         <Text style={s.body}>
           In the event that Photographer is unable to perform the Services, Photographer,
-          subject to Client's consent (not to be unreasonably withheld), shall cause a
+          subject to Client&apos;s consent (not to be unreasonably withheld), shall cause a
           replacement photographer to perform the Services. In the event that such consent
           is not obtained, Photographer shall terminate this Agreement and shall return the
           Deposit and all fees paid by Client, and thereafter shall have no further liability
@@ -897,9 +897,9 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
           hereby grants Photographer and any of its service providers an exclusive,
           royalty-free, worldwide, irrevocable, transferable and sublicensable license to
           use any materials created by Client or attendees during the performance of the
-          Services that may be protected by copyright ("Event Materials") as part of any
+          Services that may be protected by copyright (&quot;Event Materials&quot;) as part of any
           Work Product or in connection with the marketing, advertising or promotion of
-          Photographer's services, including in connection with Photographer's studio,
+          Photographer&apos;s services, including in connection with Photographer&apos;s studio,
           portfolio, website or social media, in any format or medium.
         </Text>
 
@@ -911,19 +911,19 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
           <Text style={s.noticeText}>
             In plain terms: You are free to share and print your photos for personal use,
             including on your personal social media accounts. You may not sell them or use
-            them for commercial purposes without the Photographer's written consent.
+            them for commercial purposes without the Photographer&apos;s written consent.
           </Text>
         </View>
         <Text style={s.subheading}>11.1 Personal Use</Text>
         <Text style={s.body}>
           Photographer hereby grants Client an exclusive, limited, irrevocable, royalty-free,
-          non-transferable and non-sublicensable license to use Work Product for Client's
+          non-transferable and non-sublicensable license to use Work Product for Client&apos;s
           Personal Use, provided that Client does not remove any attribution or copyright
-          notices included by Photographer. "Personal Use" includes use of photos on Client's
+          notices included by Photographer. &quot;Personal Use&quot; includes use of photos on Client&apos;s
           personal social media pages; in personal creations such as scrapbooks or albums;
           in non-commercial physical display; and in personal communications such as family
           newsletter, email, or holiday card. Client will not make any other use of the Work
-          Product without Photographer's prior written consent, including use of the Work
+          Product without Photographer&apos;s prior written consent, including use of the Work
           Product for commercial sale.
         </Text>
 
@@ -956,7 +956,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         </Text>
         <Text style={s.subheading}>12.4 Maximum Liability</Text>
         <Text style={s.body}>
-          Notwithstanding anything to the contrary, Client agrees that Photographer's
+          Notwithstanding anything to the contrary, Client agrees that Photographer&apos;s
           maximum liability arising out of or related to the Services or the Work Product
           shall not exceed the total Fees payable under this Agreement.
         </Text>

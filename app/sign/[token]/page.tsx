@@ -157,7 +157,7 @@ function SuccessPage({ clientName, signedAt }: { clientName: string; signedAt: s
         <h2 style={{ color: "#083a4f", marginTop: 12 }}>Contract Signed!</h2>
         <p style={{ color: "#555", lineHeight: 1.7, marginTop: 8 }}>
           Hi {clientName}, your contract was signed on {signedAt}.<br />
-          A copy was emailed to you. We can't wait for your event!
+          A copy was emailed to you. We can&apos;t wait for your event!
         </p>
         <p style={{ color: "#888", fontSize: 13, marginTop: 12 }}>
           Questions? Email{" "}

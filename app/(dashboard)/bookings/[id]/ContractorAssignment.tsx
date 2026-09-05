@@ -543,7 +543,7 @@ export function ContractorAssignment({
                         onChange={(e) => setEditDeadline(e.target.value)} />
                       {a.deadline && editDeadline !== a.deadline && (
                         <p className="text-[11px] text-amber-600 mt-1">
-                          This overwrites the original agreed deadline ({formatDeadlineLabel(a.deadline)}) with no record of the change — use "Mark received" instead to close out finished work without losing that date.
+                          This overwrites the original agreed deadline ({formatDeadlineLabel(a.deadline)}) with no record of the change — use &quot;Mark received&quot; instead to close out finished work without losing that date.
                         </p>
                       )}
                     </div>

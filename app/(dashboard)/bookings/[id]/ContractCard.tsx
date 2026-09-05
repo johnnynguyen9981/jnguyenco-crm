@@ -196,7 +196,7 @@ export function ContractCard({
       {status === "SENT" && (
         <div className="space-y-2">
           <p className="text-xs text-gray-400">
-            Once the client returns the signed copy, upload it below — it'll be saved to their
+            Once the client returns the signed copy, upload it below — it&apos;ll be saved to their
             Drive folder and the contract marked as signed automatically.
           </p>
 
@@ -258,7 +258,7 @@ export function ContractCard({
           )}
           {sigLinkToken && (
             <p className="text-xs text-gray-400 text-center -mt-1">
-              Generates a fresh link and emails it again — useful if the client couldn't open the original.
+              Generates a fresh link and emails it again — useful if the client couldn&apos;t open the original.
             </p>
           )}
           <button
@@ -273,7 +273,7 @@ export function ContractCard({
             disabled={loading !== null || uploading}
             className="text-xs text-gray-400 hover:text-red-500 underline w-full text-center"
           >
-            Undo "Sent"
+            Undo &quot;Sent&quot;
           </button>
         </div>
       )}
@@ -362,7 +362,7 @@ export function ContractCard({
             disabled={loading !== null}
             className="text-xs text-gray-400 hover:text-red-500 underline"
           >
-            Undo "Signed"
+            Undo &quot;Signed&quot;
           </button>
         </div>
       )}

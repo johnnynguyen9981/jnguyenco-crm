@@ -250,12 +250,12 @@ export default function EditPackagePage() {
           </h2>
 
           <div>
-            <label className="label">Coverage Team <span className="text-gray-400 font-normal">e.g. "1 Photographer &amp; 1 Videographer"</span></label>
+            <label className="label">Coverage Team <span className="text-gray-400 font-normal">e.g. &quot;1 Photographer &amp; 1 Videographer&quot;</span></label>
             <input className={ic} value={form.team} onChange={(e) => set("team", e.target.value)} />
           </div>
 
           <div>
-            <label className="label">Deliverables <span className="text-gray-400 font-normal">(one bullet per line — shown as "What's Included")</span></label>
+            <label className="label">Deliverables <span className="text-gray-400 font-normal">(one bullet per line — shown as &quot;What&apos;s Included&quot;)</span></label>
             <textarea rows={6} className={ic + " resize-y font-mono text-xs"}
               placeholder={"200–350 professionally edited high-resolution images\n3–5 minute cinematic highlight film\nOnline gallery delivery via Google Drive (download link)"}
               value={form.deliverables} onChange={(e) => set("deliverables", e.target.value)} />

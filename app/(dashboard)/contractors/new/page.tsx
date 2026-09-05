@@ -193,7 +193,7 @@ export default function NewContractorPage() {
           </div>
 
           <div>
-            <label className="label">Notes <span className="text-gray-400 font-normal">(optional — used to fill the agreement's scope section)</span></label>
+            <label className="label">Notes <span className="text-gray-400 font-normal">(optional — used to fill the agreement&apos;s scope section)</span></label>
             <textarea rows={3} className={ic + " resize-y"}
               placeholder="e.g. Editing all wedding galleries within 2 weeks of raw file handoff..."
               value={form.notes}
