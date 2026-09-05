@@ -15,28 +15,36 @@ import {
   Document, Page, Text, View, StyleSheet, renderToBuffer, Svg, Path, Font,
 } from "@react-pdf/renderer";
 import path from "path";
+import fs from "fs";
 
 // ─── Font registration ──────────────────────────────────────
+// Font.register() itself never throws for a bad/missing path — it just
+// records the family name -> source mapping. The actual file read happens
+// later, lazily, the first time renderToBuffer() needs to embed that font's
+// glyphs — which is outside this function entirely, so a missing file used
+// to surface as an uncaught ENOENT deep inside rendering, failing the whole
+// call sheet with no useful error. Checking existsSync first and simply not
+// registering a font whose file isn't there means that family falls back to
+// PDF's built-in Helvetica instead of crashing the request.
 let fontsRegistered = false;
 function registerFonts() {
   if (fontsRegistered) return;
-  try {
-    Font.register({
-      family: "DMSerifDisplay",
-      fonts: [{ src: path.join(process.cwd(), "public", "fonts", "DMSerifDisplay-Regular.woff"), fontWeight: 400 }],
-    });
-    Font.register({
-      family: "Montserrat",
-      fonts: [{ src: path.join(process.cwd(), "public", "fonts", "Montserrat-Regular.ttf"), fontWeight: 400 }],
-    });
-    Font.register({
-      family: "Montserrat-SemiBold",
-      fonts: [{ src: path.join(process.cwd(), "public", "fonts", "Montserrat-SemiBold.ttf"), fontWeight: 600 }],
-    });
-    fontsRegistered = true;
-  } catch (e) {
-    console.error("[generate-call-sheet] Font registration failed, falling back to Helvetica:", e);
-  }
+  const register = (family: string, file: string, fontWeight: number) => {
+    const src = path.join(process.cwd(), "public", "fonts", file);
+    if (!fs.existsSync(src)) {
+      console.error(`[generate-call-sheet] Font file missing, falling back to Helvetica for "${family}":`, src);
+      return;
+    }
+    try {
+      Font.register({ family, fonts: [{ src, fontWeight }] });
+    } catch (e) {
+      console.error(`[generate-call-sheet] Font.register failed for "${family}":`, e);
+    }
+  };
+  register("DMSerifDisplay", "DMSerifDisplay-Regular.woff", 400);
+  register("Montserrat", "Montserrat-Regular.ttf", 400);
+  register("Montserrat-SemiBold", "Montserrat-SemiBold.ttf", 600);
+  fontsRegistered = true;
 }
 registerFonts();
 

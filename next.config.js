@@ -11,6 +11,18 @@ const nextConfig = {
     GOOGLE_DRIVE_ROOT_FOLDER_ID: process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID ?? "",
   },
   serverExternalPackages: ["@react-pdf/renderer"],
+  // PDF generation (invoices, contracts, quotes, receipts, call sheets —
+  // see lib/generate-*.tsx and lib/pdf/*.tsx) reads font/logo files via
+  // path.join(process.cwd(), "public", ...) at runtime. Next's build-time
+  // file tracer can't resolve a process.cwd()-based path statically, so
+  // without this, those files silently don't make it into the deployed
+  // serverless function on Vercel — the routes work fine locally (cwd is
+  // the project root either way) and fail in production with an ENOENT
+  // buried inside @react-pdf's renderer, surfacing as a generic
+  // "Failed to generate ..." error with no obvious cause.
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./public/fonts/**", "./public/PNG/**", "./public/signature.png"],
+  },
   async headers() {
     return [
       {
