@@ -391,9 +391,21 @@ export function ContractorAssignment({
             const coverageLabel = a.coverage_start_time && a.coverage_end_time
               ? `${formatTimeLabel(a.coverage_start_time)} – ${formatTimeLabel(a.coverage_end_time)}`
               : null;
-            const rateLabel = a.agreed_rate != null
-              ? `${formatCurrency(a.agreed_rate)}${a.rate_type === "HOURLY" ? "/hr" : ""}`
-              : "—";
+            const coverageHours = a.rate_type === "HOURLY"
+              ? hoursBetween(a.coverage_start_time ?? undefined, a.coverage_end_time ?? undefined)
+              : null;
+            // For hourly assignments, show the total owed for the coverage
+            // window (what this row is actually worth) as the headline
+            // figure, not the bare rate — matching the flat-fee rows, which
+            // already show a total. The rate itself moves to a subtext.
+            const rateLabel = a.agreed_rate == null
+              ? "—"
+              : a.rate_type === "HOURLY" && coverageHours != null
+                ? formatCurrency(a.agreed_rate * coverageHours)
+                : `${formatCurrency(a.agreed_rate)}${a.rate_type === "HOURLY" ? "/hr" : ""}`;
+            const rateSubLabel = a.rate_type === "HOURLY" && coverageHours != null
+              ? `${formatCurrency(a.agreed_rate!)}/hr`
+              : null;
 
             return (
               <div key={a.id} className="py-1.5 border-b border-gray-50 last:border-0">
@@ -454,6 +466,7 @@ export function ContractorAssignment({
                   </div>
                   <div className="text-right flex flex-col items-end gap-1">
                     <p className="font-medium">{rateLabel}</p>
+                    {rateSubLabel && <p className="text-[11px] text-gray-400 -mt-1">{rateSubLabel}</p>}
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
