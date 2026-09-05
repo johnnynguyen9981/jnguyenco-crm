@@ -87,7 +87,11 @@ function startServer() {
 
 // ── 3. Poll until the server responds ────────────────────────────────────────
 function waitForServer(callback, attempts = 0) {
-  const req = http.get(`http://localhost:${PORT}`, (res) => {
+  // 127.0.0.1, not "localhost" — on some Windows setups "localhost" resolves
+  // to the IPv6 ::1 first, which this readiness probe then fails against for
+  // the full 40s even though the server is already up and reachable on
+  // IPv4, stalling every launch at the splash screen for no reason.
+  const req = http.get(`http://127.0.0.1:${PORT}`, (res) => {
     res.destroy();
     callback();
   });
