@@ -18,7 +18,10 @@ function stripBOM(s: string | undefined): string {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const host  = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "jnguyenco-crm.vercel.app";
-  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  // No x-forwarded-proto means no reverse proxy in front (Vercel always sets
+  // it) — i.e. local dev or the Electron desktop app talking to its own
+  // localhost server over plain HTTP, never HTTPS.
+  const proto = req.headers.get("x-forwarded-proto") ?? "http";
   const appUrl = `${proto}://${host}`;
 
   // ── 1. Google OAuth token exchange (state=google_connect) ───────────────

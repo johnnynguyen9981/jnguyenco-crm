@@ -16,7 +16,10 @@ async function handler(_req: NextRequest) {
     // Always use the actual request origin for the OAuth redirect.
   // This makes auth work correctly in Electron, local dev, and Vercel.
   const host  = _req.headers.get("x-forwarded-host") ?? _req.headers.get("host") ?? "jnguyenco-crm.vercel.app";
-  const proto = _req.headers.get("x-forwarded-proto") ?? "https";
+  // No x-forwarded-proto means no reverse proxy in front (Vercel always sets
+  // it) — i.e. local dev or the Electron desktop app talking to its own
+  // localhost server over plain HTTP, never HTTPS.
+  const proto = _req.headers.get("x-forwarded-proto") ?? "http";
   const appUrl = `${proto}://${host}`;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
