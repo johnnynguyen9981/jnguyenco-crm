@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOwnerUserId, getCurrentTeamMember, isFounder } from "@/lib/team";
 import { apiSuccess, apiError } from "@/lib/utils";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 // True if a Supabase/PostgREST error means a referenced column doesn't
 // exist yet — i.e. the 20260813_booking_contractor_coverage.sql migration
@@ -19,7 +19,8 @@ function isMissingColumnError(error: { code?: string; message?: string } | null)
   return msg.includes("schema cache") || (msg.includes("column") && msg.includes("does not exist"));
 }
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);

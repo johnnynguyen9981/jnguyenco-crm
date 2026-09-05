@@ -17,15 +17,16 @@ export const metadata = { title: "Expenses — JNguyen Co. CRM" };
 const CATEGORY_KEYS = Object.keys(EXPENSE_CATEGORIES) as ExpenseCategory[];
 
 type Props = {
-  searchParams: {
+  searchParams: Promise<{
     fy?: string;
     category?: string;
     search?: string;
     page?: string;
-  };
+  }>;
 };
 
-export default async function ExpensesPage({ searchParams }: Props) {
+export default async function ExpensesPage(props: Props) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const ownerUserId = await getOwnerUserId();
 

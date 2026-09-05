@@ -17,11 +17,12 @@ const ROLE_LABELS: Record<string, string> = {
   OTHER:        "Other",
 };
 
-export default async function ContractorsPage({
-  searchParams,
-}: {
-  searchParams: { search?: string; page?: string };
-}) {
+export default async function ContractorsPage(
+  props: {
+    searchParams: Promise<{ search?: string; page?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const ownerUserId = await getOwnerUserId();
 

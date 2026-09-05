@@ -8,13 +8,11 @@ import { contractSigningRequestHtml } from "@/lib/google/gmail";
 import { apiSuccess, apiError, formatDate, getAppUrl } from "@/lib/utils";
 import crypto from "crypto";
 
-export async function POST(
-    req: NextRequest,
-  { params }: { params: { id: string } }
-  ) {
-    const supabase = await createClient();
-    const { data: { user }, error: authErr } = await supabase.auth.getUser();
-    if (authErr || !user) return apiError("Unauthorized", 401);
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const supabase = await createClient();
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !user) return apiError("Unauthorized", 401);
 
   const bookingId = params.id;
 
@@ -33,14 +31,14 @@ export async function POST(
   if (bErr || !booking) return apiError("Booking not found", 404);
 
   const client = booking.clients as any;
-    const pkg    = booking.packages as any;
+  const pkg    = booking.packages as any;
 
   if (!client?.email) return apiError("Client has no email address on file.");
-    if (booking.contract_signed_at) return apiError("Contract is already signed.", 409);
+  if (booking.contract_signed_at) return apiError("Contract is already signed.", 409);
 
   // Generate a secure random token (32 hex bytes = 64 chars)
   const token   = crypto.randomBytes(32).toString("hex");
-    const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+  const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
   // Save token to booking. contract_sent_at is written separately, only
   // after the email actually sends (below) — otherwise a failed send still
@@ -62,7 +60,7 @@ export async function POST(
   const expiresDate = expires.toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
 
   const clientName = `${client.first_name} ${client.last_name}`;
-    const packageName = pkg?.name ?? "Photography & Videography Package";
+  const packageName = pkg?.name ?? "Photography & Videography Package";
 
   // Send the signing link email via GoDaddy SMTP
   try {

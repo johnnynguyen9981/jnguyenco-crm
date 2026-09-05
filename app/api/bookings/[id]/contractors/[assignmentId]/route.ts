@@ -42,7 +42,7 @@ function computeAssignmentAmount(row: {
   return Math.round(rate * 100) / 100;
 }
 
-type Params = { params: { id: string; assignmentId: string } };
+type Params = { params: Promise<{ id: string; assignmentId: string }> };
 
 async function assertOwnsBooking(supabase: any, bookingId: string, ownerUserId: string) {
   const { data, error } = await supabase
@@ -64,7 +64,8 @@ function isMissingColumnError(error: { code?: string; message?: string } | null)
   return msg.includes("schema cache") || (msg.includes("column") && msg.includes("does not exist"));
 }
 
-export async function PATCH(req: NextRequest, { params }: Params) {
+export async function PATCH(req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
@@ -257,7 +258,8 @@ async function syncContractorPaymentExpense(
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(_req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);

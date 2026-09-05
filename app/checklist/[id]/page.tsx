@@ -8,9 +8,10 @@ import { redirect, notFound } from "next/navigation";
 import { NIGHT_BEFORE_CHECKLIST } from "@/lib/checklist/nightBeforeItems";
 import { ChecklistClient } from "./ChecklistClient";
 
-type Props = { params: { id: string } };
+type Props = { params: Promise<{ id: string }> };
 
-export default async function ChecklistPage({ params }: Props) {
+export default async function ChecklistPage(props: Props) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/checklist/${params.id}`);

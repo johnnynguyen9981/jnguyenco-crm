@@ -7,13 +7,14 @@ import { createClient } from "@/lib/supabase/server";
 import { getOwnerUserId, getCurrentTeamMember, isFounder } from "@/lib/team";
 import { generateContractorAgreementPDF, ContractorAgreementData, ContractLanguage } from "@/lib/generate-contractor-agreement";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 function parseLanguage(value: unknown): ContractLanguage {
   return value === "VI" || value === "BOTH" ? value : "EN";
 }
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

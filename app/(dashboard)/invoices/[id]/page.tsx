@@ -11,9 +11,10 @@ import {
 } from "@/lib/utils";
 import { InvoiceDetailActions } from "./InvoiceDetailActions";
 
-type Props = { params: { id: string } };
+type Props = { params: Promise<{ id: string }> };
 
-export default async function InvoiceDetailPage({ params }: Props) {
+export default async function InvoiceDetailPage(props: Props) {
+  const params = await props.params;
   const supabase = await createClient();
   const {
     data: { user },

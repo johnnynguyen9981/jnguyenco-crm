@@ -4,10 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getAustralianFY } from "@/lib/expenses";
 import { isCurrentUserFounder } from "@/lib/team";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 // PATCH /api/expenses/[id]
-export async function PATCH(req: NextRequest, { params }: Params) {
+export async function PATCH(req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -43,7 +44,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 // DELETE /api/expenses/[id]
-export async function DELETE(req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

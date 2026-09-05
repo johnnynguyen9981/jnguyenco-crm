@@ -18,10 +18,11 @@ const STATUS_TABS: { label: string; value: InvoiceStatus | "ALL" }[] = [
 ];
 
 type Props = {
-  searchParams: { status?: string; page?: string; search?: string };
+  searchParams: Promise<{ status?: string; page?: string; search?: string }>;
 };
 
-export default async function InvoicesPage({ searchParams }: Props) {
+export default async function InvoicesPage(props: Props) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const {
     data: { user },

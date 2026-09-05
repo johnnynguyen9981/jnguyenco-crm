@@ -5,10 +5,11 @@ import { SigningForm } from "./SigningForm";
 import { formatDate } from "@/lib/utils";
 
 interface Props {
-  params: { token: string };
+  params: Promise<{ token: string }>;
 }
 
-export default async function SignContractPage({ params }: Props) {
+export default async function SignContractPage(props: Props) {
+  const params = await props.params;
   const { token } = params;
 
   // Use service role (bypasses RLS) so unauthenticated clients can load the page

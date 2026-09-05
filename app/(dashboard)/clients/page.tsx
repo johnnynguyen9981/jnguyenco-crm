@@ -9,11 +9,12 @@ import { DeleteClientButton } from "./DeleteClientButton";
 
 export const metadata = { title: "Clients — JNguyen Co. CRM" };
 
-export default async function ClientsPage({
-  searchParams,
-}: {
-  searchParams: { search?: string; page?: string };
-}) {
+export default async function ClientsPage(
+  props: {
+    searchParams: Promise<{ search?: string; page?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const ownerUserId = await getOwnerUserId();
