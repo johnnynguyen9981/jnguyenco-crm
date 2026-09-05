@@ -1,16 +1,30 @@
 // POST /api/bookings/[id]/contractors/[assignmentId]/call-sheet
-// Generates a "Booking Confirmation / Call Sheet" PDF for a single crew
-// assignment — the operational, contractor-facing companion to the legal
-// Independent Contractor Agreement (lib/generate-contractor-agreement.tsx).
-// Pulls the booking, client, package, and other assigned crew so the PDF
-// has full context (date/time/venue, shot list, rate, who else is on it).
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { getOwnerUserId, getCurrentTeamMember, isFounder } from "@/lib/team";
+//
+// This is a Pages Router API route, not an App Router route handler, even
+// though every other API route in this project lives under app/api/. That's
+// deliberate: @react-pdf/renderer's renderToBuffer() builds its element tree
+// with the exact same "react" package it requires internally, but a file
+// under app/** that creates that tree (lib/generate-call-sheet.tsx) gets
+// compiled through Next's app-router "react-server" webpack condition,
+// which resolves `react` to a Server-Components-only build missing the
+// reconciler internals react-pdf needs. Two different `react` module
+// instances in the same process means every element this file builds gets
+// rejected by react-pdf's reconciler as "not a valid React child" (Minified
+// React error #31) — reproduced directly against the dev server, not
+// inferred from Vercel's minified error text alone. Pages Router API routes
+// never enter that module graph, so `react` resolves once, consistently,
+// for both sides — the same fix multiple react-pdf/Next.js App Router
+// compatibility threads land on.
+//
+// Everything below mirrors what was previously
+// app/api/bookings/[id]/contractors/[assignmentId]/call-sheet/route.ts, just
+// adapted from NextRequest/NextResponse + async params to NextApiRequest/
+// NextApiResponse + req.query, and using createPagesClient (req/res cookies)
+// instead of the App Router-only createClient() (next/headers cookies()).
+import type { NextApiRequest, NextApiResponse } from "next";
+import { createPagesClient } from "@/lib/supabase/pages-server";
 import { formatServiceType } from "@/lib/utils";
 import { generateCallSheetPDF, CallSheetData } from "@/lib/generate-call-sheet";
-
-type Params = { params: Promise<{ id: string; assignmentId: string }> };
 
 const ROLE_LABELS: Record<string, string> = {
   PHOTOGRAPHER: "Photographer",
@@ -20,24 +34,43 @@ const ROLE_LABELS: Record<string, string> = {
   OTHER:        "Contractor",
 };
 
-export async function POST(_req: NextRequest, props: Params) {
-  const params = await props.params;
-  const supabase = await createClient();
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const bookingId = String(req.query.id);
+  const assignmentId = String(req.query.assignmentId);
+
+  const supabase = createPagesClient(req, res);
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
-  if (authErr || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (authErr || !user) return res.status(401).json({ error: "Unauthorized" });
 
-  const member = await getCurrentTeamMember();
-  const role = member?.role ?? "FOUNDER";
-  if (!isFounder(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  // Everything below is wrapped in one try/catch so that whatever actually
-  // fails (query, PDF render, anything in between) comes back as JSON with
-  // the real error message instead of surfacing as a generic platform error
-  // page — which the frontend can't parse as JSON and falls back to an
-  // uninformative "Failed to generate call sheet." with no way to diagnose
-  // it further from the deployed app alone.
   try {
-    const ownerUserId = await getOwnerUserId();
+    // Inlined founder/owner lookup (lib/team.ts's getCurrentTeamMember /
+    // getOwnerUserId both call the App Router-only createClient()
+    // internally, so they can't be reused from a Pages Router handler).
+    const { data: member } = await supabase
+      .from("team_members")
+      .select("role, user_id")
+      .eq("user_id", user.id)
+      .single();
+
+    const role = member?.role ?? "FOUNDER";
+    if (role !== "FOUNDER") return res.status(403).json({ error: "Forbidden" });
+
+    let ownerUserId = user.id;
+    if (member && member.role !== "FOUNDER") {
+      const { data: founder } = await supabase
+        .from("team_members")
+        .select("user_id")
+        .eq("role", "FOUNDER")
+        .eq("is_active", true)
+        .not("user_id", "is", null)
+        .single();
+      ownerUserId = founder?.user_id ?? user.id;
+    }
 
     // `*` (rather than an explicit column list) for the booking_contractors
     // row so this keeps working whether or not the rate_type/coverage_*
@@ -54,17 +87,17 @@ export async function POST(_req: NextRequest, props: Params) {
           packages (name)
         )
       `)
-      .eq("id", params.assignmentId)
-      .eq("booking_id", params.id)
+      .eq("id", assignmentId)
+      .eq("booking_id", bookingId)
       .single();
 
     if (error || !assignment) {
-      return NextResponse.json({ error: `Assignment not found${error ? `: ${error.message}` : ""}` }, { status: 404 });
+      return res.status(404).json({ error: `Assignment not found${error ? `: ${error.message}` : ""}` });
     }
 
     const booking = assignment.bookings as any;
     if (!booking || booking.owner_id !== ownerUserId) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return res.status(404).json({ error: "Not found" });
     }
 
     const contractor = assignment.contractors as any;
@@ -75,8 +108,8 @@ export async function POST(_req: NextRequest, props: Params) {
     const { data: crewRows } = await supabase
       .from("booking_contractors")
       .select("id, role, contractors (first_name, last_name)")
-      .eq("booking_id", params.id)
-      .neq("id", params.assignmentId);
+      .eq("booking_id", bookingId)
+      .neq("id", assignmentId);
 
     const crew = (crewRows ?? []).map((row: any) => {
       const c = row.contractors;
@@ -124,16 +157,12 @@ export async function POST(_req: NextRequest, props: Params) {
 
     const fileName = `Call_Sheet_${contractorName.replace(/\s+/g, "_")}_${booking.event_date ?? "TBC"}.pdf`;
 
-    return new NextResponse(new Uint8Array(pdfBuffer), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${fileName}"`,
-      },
-    });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    return res.status(200).send(pdfBuffer);
   } catch (e) {
     console.error("[call-sheet] PDF generation error:", e);
     const message = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: `Failed to generate call sheet: ${message}` }, { status: 500 });
+    return res.status(500).json({ error: `Failed to generate call sheet: ${message}` });
   }
 }
