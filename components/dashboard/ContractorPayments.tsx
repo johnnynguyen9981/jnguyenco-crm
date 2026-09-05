@@ -13,6 +13,7 @@
 // and 20260828_contractor_work_received.sql) — this is a read-only view on
 // data the app already tracks, no migration needed.
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 // Editor payouts are batched every 5 completed projects — Johnny's stated
@@ -152,6 +153,7 @@ export function ContractorPayments({ assignments }: { assignments: UnpaidAssignm
                   <p className="text-sm font-semibold text-brand-navy">{formatCurrency(a.amount)}</p>
                   <p className="text-[11px] text-red-500">{overdueDays}d since event</p>
                 </div>
+                <ChevronRight size={15} className="text-gray-300 shrink-0" />
               </Link>
             );
           })}
@@ -178,6 +180,7 @@ export function ContractorPayments({ assignments }: { assignments: UnpaidAssignm
                   {b.due ? "Batch ready — pay now" : "accumulating"}
                 </p>
               </div>
+              <ChevronRight size={15} className="text-gray-300 shrink-0" />
             </Link>
           ))}
         </div>
