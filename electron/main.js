@@ -176,6 +176,13 @@ function createWindow() {
   );
   mainWindow.show();
 
+  // Debug aid: set OPEN_DEVTOOLS=true before launching to auto-open the
+  // inspector (Network + Console tabs) without needing to trigger it by hand.
+  // Off by default so packaged builds never show it to end users.
+  if (process.env.OPEN_DEVTOOLS === "true") {
+    mainWindow.webContents.openDevTools({ mode: "right" });
+  }
+
   // Navigate to the app once the server is ready
   waitForServer(() => {
     if (mainWindow && !mainWindow.isDestroyed()) {
