@@ -16,6 +16,7 @@ echo.
 
 REM ── Step 2: Build Next.js in standalone mode ─────────────────────────────
 echo [2/5] Building Next.js (this takes ~1-2 minutes)...
+set ELECTRON_BUILD=true
 call npm run build
 if errorlevel 1 ( echo. & echo ERROR: Next.js build failed & pause & exit /b 1 )
 echo      Done.
