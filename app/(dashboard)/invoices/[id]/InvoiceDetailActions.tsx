@@ -241,8 +241,8 @@ export function InvoiceDetailActions({ invoice, client }: Props) {
               <div>
                 <h3 className="font-semibold text-brand-navy">Void this invoice?</h3>
                 <p className="text-sm text-gray-500 mt-1">
-                  {invoice.invoice_number} has already been sent, so it can't be deleted outright — voiding keeps it on record
-                  as cancelled instead, and it won't count toward outstanding revenue.
+                  {invoice.invoice_number} has already been sent, so it can&apos;t be deleted outright — voiding keeps it on record
+                  as cancelled instead, and it won&apos;t count toward outstanding revenue.
                 </p>
               </div>
             </div>

@@ -39,15 +39,16 @@ const TYPE_LABEL: Record<DeliverableType, string> = {
 export const metadata = { title: "Deliverables — JNguyen Co. CRM" };
 
 type Props = {
-  searchParams: {
+  searchParams: Promise<{
     status?: string;
     type?: string;
     search?: string;
     filter?: string; // "due-soon" | "overdue"
-  };
+  }>;
 };
 
-export default async function DeliverablesPage({ searchParams }: Props) {
+export default async function DeliverablesPage(props: Props) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;

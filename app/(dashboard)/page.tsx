@@ -25,7 +25,11 @@ const REFERRAL_SOURCE_STYLE: Record<string, string> = {
   GOOGLE:         "#a58d66", // brand-sand
   WORD_OF_MOUTH:  "#083a4f", // brand-navy
   WEDDING_WIRE:   "#0a4d68", // brand-navy-800
-  FACEBOOK:       "#305f6a", // brand-teal-700
+  // Was brand-teal-700 (#305f6a), which sits too close to Word of Mouth's
+  // navy in lightness — the two most common real-world sources ended up
+  // nearly indistinguishable in the legend. Sand-600 gives it a clearly
+  // different hue and lightness instead.
+  FACEBOOK:       "#8c7554", // brand-sand-600
   OTHER:          "#c0d5d6", // brand-pale-blue
   NOT_SPECIFIED:  "#d9d3cb", // muted neutral
 };
@@ -156,7 +160,7 @@ export default async function DashboardPage() {
     // has passed, and the Photo Editor's every-5-projects batch payout).
     supabase
       .from("booking_contractors")
-      .select(`id, role, agreed_rate, rate_type, coverage_start_time, coverage_end_time, work_received_at,
+      .select(`id, role, agreed_rate, amount_paid, rate_type, coverage_start_time, coverage_end_time, work_received_at,
                contractors (id, first_name, last_name, default_rate, rate_type),
                bookings (id, event_date, clients (first_name, last_name))`)
       .eq("paid", false),
@@ -184,6 +188,7 @@ export default async function DashboardPage() {
       id: a.id,
       role: a.role,
       agreedRate: a.agreed_rate,
+      amountPaid: a.amount_paid ?? 0,
       rateType: a.rate_type,
       coverageStartTime: a.coverage_start_time,
       coverageEndTime: a.coverage_end_time,
@@ -205,7 +210,7 @@ export default async function DashboardPage() {
       label: `Overdue invoice${overdueCount === 1 ? "" : "s"}`,
       icon: <AlertTriangle size={16} />,
       tone: "danger" as const,
-      href: "/invoices?filter=overdue",
+      href: "/invoices?status=OVERDUE",
     },
     {
       count: contractsAwaitingCount ?? 0,
@@ -282,7 +287,8 @@ export default async function DashboardPage() {
         subtitle={`${new Date().toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`}
       />
 
-      <div className="flex-1 p-6 space-y-6 overflow-auto">
+      <div className="flex-1 p-6 overflow-auto">
+      <div className="max-w-[1600px] mx-auto space-y-6">
 
         {/* ── Needs your attention ─────────────────────────── */}
         {attentionItems.length > 0 && (
@@ -302,7 +308,12 @@ export default async function DashboardPage() {
         <div className="card p-0 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-brand-pale-blue">
             <h2 className="text-base font-semibold text-brand-navy">This Week</h2>
-            <span className="text-xs text-gray-400">{formatDate(today)} – {formatDate(weekAhead)}</span>
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:inline text-[11px] text-gray-400">
+                Contract · Deposit · Crew
+              </span>
+              <span className="text-xs text-gray-400">{formatDate(today)} – {formatDate(weekAhead)}</span>
+            </div>
           </div>
           {!thisWeekBookings || thisWeekBookings.length === 0 ? (
             <div className="text-center py-10 text-gray-400 text-sm">
@@ -500,6 +511,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
+      </div>
       </div>
     </>
   );

@@ -22,7 +22,7 @@ import { DeliverableStatusSelect } from "@/app/(dashboard)/deliverables/Delivera
 import type { DeliverableStatus } from "@/lib/supabase/types";
 import { resolvePackageDeliverables } from "@/lib/deliverables";
 
-type Props = { params: { id: string } };
+type Props = { params: Promise<{ id: string }> };
 
 const DELIVERABLE_LABELS: Record<string, string> = {
   PHOTO_GALLERY: "Photo Gallery",
@@ -31,7 +31,8 @@ const DELIVERABLE_LABELS: Record<string, string> = {
   RAW_FOOTAGE: "Raw Footage",
 };
 
-export default async function BookingDetailPage({ params }: Props) {
+export default async function BookingDetailPage(props: Props) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;

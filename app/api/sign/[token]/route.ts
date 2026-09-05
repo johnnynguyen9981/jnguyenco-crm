@@ -30,19 +30,17 @@ function packageNameToKey(name: string): keyof Pick<EnquiryData,
     return null;
 }
 
-export async function POST(
-    req: NextRequest,
-  { params }: { params: { token: string } }
-  ) {
-    const { token } = params;
-    const body = await req.json();
-    const { signature_data_uri, signed_name } = body as {
-          signature_data_uri: string;
-          signed_name:        string;
-    };
+export async function POST(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
+  const { token } = params;
+  const body = await req.json();
+  const { signature_data_uri, signed_name } = body as {
+        signature_data_uri: string;
+        signed_name:        string;
+  };
 
   if (!signature_data_uri) return apiError("signature_data_uri is required");
-    if (!signature_data_uri.startsWith("data:image/")) return apiError("Invalid signature format");
+  if (!signature_data_uri.startsWith("data:image/")) return apiError("Invalid signature format");
 
   // Service client — no user session on public page
   const supabase = createServiceClient();
@@ -64,15 +62,15 @@ export async function POST(
   if (bErr || !booking) return apiError("Invalid or expired signing link.", 404);
 
   const now = new Date();
-    if (new Date(booking.contract_sign_expires_at!) < now) {
-          return apiError("This signing link has expired. Please contact JNguyen Co. for a new link.", 410);
-    }
-    if (booking.contract_signed_at) {
-          return apiError("This contract has already been signed.", 409);
-    }
+  if (new Date(booking.contract_sign_expires_at!) < now) {
+        return apiError("This signing link has expired. Please contact JNguyen Co. for a new link.", 410);
+  }
+  if (booking.contract_signed_at) {
+        return apiError("This contract has already been signed.", 409);
+  }
 
   const client = booking.clients as any;
-    const pkg    = booking.packages as any;
+  const pkg    = booking.packages as any;
 
   if (!client?.email) return apiError("No client email on file.", 500);
 
@@ -112,22 +110,22 @@ export async function POST(
 
   // ── Generate signed PDF ──────────────────────────────────────────────────
   let pdfBuffer: Buffer;
-    try {
-          pdfBuffer = await generateContractPDF(enquiryData, {
-                  clientSignatureDataUri: signature_data_uri,
-                  clientSignedAt:         now.toISOString(),
-          });
-    } catch (e: any) {
-          console.error("[sign/token] PDF generation failed:", e);
-          return apiError("Failed to generate signed contract PDF: " + e.message, 500);
-    }
+  try {
+        pdfBuffer = await generateContractPDF(enquiryData, {
+                clientSignatureDataUri: signature_data_uri,
+                clientSignedAt:         now.toISOString(),
+        });
+  } catch (e: any) {
+        console.error("[sign/token] PDF generation failed:", e);
+        return apiError("Failed to generate signed contract PDF: " + e.message, 500);
+  }
 
   const clientName  = `${client.first_name} ${client.last_name}`.trim();
-    const packageName = pkg?.name ?? "Photography & Videography Package";
-    const eventDate   = formatDate(booking.event_date);
-    const signedAt    = now.toLocaleString("en-AU", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
-    const pdfFilename = `Contract_Signed_${clientName.replace(/\s+/g, "_")}_${booking.event_date}.pdf`;
-    const pdfBase64   = pdfBuffer.toString("base64");
+  const packageName = pkg?.name ?? "Photography & Videography Package";
+  const eventDate   = formatDate(booking.event_date);
+  const signedAt    = now.toLocaleString("en-AU", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const pdfFilename = `Contract_Signed_${clientName.replace(/\s+/g, "_")}_${booking.event_date}.pdf`;
+  const pdfBase64   = pdfBuffer.toString("base64");
 
   const confirmHtml = contractSignedConfirmationHtml({ clientName, eventDate, packageName, signedAt });
 

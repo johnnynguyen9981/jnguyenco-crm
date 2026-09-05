@@ -42,7 +42,7 @@ function computeAssignmentAmount(row: {
   return Math.round(rate * 100) / 100;
 }
 
-type Params = { params: { id: string; assignmentId: string } };
+type Params = { params: Promise<{ id: string; assignmentId: string }> };
 
 async function assertOwnsBooking(supabase: any, bookingId: string, ownerUserId: string) {
   const { data, error } = await supabase
@@ -64,7 +64,8 @@ function isMissingColumnError(error: { code?: string; message?: string } | null)
   return msg.includes("schema cache") || (msg.includes("column") && msg.includes("does not exist"));
 }
 
-export async function PATCH(req: NextRequest, { params }: Params) {
+export async function PATCH(req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
@@ -81,6 +82,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   let body: {
     confirmed?: boolean;
     paid?: boolean;
+    amount_paid?: number | null;
     agreed_rate?: number | null;
     notes?: string;
     rate_type?: "HOURLY" | "PER_PROJECT" | null;
@@ -95,14 +97,32 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return apiError("Invalid JSON body");
   }
 
-  const update: Record<string, unknown> = {};
+  let update: Record<string, unknown> = {};
   if (typeof body.confirmed === "boolean") update.confirmed = body.confirmed;
   if (typeof body.paid === "boolean") {
     update.paid = body.paid;
     update.paid_date = body.paid ? new Date().toISOString().slice(0, 10) : null;
+    // Unmarking Paid is a full reset — clears any partial-payment progress
+    // too, rather than leaving a stale amount sitting against an Unpaid
+    // badge. (Marking Paid directly, without going through amount_paid,
+    // intentionally leaves amount_paid alone — reconciled below instead.)
+    if (!body.paid) update.amount_paid = 0;
   }
   if (body.agreed_rate !== undefined) update.agreed_rate = body.agreed_rate;
   if (body.notes !== undefined) update.notes = body.notes;
+
+  // amount_paid tracks a running total paid out so far, before the
+  // assignment is fully settled — e.g. a deposit now, the rest after the
+  // event. Kept in its own object (like coverageUpdate) so it degrades
+  // gracefully until the 20260905 migration has been run.
+  let amountPaid: number | undefined;
+  if (body.amount_paid !== undefined) {
+    const n = Number(body.amount_paid);
+    if (!Number.isFinite(n) || n < 0) return apiError("amount_paid must be a non-negative number");
+    amountPaid = Math.round(n * 100) / 100;
+  }
+  const amountPaidUpdate: Record<string, unknown> = {};
+  if (amountPaid !== undefined) amountPaidUpdate.amount_paid = amountPaid;
 
   const coverageUpdate: Record<string, unknown> = {};
   if (body.rate_type !== undefined) coverageUpdate.rate_type = body.rate_type;
@@ -119,16 +139,32 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (body.work_received_at !== undefined) receivedUpdate.work_received_at = body.work_received_at;
 
   const selectCols =
-    "id, role, agreed_rate, confirmed, paid, deadline, work_received_at, rate_type, coverage_start_time, coverage_end_time, " +
+    "id, role, agreed_rate, confirmed, paid, amount_paid, deadline, work_received_at, rate_type, coverage_start_time, coverage_end_time, " +
     "contractors (id, first_name, last_name, email, phone, role, default_rate, rate_type)";
 
   let { data, error } = await supabase
     .from("booking_contractors")
-    .update({ ...update, ...coverageUpdate, ...receivedUpdate })
+    .update({ ...update, ...coverageUpdate, ...receivedUpdate, ...amountPaidUpdate })
     .eq("id", params.assignmentId)
     .eq("booking_id", params.id)
     .select(selectCols)
     .single();
+
+  // amount_paid doesn't exist yet — strip it from `update` itself (not just
+  // this one retry) so every fallback below stays consistent, and retry.
+  if (error && isMissingColumnError(error) && (Object.keys(amountPaidUpdate).length > 0 || "amount_paid" in update)) {
+    if ("amount_paid" in update) {
+      const { amount_paid: _drop, ...rest } = update;
+      update = rest;
+    }
+    ({ data, error } = await supabase
+      .from("booking_contractors")
+      .update({ ...update, ...coverageUpdate, ...receivedUpdate })
+      .eq("id", params.assignmentId)
+      .eq("booking_id", params.id)
+      .select(selectCols.replace(", amount_paid", ""))
+      .single());
+  }
 
   // work_received_at doesn't exist yet — retry without it so
   // confirmed/paid/deadline/coverage updates still work.
@@ -155,8 +191,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
 
   // The select itself references columns (rate_type/coverage_*/default_rate/
-  // work_received_at) that may not exist yet — fall back to a minimal select
-  // so the core confirmed/paid toggle never breaks because of newer columns.
+  // work_received_at/amount_paid) that may not exist yet — fall back to a
+  // minimal select so the core confirmed/paid toggle never breaks because
+  // of newer columns.
   const minimalSelectCols = "id, role, agreed_rate, confirmed, paid, deadline, contractors (id, first_name, last_name, email, phone, role)";
   if (error && isMissingColumnError(error)) {
     ({ data, error } = await supabase
@@ -174,12 +211,36 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       : apiError(error.message, 500);
   }
 
+  // ── Reconcile amount_paid against the computed total ─────────────────────
+  // If a partial-payment update now covers (or exceeds) the full amount,
+  // auto-complete the assignment exactly as if the Paid badge had been
+  // clicked directly — no separate manual step needed once it's all paid.
+  let finalPaid: boolean | undefined = typeof body.paid === "boolean" ? body.paid : undefined;
+  const row: any = data;
+  if (amountPaid !== undefined && "amount_paid" in row && !row.paid) {
+    const total = computeAssignmentAmount(row, row.contractors ?? {});
+    if (total > 0 && row.amount_paid >= total) {
+      const { data: completed, error: completeErr } = await supabase
+        .from("booking_contractors")
+        .update({ paid: true, paid_date: new Date().toISOString().slice(0, 10) })
+        .eq("id", params.assignmentId)
+        .eq("booking_id", params.id)
+        .select(selectCols)
+        .single();
+      if (!completeErr && completed) {
+        data = completed;
+        finalPaid = true;
+      }
+    }
+  }
+
   // ── Auto-record contractor payment as a business Expense ─────────────────
-  // Fires only when this PATCH explicitly flips `paid`. Never lets an
-  // expense-side hiccup fail the paid toggle itself.
-  if (typeof body.paid === "boolean") {
+  // Fires whenever this request settled the assignment (directly via the
+  // Paid toggle, or indirectly via amount_paid reaching the full total).
+  // Never lets an expense-side hiccup fail the request itself.
+  if (typeof finalPaid === "boolean") {
     try {
-      await syncContractorPaymentExpense(supabase, user.id, params.id, params.assignmentId, body.paid, data);
+      await syncContractorPaymentExpense(supabase, user.id, params.id, params.assignmentId, finalPaid, data);
     } catch (e) {
       console.error("syncContractorPaymentExpense failed:", e);
     }
@@ -257,7 +318,8 @@ async function syncContractorPaymentExpense(
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(_req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);

@@ -18,11 +18,12 @@ function FlameMark({ color = "#a58d66", size = 48, opacity = 1 }: { color?: stri
   );
 }
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: { error?: string };
-}) {
+export default async function LoginPage(
+  props: {
+    searchParams: Promise<{ error?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (user) redirect("/");

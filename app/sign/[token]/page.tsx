@@ -5,10 +5,11 @@ import { SigningForm } from "./SigningForm";
 import { formatDate } from "@/lib/utils";
 
 interface Props {
-  params: { token: string };
+  params: Promise<{ token: string }>;
 }
 
-export default async function SignContractPage({ params }: Props) {
+export default async function SignContractPage(props: Props) {
+  const params = await props.params;
   const { token } = params;
 
   // Use service role (bypasses RLS) so unauthenticated clients can load the page
@@ -157,7 +158,7 @@ function SuccessPage({ clientName, signedAt }: { clientName: string; signedAt: s
         <h2 style={{ color: "#083a4f", marginTop: 12 }}>Contract Signed!</h2>
         <p style={{ color: "#555", lineHeight: 1.7, marginTop: 8 }}>
           Hi {clientName}, your contract was signed on {signedAt}.<br />
-          A copy was emailed to you. We can't wait for your event!
+          A copy was emailed to you. We can&apos;t wait for your event!
         </p>
         <p style={{ color: "#888", fontSize: 13, marginTop: 12 }}>
           Questions? Email{" "}

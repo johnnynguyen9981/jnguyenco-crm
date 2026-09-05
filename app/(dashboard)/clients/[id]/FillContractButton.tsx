@@ -253,7 +253,7 @@ export function FillContractButton({
 
         <div>
           <p className="text-xs text-gray-500 mb-2">
-            Optionally upload the client's enquiry PDF to auto-fill all fields.
+            Optionally upload the client&apos;s enquiry PDF to auto-fill all fields.
           </p>
           <label
             className={[

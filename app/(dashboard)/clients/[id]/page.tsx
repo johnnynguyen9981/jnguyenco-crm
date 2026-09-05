@@ -16,15 +16,17 @@ import { FillContractButton } from "./FillContractButton";
 import { DeleteClientButton } from "../DeleteClientButton";
 import { CreateDriveFolderButton } from "./CreateDriveFolderButton";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
-export async function generateMetadata({ params }: Params) {
+export async function generateMetadata(props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data } = await supabase.from("clients").select("first_name, last_name").eq("id", params.id).single();
   return { title: data ? `${data.first_name} ${data.last_name} — Clients` : "Client" };
 }
 
-export default async function ClientDetailPage({ params }: Params) {
+export default async function ClientDetailPage(props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 

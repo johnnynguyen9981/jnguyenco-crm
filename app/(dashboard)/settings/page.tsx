@@ -11,7 +11,8 @@ const ROLE_LABEL: Record<string, string> = {
   BOTH:         "Photographer & Videographer",
 };
 
-export default async function SettingsPage({ searchParams }: { searchParams: { google?: string; reason?: string } }) {
+export default async function SettingsPage(props: { searchParams: Promise<{ google?: string; reason?: string }> }) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const {
     data: { user },

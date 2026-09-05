@@ -10,7 +10,7 @@ import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from 
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 import { apiError, getAppUrl } from "@/lib/utils";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 type ReceiptPayload = {
   receiptData: ReceiptData;
@@ -146,15 +146,16 @@ function receiptErrorResponse(
 }
 
 // ── GET — return PDF as download ────────────────────────────────────────────
-export async function GET(_req: NextRequest, { params }: Params) {
-      const supabase = await createClient();
-      const { data: { user }, error: authErr } = await supabase.auth.getUser();
-      if (authErr || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(_req: NextRequest, props: Params) {
+  const params = await props.params;
+  const supabase = await createClient();
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   // Verify payment belongs to owner
   const { data: ownerCheck } = await supabase
         .from("payments").select("id").eq("id", params.id).eq("owner_id", user.id).maybeSingle();
-      if (!ownerCheck) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!ownerCheck) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const outcome = await buildReceiptData(params.id, supabase);
   if (!outcome.data) return receiptErrorResponse(outcome.errorReason, outcome.errorDetail);
@@ -198,14 +199,15 @@ export async function GET(_req: NextRequest, { params }: Params) {
 }
 
 // ── POST — generate PDF + email to client ──────────────────────────────────
-export async function POST(_req: NextRequest, { params }: Params) {
-      const supabase = await createClient();
-      const { data: { user }, error: authErr } = await supabase.auth.getUser();
-      if (authErr || !user) return apiError("Unauthorized", 401);
+export async function POST(_req: NextRequest, props: Params) {
+  const params = await props.params;
+  const supabase = await createClient();
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !user) return apiError("Unauthorized", 401);
 
   const { data: ownerCheck } = await supabase
         .from("payments").select("id").eq("id", params.id).eq("owner_id", user.id).maybeSingle();
-      if (!ownerCheck) return apiError("Not found", 404);
+  if (!ownerCheck) return apiError("Not found", 404);
 
   const outcome = await buildReceiptData(params.id, supabase);
   if (!outcome.data) return receiptErrorResponse(outcome.errorReason, outcome.errorDetail);

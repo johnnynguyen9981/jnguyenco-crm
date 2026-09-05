@@ -9,7 +9,7 @@ import { ArrowLeft, Mail, Phone, Edit, CalendarDays } from "lucide-react";
 import { GenerateContractButton } from "./GenerateContractButton";
 import { DeleteContractorButton } from "../DeleteContractorButton";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 const ROLE_LABELS: Record<string, string> = {
   PHOTOGRAPHER: "Photographer",
@@ -19,13 +19,15 @@ const ROLE_LABELS: Record<string, string> = {
   OTHER:        "Other",
 };
 
-export async function generateMetadata({ params }: Params) {
+export async function generateMetadata(props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data } = await supabase.from("contractors").select("first_name, last_name").eq("id", params.id).single();
   return { title: data ? `${data.first_name} ${data.last_name} — Contractors` : "Contractor" };
 }
 
-export default async function ContractorDetailPage({ params }: Params) {
+export default async function ContractorDetailPage(props: Params) {
+  const params = await props.params;
   const ownerUserId = await getOwnerUserId();
   const supabase = await createClient();
 

@@ -22,16 +22,17 @@ const STATUS_TABS: { label: string; value: BookingStatus | "ALL" }[] = [
 ];
 
 type Props = {
-  searchParams: {
+  searchParams: Promise<{
     status?: string;
     service?: string;
     search?: string;
     filter?: string; // "awaiting-signature"
     page?: string;
-  };
+  }>;
 };
 
-export default async function BookingsPage({ searchParams }: Props) {
+export default async function BookingsPage(props: Props) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;

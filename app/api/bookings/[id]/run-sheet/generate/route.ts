@@ -16,7 +16,7 @@ import { getOwnerUserId, getCurrentTeamMember, isFounder } from "@/lib/team";
 import { apiSuccess, apiError, formatServiceType } from "@/lib/utils";
 import { generateDefaultRunSheet, RunSheetItem } from "@/lib/run-sheet";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 const MODEL = "claude-haiku-4-5-20251001";
 
@@ -41,7 +41,8 @@ function extractJsonArray(text: string): unknown {
   return JSON.parse(jsonSlice);
 }
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);

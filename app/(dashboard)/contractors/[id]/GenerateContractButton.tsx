@@ -52,7 +52,7 @@ export function GenerateContractButton({ contractorId }: { contractorId: string 
         <h3 className="text-sm font-semibold text-brand-navy">Independent Contractor Agreement</h3>
       </div>
       <p className="text-xs text-gray-500">
-        Generates a PDF agreement covering payment terms, IP ownership, confidentiality, and term/termination — filled in from this contractor's saved details. Sign manually (print or email) — there's no e-sign flow for contractor agreements.
+        Generates a PDF agreement covering payment terms, IP ownership, confidentiality, and term/termination — filled in from this contractor&apos;s saved details. Sign manually (print or email) — there&apos;s no e-sign flow for contractor agreements.
       </p>
 
       <div>

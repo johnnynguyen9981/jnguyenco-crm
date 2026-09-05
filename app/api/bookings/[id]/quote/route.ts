@@ -7,7 +7,7 @@ import { generateQuotePDF, PACKAGE_DELIVERABLES, DEFAULT_DELIVERABLES, type Quot
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 function fmtDate(iso?: string | null) {
   if (!iso) return undefined;
@@ -20,7 +20,8 @@ function addDays(days: number) {
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
 }
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);

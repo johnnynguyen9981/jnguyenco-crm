@@ -9,7 +9,7 @@ import { apiSuccess, apiError, formatServiceType } from "@/lib/utils";
 import { generateDefaultRunSheet, RunSheetItem } from "@/lib/run-sheet";
 import { generateRunSheetPDF, RunSheetData } from "@/lib/generate-run-sheet";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 const ROLE_LABELS: Record<string, string> = {
   PHOTOGRAPHER: "Photographer",
@@ -35,7 +35,8 @@ function isValidItems(v: unknown): v is RunSheetItem[] {
   );
 }
 
-export async function PATCH(req: NextRequest, { params }: Params) {
+export async function PATCH(req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
@@ -76,7 +77,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   return apiSuccess(data);
 }
 
-export async function POST(_req: NextRequest, { params }: Params) {
+export async function POST(_req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -17,15 +17,16 @@ export const metadata = { title: "Expenses — JNguyen Co. CRM" };
 const CATEGORY_KEYS = Object.keys(EXPENSE_CATEGORIES) as ExpenseCategory[];
 
 type Props = {
-  searchParams: {
+  searchParams: Promise<{
     fy?: string;
     category?: string;
     search?: string;
     page?: string;
-  };
+  }>;
 };
 
-export default async function ExpensesPage({ searchParams }: Props) {
+export default async function ExpensesPage(props: Props) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const ownerUserId = await getOwnerUserId();
 
@@ -212,7 +213,7 @@ export default async function ExpensesPage({ searchParams }: Props) {
             <div className="text-center py-16 text-gray-400">
               <Receipt size={36} className="mx-auto mb-3 text-brand-pale-blue" />
               <p className="font-medium">No expenses yet for FY {fy}</p>
-              <p className="text-sm mt-1">Click "Add Expense" to record your first bill or subscription.</p>
+              <p className="text-sm mt-1">Click &quot;Add Expense&quot; to record your first bill or subscription.</p>
             </div>
           ) : (
             <>

@@ -20,6 +20,14 @@ const fs = require("fs");
 const PORT = 3000;
 const APP_ORIGIN = `http://localhost:${PORT}`;
 
+// Without this, launching the exe while an earlier instance is still running
+// (easy to do by accident) opens a second window sharing the same port 3000 —
+// confusing during testing, since it's unclear which window is "live", and
+// wasteful since each instance tries to spawn its own server.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+}
+
 let mainWindow = null;
 let serverProcess = null;
 
@@ -87,14 +95,24 @@ function startServer() {
 
 // ── 3. Poll until the server responds ────────────────────────────────────────
 function waitForServer(callback, attempts = 0) {
-  const req = http.get(`http://localhost:${PORT}`, (res) => {
-    res.destroy();
+  // 127.0.0.1, not "localhost" — on some Windows setups "localhost" resolves
+  // to the IPv6 ::1 first, which this readiness probe then fails against for
+  // the full 40s even though the server is already up and reachable on
+  // IPv4, stalling every launch at the splash screen for no reason.
+  let settled = false; // guards against firing callback()/retry more than once
+  const req = http.get(`http://127.0.0.1:${PORT}`, (res) => {
+    res.resume(); // drain so the socket closes normally, without a destroy()
+                   // that also emits "close" on req and used to double-fire
+                   // this whole probe forever — every ~500ms, reloading the
+                   // window back to "/" and bouncing it to /login mid-flow,
+                   // which is what made every navigation look like it failed.
+    if (settled) return;
+    settled = true;
     callback();
   });
-  let done = false;
-  const next = () => {
-    if (done) return;
-    done = true;
+  const retry = () => {
+    if (settled) return;
+    settled = true;
     if (attempts < 80) {
       setTimeout(() => waitForServer(callback, attempts + 1), 500);
     } else {
@@ -102,8 +120,12 @@ function waitForServer(callback, attempts = 0) {
       callback();
     }
   };
-  req.on("error", next);
-  req.on("close", next); // Node 18+: destroy() emits close, not always error
+  // Both listened for (the `settled` guard above is what actually prevents
+  // the double-fire bug now, not which event we react to): plain connection
+  // errors emit "error", but req.destroy() below with no error argument
+  // — the timeout case — only emits "close".
+  req.on("error", retry);
+  req.on("close", retry);
   req.setTimeout(1000, () => req.destroy());
 }
 
@@ -176,6 +198,13 @@ function createWindow() {
   );
   mainWindow.show();
 
+  // Debug aid: set OPEN_DEVTOOLS=true before launching to auto-open the
+  // inspector (Network + Console tabs) without needing to trigger it by hand.
+  // Off by default so packaged builds never show it to end users.
+  if (process.env.OPEN_DEVTOOLS === "true") {
+    mainWindow.webContents.openDevTools({ mode: "right" });
+  }
+
   // Navigate to the app once the server is ready
   waitForServer(() => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -189,6 +218,7 @@ function createWindow() {
   //   (happens when localhost isn't whitelisted in Supabase redirect URLs)
   // - Everything else (Drive, Instagram, external sites) → open in system browser
   mainWindow.webContents.on("will-navigate", (event, url) => {
+    console.log("[nav] will-navigate:", url);
     // If Supabase sent the OAuth callback to the Vercel deployment instead of
     // localhost (because localhost isn't in the Supabase allowed-redirect list),
     // intercept and rewrite the origin so the local server handles the session.
@@ -197,13 +227,43 @@ function createWindow() {
         url.startsWith(VERCEL_ORIGIN + "/auth/callback")) {
       event.preventDefault();
       const localUrl = url.replace(VERCEL_ORIGIN, APP_ORIGIN);
+      console.log("[nav] rewriting Vercel callback ->", localUrl);
       mainWindow.loadURL(localUrl);
       return;
     }
     if (!isAuthUrl(url)) {
+      console.log("[nav] not an auth URL, opening externally:", url);
       event.preventDefault();
       shell.openExternal(url);
     }
+  });
+
+  // will-navigate only covers user/page-initiated navigations — HTTP 3xx
+  // redirects mid-navigation (which is most of the OAuth hop-chain: our
+  // /api/auth/google-login -> Google -> our /api/auth/callback -> "/") fire
+  // this event instead. There was no listener for it at all before, so the
+  // Vercel-rewrite workaround above could never actually catch a redirected
+  // Vercel callback URL — only a directly-clicked/JS-navigated one. Logging
+  // every hop here so the real chain is visible; also applying the same
+  // Vercel rewrite here since a redirect is the more likely way it'd occur.
+  mainWindow.webContents.on("will-redirect", (event, url) => {
+    console.log("[nav] will-redirect:", url);
+    const VERCEL_ORIGIN = "https://jnguyenco-crm.vercel.app";
+    if (url.startsWith(VERCEL_ORIGIN + "/api/auth/callback") ||
+        url.startsWith(VERCEL_ORIGIN + "/auth/callback")) {
+      event.preventDefault();
+      const localUrl = url.replace(VERCEL_ORIGIN, APP_ORIGIN);
+      console.log("[nav] rewriting redirected Vercel callback ->", localUrl);
+      mainWindow.loadURL(localUrl);
+    }
+  });
+
+  mainWindow.webContents.on("did-navigate", (_event, url, httpResponseCode) => {
+    console.log("[nav] did-navigate:", url, "status:", httpResponseCode);
+  });
+
+  mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    console.log("[nav] did-fail-load:", validatedURL, errorCode, errorDescription);
   });
 
   // New window requests: always open in system browser
@@ -224,6 +284,14 @@ app.whenReady().then(() => {
   loadEnv();
   startServer();
   createWindow();
+});
+
+// Someone tried to launch a second copy — focus the existing window instead.
+app.on("second-instance", () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
 });
 
 app.on("window-all-closed", () => {

@@ -49,7 +49,7 @@ export default async function PackagesPage() {
 
       <div className="flex-1 p-6 space-y-6 overflow-auto">
         <div className="bg-brand-cream border border-brand-pale-blue rounded-lg px-4 py-3 text-sm text-gray-600">
-          Editing a package's team, deliverables, or delivery timeline here updates every
+          Editing a package&apos;s team, deliverables, or delivery timeline here updates every
           contract generated for that package going forward — no code changes needed.
         </div>
 

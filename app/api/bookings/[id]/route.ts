@@ -7,9 +7,10 @@ import { apiSuccess, apiError } from "@/lib/utils";
 import type { BookingUpdate } from "@/lib/supabase/types";
 import { syncBookingToCalendar, deleteCalendarEvent } from "@/lib/google/calendar";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(_req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
@@ -43,7 +44,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
   return apiSuccess(data);
 }
 
-export async function PATCH(req: NextRequest, { params }: Params) {
+export async function PATCH(req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
@@ -81,7 +83,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   return apiSuccess(data);
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(_req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);

@@ -126,7 +126,7 @@ export function GlobalSearch() {
             <div className="max-h-96 overflow-y-auto">
               {query.trim().length >= 2 && !loading && results.length === 0 && (
                 <p className="px-4 py-6 text-sm text-center" style={{ color: "#84868a" }}>
-                  No results for "{query.trim()}"
+                  No results for &quot;{query.trim()}&quot;
                 </p>
               )}
 

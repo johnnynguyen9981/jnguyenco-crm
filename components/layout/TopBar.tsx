@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Menu } from "lucide-react";
 import Link from "next/link";
 import { GlobalSearch } from "./GlobalSearch";
+import { useMobileNav } from "./MobileNavContext";
 
 // Flame mark for topbar avatar
 function FlameMark({ size = 16, color = "#a58d66" }: { size?: number; color?: string }) {
@@ -25,16 +26,26 @@ interface TopBarProps {
 }
 
 export function TopBar({ title, subtitle, backHref, backLabel }: TopBarProps) {
+  const { setOpen } = useMobileNav();
+
   return (
     <header
-      className="h-16 px-6 flex items-center justify-between shrink-0"
+      className="h-16 px-4 sm:px-6 flex items-center justify-between shrink-0"
       style={{
         background: "white",
         borderBottom: "1px solid #c0d5d6",
       }}
     >
       {/* Left: page title */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Open navigation menu"
+          className="md:hidden -ml-1 p-1.5 rounded-lg text-brand-navy hover:bg-brand-pale-blue/30 shrink-0"
+        >
+          <Menu size={20} />
+        </button>
         {backHref && (
           <Link href={backHref} className="flex items-center gap-1 text-xs text-brand-teal hover:text-brand-navy transition-colors mr-1">
             <ChevronLeft size={14} />
@@ -43,15 +54,15 @@ export function TopBar({ title, subtitle, backHref, backLabel }: TopBarProps) {
         )}
         {/* Thin gold accent */}
         <div className="h-6 w-0.5 rounded-full" style={{ background: "#a58d66" }} />
-        <div>
+        <div className="min-w-0">
           <h1
-            className="text-base font-bold leading-tight tracking-tight"
+            className="text-base font-bold leading-tight tracking-tight truncate"
             style={{ color: "#083a4f" }}
           >
             {title}
           </h1>
           {subtitle && (
-            <p className="text-xs leading-tight mt-0.5" style={{ color: "#407e8c" }}>
+            <p className="text-xs leading-tight mt-0.5 truncate hidden sm:block" style={{ color: "#407e8c" }}>
               {subtitle}
             </p>
           )}
