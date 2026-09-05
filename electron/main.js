@@ -20,6 +20,14 @@ const fs = require("fs");
 const PORT = 3000;
 const APP_ORIGIN = `http://localhost:${PORT}`;
 
+// Without this, launching the exe while an earlier instance is still running
+// (easy to do by accident) opens a second window sharing the same port 3000 —
+// confusing during testing, since it's unclear which window is "live", and
+// wasteful since each instance tries to spawn its own server.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+}
+
 let mainWindow = null;
 let serverProcess = null;
 
@@ -91,14 +99,20 @@ function waitForServer(callback, attempts = 0) {
   // to the IPv6 ::1 first, which this readiness probe then fails against for
   // the full 40s even though the server is already up and reachable on
   // IPv4, stalling every launch at the splash screen for no reason.
+  let settled = false; // guards against firing callback()/retry more than once
   const req = http.get(`http://127.0.0.1:${PORT}`, (res) => {
-    res.destroy();
+    res.resume(); // drain so the socket closes normally, without a destroy()
+                   // that also emits "close" on req and used to double-fire
+                   // this whole probe forever — every ~500ms, reloading the
+                   // window back to "/" and bouncing it to /login mid-flow,
+                   // which is what made every navigation look like it failed.
+    if (settled) return;
+    settled = true;
     callback();
   });
-  let done = false;
-  const next = () => {
-    if (done) return;
-    done = true;
+  const retry = () => {
+    if (settled) return;
+    settled = true;
     if (attempts < 80) {
       setTimeout(() => waitForServer(callback, attempts + 1), 500);
     } else {
@@ -106,8 +120,12 @@ function waitForServer(callback, attempts = 0) {
       callback();
     }
   };
-  req.on("error", next);
-  req.on("close", next); // Node 18+: destroy() emits close, not always error
+  // Both listened for (the `settled` guard above is what actually prevents
+  // the double-fire bug now, not which event we react to): plain connection
+  // errors emit "error", but req.destroy() below with no error argument
+  // — the timeout case — only emits "close".
+  req.on("error", retry);
+  req.on("close", retry);
   req.setTimeout(1000, () => req.destroy());
 }
 
@@ -266,6 +284,14 @@ app.whenReady().then(() => {
   loadEnv();
   startServer();
   createWindow();
+});
+
+// Someone tried to launch a second copy — focus the existing window instead.
+app.on("second-instance", () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
 });
 
 app.on("window-all-closed", () => {
