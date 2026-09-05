@@ -200,6 +200,7 @@ function createWindow() {
   //   (happens when localhost isn't whitelisted in Supabase redirect URLs)
   // - Everything else (Drive, Instagram, external sites) → open in system browser
   mainWindow.webContents.on("will-navigate", (event, url) => {
+    console.log("[nav] will-navigate:", url);
     // If Supabase sent the OAuth callback to the Vercel deployment instead of
     // localhost (because localhost isn't in the Supabase allowed-redirect list),
     // intercept and rewrite the origin so the local server handles the session.
@@ -208,13 +209,43 @@ function createWindow() {
         url.startsWith(VERCEL_ORIGIN + "/auth/callback")) {
       event.preventDefault();
       const localUrl = url.replace(VERCEL_ORIGIN, APP_ORIGIN);
+      console.log("[nav] rewriting Vercel callback ->", localUrl);
       mainWindow.loadURL(localUrl);
       return;
     }
     if (!isAuthUrl(url)) {
+      console.log("[nav] not an auth URL, opening externally:", url);
       event.preventDefault();
       shell.openExternal(url);
     }
+  });
+
+  // will-navigate only covers user/page-initiated navigations — HTTP 3xx
+  // redirects mid-navigation (which is most of the OAuth hop-chain: our
+  // /api/auth/google-login -> Google -> our /api/auth/callback -> "/") fire
+  // this event instead. There was no listener for it at all before, so the
+  // Vercel-rewrite workaround above could never actually catch a redirected
+  // Vercel callback URL — only a directly-clicked/JS-navigated one. Logging
+  // every hop here so the real chain is visible; also applying the same
+  // Vercel rewrite here since a redirect is the more likely way it'd occur.
+  mainWindow.webContents.on("will-redirect", (event, url) => {
+    console.log("[nav] will-redirect:", url);
+    const VERCEL_ORIGIN = "https://jnguyenco-crm.vercel.app";
+    if (url.startsWith(VERCEL_ORIGIN + "/api/auth/callback") ||
+        url.startsWith(VERCEL_ORIGIN + "/auth/callback")) {
+      event.preventDefault();
+      const localUrl = url.replace(VERCEL_ORIGIN, APP_ORIGIN);
+      console.log("[nav] rewriting redirected Vercel callback ->", localUrl);
+      mainWindow.loadURL(localUrl);
+    }
+  });
+
+  mainWindow.webContents.on("did-navigate", (_event, url, httpResponseCode) => {
+    console.log("[nav] did-navigate:", url, "status:", httpResponseCode);
+  });
+
+  mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    console.log("[nav] did-fail-load:", validatedURL, errorCode, errorDescription);
   });
 
   // New window requests: always open in system browser

@@ -17,6 +17,10 @@ function stripBOM(s: string | undefined): string {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
+  console.log(
+    "[callback] hit with params:", Object.fromEntries(searchParams.entries()),
+    "cookies present:", req.cookies.getAll().map((c) => c.name)
+  );
   const host  = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "jnguyenco-crm.vercel.app";
   // No x-forwarded-proto means no reverse proxy in front (Vercel always sets
   // it) — i.e. local dev or the Electron desktop app talking to its own
@@ -77,6 +81,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${appUrl}/login?error=auth_failed`);
     }
 
+    console.log("[api/auth/callback] exchange succeeded, redirecting to", `${appUrl}/`);
     return successResponse;
   }
 
@@ -87,5 +92,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${appUrl}/settings?google=denied`);
   }
 
+  console.log("[api/auth/callback] hit with no code/state/error at all — falling through to /");
   return NextResponse.redirect(`${appUrl}/`);
 }
