@@ -25,6 +25,7 @@ export type UnpaidAssignment = {
   id: string;
   role: string;
   agreedRate: number | null;
+  amountPaid: number;
   rateType: "HOURLY" | "PER_PROJECT" | null;
   coverageStartTime: string | null;
   coverageEndTime: string | null;
@@ -64,6 +65,15 @@ function computeAmount(a: UnpaidAssignment): number {
   return Math.round(rate * 100) / 100;
 }
 
+/** What's still actually owed — the full amount minus any partial payment
+ * already recorded (e.g. a deposit paid up front, rest due after the
+ * event). Assignments only reach this widget while `paid` is false, and
+ * the API auto-flips `paid` once amountPaid reaches the total, so this
+ * should never go negative in practice — clamped defensively anyway. */
+function remainingAmount(a: UnpaidAssignment): number {
+  return Math.max(0, Math.round((computeAmount(a) - a.amountPaid) * 100) / 100);
+}
+
 function resolvedRateType(a: UnpaidAssignment): "HOURLY" | "PER_PROJECT" {
   if (a.rateType) return a.rateType;
   if (a.contractorRateType) return a.contractorRateType;
@@ -91,7 +101,7 @@ function buildBatches(assignments: UnpaidAssignment[]): (Batch & { count: number
     .filter((a) => resolvedRateType(a) === "PER_PROJECT" && a.workReceivedAt)
     .forEach((a) => {
       const g = groups.get(a.contractorId) ?? { contractorId: a.contractorId, contractorName: a.contractorName, projects: [] };
-      g.projects.push({ id: a.id, clientName: a.clientName, workReceivedAt: a.workReceivedAt!, amount: computeAmount(a) });
+      g.projects.push({ id: a.id, clientName: a.clientName, workReceivedAt: a.workReceivedAt!, amount: remainingAmount(a) });
       groups.set(a.contractorId, g);
     });
   return Array.from(groups.values()).map((g) => ({
@@ -105,7 +115,7 @@ function buildBatches(assignments: UnpaidAssignment[]): (Batch & { count: number
 function buildPerEventDue(assignments: UnpaidAssignment[], today: string) {
   return assignments
     .filter((a) => resolvedRateType(a) === "HOURLY" && a.eventDate && a.eventDate < today)
-    .map((a) => ({ ...a, amount: computeAmount(a) }))
+    .map((a) => ({ ...a, amount: remainingAmount(a) }))
     .sort((a, b) => (a.eventDate! < b.eventDate! ? -1 : 1));
 }
 
@@ -147,7 +157,10 @@ export function ContractorPayments({ assignments }: { assignments: UnpaidAssignm
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{a.contractorName}</p>
-                  <p className="text-xs text-gray-400 truncate">{a.clientName} · event {formatDate(a.eventDate)}</p>
+                  <p className="text-xs text-gray-400 truncate">
+                    {a.clientName} · event {formatDate(a.eventDate)}
+                    {a.amountPaid > 0 && ` · ${formatCurrency(a.amountPaid)} already paid`}
+                  </p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm font-semibold text-brand-navy">{formatCurrency(a.amount)}</p>

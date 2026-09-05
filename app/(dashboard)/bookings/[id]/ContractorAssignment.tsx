@@ -67,6 +67,7 @@ interface Assignment {
   work_received_at?: string | null;
   confirmed: boolean;
   paid: boolean;
+  amount_paid?: number | null;
   contractors: { id: string; first_name: string; last_name: string; role: string } | null;
 }
 
@@ -166,6 +167,7 @@ export function ContractorAssignment({
   const [editCoverageStart, setEditCoverageStart] = useState("");
   const [editCoverageEnd, setEditCoverageEnd] = useState("");
   const [editDeadline, setEditDeadline] = useState("");
+  const [editAmountPaid, setEditAmountPaid] = useState("");
   const [editSaving, setEditSaving] = useState(false);
 
   function selectContractor(id: string) {
@@ -290,10 +292,14 @@ export function ContractorAssignment({
     setEditCoverageStart(a.coverage_start_time?.slice(0, 5) ?? "");
     setEditCoverageEnd(a.coverage_end_time?.slice(0, 5) ?? "");
     setEditDeadline(a.deadline ?? "");
+    setEditAmountPaid(a.amount_paid ? String(a.amount_paid) : "");
   }
 
   const editHours = editRateType === "HOURLY" ? hoursBetween(editCoverageStart, editCoverageEnd) : null;
   const editTotal = editHours != null && editAgreedRate ? editHours * parseFloat(editAgreedRate) : null;
+  const editRemaining = editTotal != null
+    ? Math.max(0, editTotal - (parseFloat(editAmountPaid) || 0))
+    : null;
 
   async function saveEdit(assignmentId: string) {
     setEditSaving(true);
@@ -307,6 +313,7 @@ export function ContractorAssignment({
           coverage_start_time: editRateType === "HOURLY" && editCoverageStart ? editCoverageStart : null,
           coverage_end_time:   editRateType === "HOURLY" && editCoverageEnd   ? editCoverageEnd   : null,
           deadline: editDeadline || null,
+          amount_paid: editAmountPaid ? parseFloat(editAmountPaid) : 0,
         }),
       });
       if (!res.ok) {
@@ -406,6 +413,13 @@ export function ContractorAssignment({
             const rateSubLabel = a.rate_type === "HOURLY" && coverageHours != null
               ? `${formatCurrency(a.agreed_rate!)}/hr`
               : null;
+            const totalAmount = a.agreed_rate == null
+              ? null
+              : a.rate_type === "HOURLY"
+                ? (coverageHours != null ? a.agreed_rate * coverageHours : null)
+                : a.agreed_rate;
+            const amountPaid = a.amount_paid ?? 0;
+            const remaining = totalAmount != null ? Math.max(0, totalAmount - amountPaid) : null;
 
             return (
               <div key={a.id} className="py-1.5 border-b border-gray-50 last:border-0">
@@ -424,6 +438,12 @@ export function ContractorAssignment({
                     </p>
                     {coverageLabel && (
                       <p className="text-xs text-gray-400">Coverage: {coverageLabel}</p>
+                    )}
+                    {!a.paid && amountPaid > 0 && (
+                      <p className="text-xs text-amber-600">
+                        {formatCurrency(amountPaid)} paid so far
+                        {remaining != null && ` — ${formatCurrency(remaining)} remaining`}
+                      </p>
                     )}
                     {(() => {
                       const badge = deadlineBadge(a.deadline, a.work_received_at);
@@ -549,6 +569,25 @@ export function ContractorAssignment({
                       <p className="text-xs text-gray-500">
                         {editHours} hrs × {formatCurrency(parseFloat(editAgreedRate))}/hr = <span className="font-medium text-brand-navy">{formatCurrency(editTotal)}</span>
                       </p>
+                    )}
+                    {!a.paid && (
+                      <div>
+                        <label className="label text-xs">Amount paid so far (e.g. a deposit)</label>
+                        <input
+                          type="number" step="0.01" min="0"
+                          className={ic}
+                          placeholder="0.00"
+                          value={editAmountPaid}
+                          onChange={(e) => setEditAmountPaid(e.target.value)}
+                        />
+                        {editRemaining != null && (
+                          <p className="text-[11px] text-gray-400 mt-1">
+                            {editRemaining <= 0
+                              ? "Covers the full amount — saving will mark this Paid."
+                              : `${formatCurrency(editRemaining)} will remain owed after saving.`}
+                          </p>
+                        )}
+                      </div>
                     )}
                     <div>
                       <label className="label text-xs">Deadline (internal — when this work is due back)</label>

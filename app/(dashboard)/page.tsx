@@ -160,7 +160,7 @@ export default async function DashboardPage() {
     // has passed, and the Photo Editor's every-5-projects batch payout).
     supabase
       .from("booking_contractors")
-      .select(`id, role, agreed_rate, rate_type, coverage_start_time, coverage_end_time, work_received_at,
+      .select(`id, role, agreed_rate, amount_paid, rate_type, coverage_start_time, coverage_end_time, work_received_at,
                contractors (id, first_name, last_name, default_rate, rate_type),
                bookings (id, event_date, clients (first_name, last_name))`)
       .eq("paid", false),
@@ -188,6 +188,7 @@ export default async function DashboardPage() {
       id: a.id,
       role: a.role,
       agreedRate: a.agreed_rate,
+      amountPaid: a.amount_paid ?? 0,
       rateType: a.rate_type,
       coverageStartTime: a.coverage_start_time,
       coverageEndTime: a.coverage_end_time,
