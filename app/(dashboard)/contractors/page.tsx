@@ -25,7 +25,10 @@ export default async function ContractorsPage({
   const supabase = await createClient();
   const ownerUserId = await getOwnerUserId();
 
-  const search = searchParams.search?.trim() ?? "";
+  // Strip characters that are structurally significant to PostgREST's .or()
+  // filter syntax (comma separates conditions, parens group them) so a search
+  // term containing them can't break or misinterpret the query.
+  const search = (searchParams.search?.trim() ?? "").replace(/[,()]/g, "");
   const page   = Math.max(1, parseInt(searchParams.page ?? "1", 10));
   const limit  = 25;
   const offset = (page - 1) * limit;
@@ -166,7 +169,7 @@ export default async function ContractorsPage({
                   <div className="flex gap-2">
                     {page > 1 && (
                       <Link
-                        href={`/contractors?page=${page - 1}${search ? `&search=${search}` : ""}`}
+                        href={`/contractors?page=${page - 1}${search ? `&search=${encodeURIComponent(search)}` : ""}`}
                         className="btn-secondary py-1 text-xs"
                       >
                         ← Prev
@@ -174,7 +177,7 @@ export default async function ContractorsPage({
                     )}
                     {page < totalPages && (
                       <Link
-                        href={`/contractors?page=${page + 1}${search ? `&search=${search}` : ""}`}
+                        href={`/contractors?page=${page + 1}${search ? `&search=${encodeURIComponent(search)}` : ""}`}
                         className="btn-secondary py-1 text-xs"
                       >
                         Next →

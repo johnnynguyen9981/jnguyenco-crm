@@ -205,7 +205,7 @@ export default async function DashboardPage() {
       label: `Overdue invoice${overdueCount === 1 ? "" : "s"}`,
       icon: <AlertTriangle size={16} />,
       tone: "danger" as const,
-      href: "/invoices?filter=overdue",
+      href: "/invoices?status=OVERDUE",
     },
     {
       count: contractsAwaitingCount ?? 0,

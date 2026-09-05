@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useMobileNav } from "./MobileNavContext";
 
 interface TeamMember {
   full_name: string;
@@ -51,6 +52,12 @@ export function Sidebar({ role: roleProp }: { role?: string }) {
   const pathname = usePathname();
   const router   = useRouter();
   const [member, setMember] = useState<TeamMember | null>(null);
+  const { open, setOpen } = useMobileNav();
+
+  // Close the mobile drawer whenever the route changes (e.g. after tapping a nav link).
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname, setOpen]);
 
   useEffect(() => {
     (async () => {
@@ -80,7 +87,23 @@ export function Sidebar({ role: roleProp }: { role?: string }) {
   }
 
   return (
-    <aside className="flex flex-col w-60 min-h-screen shrink-0 bg-brand-navy">
+    <>
+      {/* Backdrop — mobile only, closes the drawer on tap */}
+      {open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={() => setOpen(false)}
+          aria-hidden
+        />
+      )}
+
+      <aside
+        className={cn(
+          "flex flex-col w-60 min-h-screen shrink-0 bg-brand-navy",
+          "fixed inset-y-0 left-0 z-50 transition-transform duration-200 md:static md:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
 
       {/* Brand mark */}
       <div className="px-5 pt-6 pb-4">
@@ -168,6 +191,7 @@ export function Sidebar({ role: roleProp }: { role?: string }) {
           Sign out
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
