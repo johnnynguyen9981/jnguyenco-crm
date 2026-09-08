@@ -1,13 +1,18 @@
 // POST /api/bookings/[id]/quote
 // Generates a quote PDF from booking data and emails it to the client.
-import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { apiSuccess, apiError } from "@/lib/utils";
+//
+// Pages Router API route (not app/api/) — see pages/api/payments/[id]/
+// receipt.ts / pages/api/bookings/[id]/contractors/[assignmentId]/
+// call-sheet.ts for why: app/api/** routes compile through Next's
+// "react-server" webpack condition, which resolves `react` to a build
+// @react-pdf/renderer's reconciler rejects everything from as "not a valid
+// React child" (Minified React error #31). Pages Router routes avoid that
+// module graph entirely.
+import type { NextApiRequest, NextApiResponse } from "next";
+import { createPagesClient } from "@/lib/supabase/pages-server";
 import { generateQuotePDF, PACKAGE_DELIVERABLES, DEFAULT_DELIVERABLES, type QuoteData } from "@/lib/generate-quote";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
-
-type Params = { params: Promise<{ id: string }> };
 
 function fmtDate(iso?: string | null) {
   if (!iso) return undefined;
@@ -20,11 +25,16 @@ function addDays(days: number) {
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
 }
 
-export async function POST(req: NextRequest, props: Params) {
-  const params = await props.params;
-  const supabase = await createClient();
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const bookingId = String(req.query.id);
+  const supabase = createPagesClient(req, res);
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
-  if (authErr || !user) return apiError("Unauthorized", 401);
+  if (authErr || !user) return res.status(401).json({ error: "Unauthorized" });
 
   // Load booking with client + package
   const { data: booking, error: bErr } = await supabase
@@ -34,15 +44,15 @@ export async function POST(req: NextRequest, props: Params) {
       clients (id, first_name, last_name, email, phone),
       packages (id, name, base_price, max_hours, description)
     `)
-    .eq("id", params.id)
+    .eq("id", bookingId)
     .eq("owner_id", user.id)
     .single();
 
-  if (bErr || !booking) return apiError("Booking not found", 404);
+  if (bErr || !booking) return res.status(404).json({ error: "Booking not found" });
 
-  const client  = booking.clients as any;
-  const pkg     = booking.packages as any;
-  const body    = await req.json().catch(() => ({}));
+  const client = booking.clients as any;
+  const pkg    = booking.packages as any;
+  const body   = req.body || {};
 
   // Pricing
   const quotedTotal    = booking.quoted_total ?? pkg?.base_price ?? 0;
@@ -51,8 +61,8 @@ export async function POST(req: NextRequest, props: Params) {
   const balanceAmount  = quotedTotal - depositAmount;
 
   // Deliverables list — use package name to look up, else fall back
-  const pkgName    = pkg?.name ?? "";
-  const delivList  = PACKAGE_DELIVERABLES[pkgName] ?? DEFAULT_DELIVERABLES;
+  const pkgName   = pkg?.name ?? "";
+  const delivList = PACKAGE_DELIVERABLES[pkgName] ?? DEFAULT_DELIVERABLES;
 
   // Service type label
   const serviceLabel =
@@ -62,7 +72,7 @@ export async function POST(req: NextRequest, props: Params) {
     booking.service_type;
 
   const quoteData: QuoteData = {
-    quote_number:         `QT-${params.id.substring(0, 8).toUpperCase()}`,
+    quote_number:         `QT-${bookingId.substring(0, 8).toUpperCase()}`,
     quote_date:           new Date().toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" }),
     valid_until:          addDays(14),
     client_name:          `${client.first_name} ${client.last_name}`,
@@ -87,7 +97,7 @@ export async function POST(req: NextRequest, props: Params) {
     pdfBuffer = await generateQuotePDF(quoteData);
   } catch (err: any) {
     console.error("[quote/pdf] Generation error:", err);
-    return apiError(`PDF generation failed: ${err.message}`, 500);
+    return res.status(500).json({ error: `PDF generation failed: ${err.message}` });
   }
 
   const pdfBase64 = pdfBuffer.toString("base64");
@@ -165,7 +175,7 @@ export async function POST(req: NextRequest, props: Params) {
       });
     } catch (err: any) {
       console.error("[quote/email] Send error:", err);
-      return apiSuccess({ pdf_base64: pdfBase64, emailed: false, email_error: err.message });
+      return res.status(200).json({ data: { pdf_base64: pdfBase64, emailed: false, email_error: err.message } });
     }
   }
 
@@ -174,13 +184,15 @@ export async function POST(req: NextRequest, props: Params) {
     await supabase
       .from("bookings")
       .update({ status: "QUOTED" })
-      .eq("id", params.id);
+      .eq("id", bookingId);
   }
 
-  return apiSuccess({
-    pdf_base64:   pdfBase64,
-    quote_number: quoteData.quote_number,
-    emailed:      body.send !== false,
-    sent_to:      client.email,
+  return res.status(200).json({
+    data: {
+      pdf_base64:   pdfBase64,
+      quote_number: quoteData.quote_number,
+      emailed:      body.send !== false,
+      sent_to:      client.email,
+    },
   });
 }

@@ -3,16 +3,37 @@
 // Google Drive folders using the service account (same path used elsewhere in
 // the app for receipts/contracts). Safe to re-run — existing files are not
 // deleted; new versions are just uploaded alongside.
-import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { getOwnerUserId } from "@/lib/team";
-import { apiSuccess, apiError } from "@/lib/utils";
-import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
+//
+// Ported to Pages Router: any App Router route (app/api/**) that builds
+// @react-pdf/renderer element trees resolves `react` through the
+// "react-server" webpack condition, creating a second, incompatible `react`
+// module instance from the one @react-pdf/renderer expects (it's kept out of
+// the webpack bundle via serverExternalPackages). That mismatch makes every
+// PDF template's JSX elements fail react-pdf's isValidElement() check,
+// surfacing as "Minified React error #31" at render time. Pages Router
+// doesn't use that webpack condition, so react resolves once, consistently.
+// See pages/api/bookings/[id]/contractors/[assignmentId]/call-sheet.ts for
+// the original fix of this pattern.
+//
+// getOwnerUserId() (lib/team.ts) is App-Router-only (depends on next/headers
+// cookies()), so its logic is inlined here against createPagesClient's
+// req/res-cookie-based client instead.
+import type { NextApiRequest, NextApiResponse } from "next";
+import { createPagesClient } from "@/lib/supabase/pages-server";
 import { generateContractPDF, EnquiryData } from "@/lib/generate-contract";
 import { renderToBuffer } from "@/lib/pdf/renderQueue";
 import { InvoiceTemplate } from "@/lib/pdf/InvoiceTemplate";
 import { createElement } from "react";
+import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 import type { InvoiceWithDetails } from "@/lib/supabase/types";
+
+function apiSuccess<T>(res: NextApiResponse, data: T, status = 200) {
+  return res.status(status).json({ data });
+}
+
+function apiError(res: NextApiResponse, message: string, status = 400) {
+  return res.status(status).json({ error: message });
+}
 
 // ─── Package key mapper (mirrors fill-contract route) ────────
 
@@ -34,20 +55,44 @@ function packageNameToKey(name: string): PkgKey | null {
 
 // ─── Route ───────────────────────────────────────────────────
 
-export async function POST(_req: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user }, error: authErr } = await supabase.auth.getUser();
-  if (authErr || !user) return apiError("Unauthorized", 401);
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return apiError(res, "Method not allowed", 405);
+  }
 
+  const supabase = createPagesClient(req, res);
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !user) return apiError(res, "Unauthorized", 401);
+
+  // Inlined getOwnerUserId(): founders (or anyone not in team_members) use
+  // their own id; staff resolve to the active FOUNDER's user_id.
   let ownerUserId: string;
   try {
-    ownerUserId = await getOwnerUserId();
+    const { data: member } = await supabase
+      .from("team_members")
+      .select("role")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!member || member.role === "FOUNDER") {
+      ownerUserId = user.id;
+    } else {
+      const { data: founder } = await supabase
+        .from("team_members")
+        .select("user_id")
+        .eq("role", "FOUNDER")
+        .eq("is_active", true)
+        .not("user_id", "is", null)
+        .single();
+      ownerUserId = founder?.user_id ?? user.id;
+    }
   } catch {
-    return apiError("Unauthorized", 401);
+    return apiError(res, "Unauthorized", 401);
   }
 
   if (!isDriveConfigured()) {
-    return apiError("Google Drive service account is not configured.", 503);
+    return apiError(res, "Google Drive service account is not configured.", 503);
   }
 
   // All clients
@@ -57,7 +102,7 @@ export async function POST(_req: NextRequest) {
     .eq("owner_id", ownerUserId);
 
   if (clientsErr || !clients?.length) {
-    return apiSuccess({ results: [], message: "No clients found." });
+    return apiSuccess(res, { results: [], message: "No clients found." });
   }
 
   const results: Array<{
@@ -181,5 +226,5 @@ export async function POST(_req: NextRequest) {
     results.push(clientResult);
   }
 
-  return apiSuccess({ results });
+  return apiSuccess(res, { results });
 }

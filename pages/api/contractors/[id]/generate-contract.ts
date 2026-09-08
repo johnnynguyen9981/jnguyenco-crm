@@ -2,48 +2,68 @@
 // Generates an Independent Contractor Agreement PDF from the contractor's
 // saved details and returns it for download. PDF only — no e-sign flow,
 // this is printed/emailed and signed manually.
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { getOwnerUserId, getCurrentTeamMember, isFounder } from "@/lib/team";
+//
+// Pages Router API route (not app/api/) — see pages/api/payments/[id]/
+// receipt.ts for the full explanation: app/api/** routes compile through
+// Next's "react-server" webpack condition, which resolves `react` to a
+// build @react-pdf/renderer's reconciler rejects everything from as "not a
+// valid React child" (Minified React error #31).
+//
+// getOwnerUserId/getCurrentTeamMember/isFounder from lib/team.ts call the
+// App Router-only createClient() internally, so the founder-role gate and
+// owner lookup are inlined here, same as the other migrated PDF routes.
+import type { NextApiRequest, NextApiResponse } from "next";
+import { createPagesClient } from "@/lib/supabase/pages-server";
 import { generateContractorAgreementPDF, ContractorAgreementData, ContractLanguage } from "@/lib/generate-contractor-agreement";
-
-type Params = { params: Promise<{ id: string }> };
 
 function parseLanguage(value: unknown): ContractLanguage {
   return value === "VI" || value === "BOTH" ? value : "EN";
 }
 
-export async function POST(req: NextRequest, props: Params) {
-  const params = await props.params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-  const member = await getCurrentTeamMember();
+  const contractorId = String(req.query.id);
+  const supabase = createPagesClient(req, res);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+  const { data: member } = await supabase
+    .from("team_members")
+    .select("role, user_id")
+    .eq("user_id", user.id)
+    .single();
   const role = member?.role ?? "FOUNDER";
-  if (!isFounder(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (role !== "FOUNDER") return res.status(403).json({ error: "Forbidden" });
+
+  let ownerUserId = user.id;
+  if (member && member.role !== "FOUNDER") {
+    const { data: founder } = await supabase
+      .from("team_members")
+      .select("user_id")
+      .eq("role", "FOUNDER")
+      .eq("is_active", true)
+      .not("user_id", "is", null)
+      .single();
+    ownerUserId = founder?.user_id ?? user.id;
+  }
 
   // Body is optional — default to English if none / unparseable, so existing
   // callers that POST with no body keep working.
-  let language: ContractLanguage = "EN";
-  try {
-    const body = await req.json();
-    language = parseLanguage(body?.language);
-  } catch {
-    // no JSON body sent — fall back to default
-  }
-
-  const ownerUserId = await getOwnerUserId();
+  const language: ContractLanguage = parseLanguage((req.body as any)?.language);
 
   const { data: contractor, error } = await supabase
     .from("contractors")
     .select("id, first_name, last_name, email, phone, role, rate_type, default_rate, start_date, notes")
-    .eq("id", params.id)
+    .eq("id", contractorId)
     .eq("owner_id", ownerUserId)
     .single();
 
   if (error || !contractor) {
-    return NextResponse.json({ error: "Contractor not found" }, { status: 404 });
+    return res.status(404).json({ error: "Contractor not found" });
   }
 
   const agreementData: ContractorAgreementData = {
@@ -62,7 +82,7 @@ export async function POST(req: NextRequest, props: Params) {
     pdfBuffer = await generateContractorAgreementPDF(agreementData, language);
   } catch (e) {
     console.error("[contractors/generate-contract] PDF generation error:", e);
-    return NextResponse.json({ error: "Failed to generate agreement PDF" }, { status: 500 });
+    return res.status(500).json({ error: "Failed to generate agreement PDF" });
   }
 
   const langSuffix = language === "BOTH" ? "EN-VI" : language;
@@ -76,14 +96,10 @@ export async function POST(req: NextRequest, props: Params) {
       contract_file_name:    fileName,
       updated_at:            new Date().toISOString(),
     })
-    .eq("id", params.id)
+    .eq("id", contractorId)
     .eq("owner_id", ownerUserId);
 
-  return new NextResponse(new Uint8Array(pdfBuffer), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${fileName}"`,
-    },
-  });
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+  return res.status(200).send(pdfBuffer);
 }

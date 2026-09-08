@@ -1,8 +1,26 @@
 // POST /api/clients/[id]/fill-contract
 // Accepts multipart/form-data with a "form" file (enquiry PDF)
 // Returns the filled contract PDF and saves to Documents storage.
-import { NextRequest, NextResponse } from "next/server";
-import { createClient as createServerClient } from "@/lib/supabase/server";
+//
+// Ported to Pages Router: any App Router route (app/api/**) that builds
+// @react-pdf/renderer element trees resolves `react` through the
+// "react-server" webpack condition, creating a second, incompatible `react`
+// module instance from the one @react-pdf/renderer expects (it's kept out of
+// the webpack bundle via serverExternalPackages). That mismatch makes every
+// PDF template's JSX elements fail react-pdf's isValidElement() check,
+// surfacing as "Minified React error #31" at render time. Pages Router
+// doesn't use that webpack condition, so react resolves once, consistently.
+// See pages/api/bookings/[id]/contractors/[assignmentId]/call-sheet.ts for
+// the original fix of this pattern.
+//
+// Unlike the App Router version, NextApiRequest (Node's raw
+// http.IncomingMessage) has no native .formData() — that's a Fetch API
+// method only NextRequest provides. bodyParser is disabled below and
+// formidable parses the multipart body instead.
+import type { NextApiRequest, NextApiResponse } from "next";
+import { formidable } from "formidable";
+import { readFileSync } from "fs";
+import { createPagesClient } from "@/lib/supabase/pages-server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { execFileSync } from "child_process";
 import { writeFileSync, unlinkSync, existsSync } from "fs";
@@ -10,6 +28,12 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { generateContractPDF, EnquiryData } from "@/lib/generate-contract";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 const BUCKET = "documents";
 
@@ -52,25 +76,52 @@ function extractFormFields(pdfBytes: Buffer): EnquiryData {
   }
 }
 
-export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
-  const supabase = await createServerClient();
+/** Parse the incoming multipart/form-data request into fields + files. */
+async function parseMultipart(req: NextApiRequest) {
+  const form = formidable({});
+  const [fields, files] = await form.parse(req);
+  return { fields, files };
+}
+
+function firstField(v: string | string[] | undefined): string | null {
+  if (v == null) return null;
+  return Array.isArray(v) ? (v[0] ?? null) : v;
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const { id } = req.query as { id: string };
+  const supabase = createPagesClient(req, res);
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
 
   const { data: client } = await supabase
     .from("clients")
     .select("first_name, last_name, email, phone")
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("owner_id", user.id)
     .single();
 
-  const form = await req.formData();
-  const file = form.get("form") as File | null;
+  let fields: Awaited<ReturnType<typeof parseMultipart>>["fields"];
+  let files: Awaited<ReturnType<typeof parseMultipart>>["files"];
+  try {
+    ({ fields, files } = await parseMultipart(req));
+  } catch (e) {
+    console.error("Failed to parse multipart body:", e);
+    return res.status(400).json({ error: "Failed to parse form data" });
+  }
+
+  const uploadedFile = files.form
+    ? (Array.isArray(files.form) ? files.form[0] : files.form)
+    : null;
 
   let enquiryData: EnquiryData = {};
 
-  const dataField = form.get("data") as string | null;
+  const dataField = firstField(fields.data as any);
   if (dataField) {
     try {
       const parsed = JSON.parse(dataField) as EnquiryData & { package_name?: string };
@@ -82,12 +133,16 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     } catch (e) {
       console.error("Failed to parse manual data field:", e);
     }
-  } else if (file) {
-    const bytes = Buffer.from(await file.arrayBuffer());
+  } else if (uploadedFile?.filepath) {
     try {
+      const bytes = readFileSync(uploadedFile.filepath);
       enquiryData = extractFormFields(bytes);
     } catch (e) {
       console.error("Failed to extract enquiry fields:", e);
+    } finally {
+      if (existsSync(uploadedFile.filepath)) {
+        try { unlinkSync(uploadedFile.filepath); } catch { /* formidable temp file cleanup, non-fatal */ }
+      }
     }
   }
 
@@ -95,7 +150,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   const { data: booking } = await supabase
     .from("bookings")
     .select("event_date, event_start_time, event_end_time, venue_name, service_type, quoted_total, deposit_amount, package_id, hours_booked, special_requests")
-    .eq("client_id", params.id)
+    .eq("client_id", id)
     .eq("owner_id", user.id)
     .order("event_date", { ascending: false })
     .limit(1)
@@ -191,7 +246,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     pdfBuffer = await generateContractPDF(enquiryData);
   } catch (e) {
     console.error("PDF generation error:", e);
-    return NextResponse.json({ error: "Failed to generate contract PDF" }, { status: 500 });
+    return res.status(500).json({ error: "Failed to generate contract PDF" });
   }
 
   const clientName = (enquiryData.full_name ?? "Client").replace(/\s+/g, "_");
@@ -210,7 +265,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       const { data: clientRow } = await supabase
         .from("clients")
         .select("id, first_name, last_name, gdrive_folder_id")
-        .eq("id", params.id)
+        .eq("id", id)
         .eq("owner_id", user.id)
         .single();
 
@@ -226,11 +281,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }
   }
 
-  return new NextResponse(new Uint8Array(pdfBuffer), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=\"" + fileName + "\"",
-    },
-  });
+  res.status(200);
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+  return res.send(pdfBuffer);
 }

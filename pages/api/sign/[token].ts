@@ -6,13 +6,28 @@
 //   3. Emails signed PDF to client + photographer
 //   4. Saves signed PDF to Supabase Storage (always) + Google Drive (optional)
 //   5. Marks booking as signed, invalidates token
-import { NextRequest } from "next/server";
+//
+// Ported to Pages Router: any App Router route (app/api/**) that builds
+// @react-pdf/renderer element trees resolves `react` through the
+// "react-server" webpack condition, creating a second, incompatible `react`
+// module instance from the one @react-pdf/renderer expects (it's kept out of
+// the webpack bundle via serverExternalPackages). That mismatch makes every
+// PDF template's JSX elements fail react-pdf's isValidElement() check,
+// surfacing as "Minified React error #31" at render time. Pages Router
+// doesn't use that webpack condition, so react resolves once, consistently.
+// See pages/api/bookings/[id]/contractors/[assignmentId]/call-sheet.ts for
+// the original fix of this pattern.
+//
+// This route is public (uses createServiceClient(), no user session), so
+// unlike the other migrated routes it needs no createPagesClient/cookie
+// handling and no founder/owner-resolution logic.
+import type { NextApiRequest, NextApiResponse } from "next";
 import { createServiceClient } from "@/lib/supabase/server";
 import { generateContractPDF, EnquiryData } from "@/lib/generate-contract";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 import { contractSignedConfirmationHtml } from "@/lib/google/gmail";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
-import { apiSuccess, apiError, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
 /** Copy of packageNameToKey from fill-contract (could be shared) */
 function packageNameToKey(name: string): keyof Pick<EnquiryData,
@@ -30,17 +45,29 @@ function packageNameToKey(name: string): keyof Pick<EnquiryData,
     return null;
 }
 
-export async function POST(req: NextRequest, props: { params: Promise<{ token: string }> }) {
-  const params = await props.params;
-  const { token } = params;
-  const body = await req.json();
+function apiSuccess<T>(res: NextApiResponse, data: T, status = 200) {
+  return res.status(status).json({ data });
+}
+
+function apiError(res: NextApiResponse, message: string, status = 400) {
+  return res.status(status).json({ error: message });
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return apiError(res, "Method not allowed", 405);
+  }
+
+  const { token } = req.query as { token: string };
+  const body = req.body || {};
   const { signature_data_uri, signed_name } = body as {
         signature_data_uri: string;
         signed_name:        string;
   };
 
-  if (!signature_data_uri) return apiError("signature_data_uri is required");
-  if (!signature_data_uri.startsWith("data:image/")) return apiError("Invalid signature format");
+  if (!signature_data_uri) return apiError(res, "signature_data_uri is required");
+  if (!signature_data_uri.startsWith("data:image/")) return apiError(res, "Invalid signature format");
 
   // Service client — no user session on public page
   const supabase = createServiceClient();
@@ -59,20 +86,20 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
     .eq("contract_sign_token", token)
     .single();
 
-  if (bErr || !booking) return apiError("Invalid or expired signing link.", 404);
+  if (bErr || !booking) return apiError(res, "Invalid or expired signing link.", 404);
 
   const now = new Date();
   if (new Date(booking.contract_sign_expires_at!) < now) {
-        return apiError("This signing link has expired. Please contact JNguyen Co. for a new link.", 410);
+        return apiError(res, "This signing link has expired. Please contact JNguyen Co. for a new link.", 410);
   }
   if (booking.contract_signed_at) {
-        return apiError("This contract has already been signed.", 409);
+        return apiError(res, "This contract has already been signed.", 409);
   }
 
   const client = booking.clients as any;
   const pkg    = booking.packages as any;
 
-  if (!client?.email) return apiError("No client email on file.", 500);
+  if (!client?.email) return apiError(res, "No client email on file.", 500);
 
   // ── Build EnquiryData ────────────────────────────────────────────────────
   const enquiryData: EnquiryData = {
@@ -117,7 +144,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
         });
   } catch (e: any) {
         console.error("[sign/token] PDF generation failed:", e);
-        return apiError("Failed to generate signed contract PDF: " + e.message, 500);
+        return apiError(res, "Failed to generate signed contract PDF: " + e.message, 500);
   }
 
   const clientName  = `${client.first_name} ${client.last_name}`.trim();
@@ -220,10 +247,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
 
   if (updateErr) {
         console.error("[sign/token] Failed to update booking:", updateErr);
-        return apiError("Signature saved but failed to update booking status: " + updateErr.message, 500);
+        return apiError(res, "Signature saved but failed to update booking status: " + updateErr.message, 500);
   }
 
-  return apiSuccess({
+  return apiSuccess(res, {
         message:       "Contract signed successfully.",
         signed_at:     now.toISOString(),
         contract_url:  contractUrl,
