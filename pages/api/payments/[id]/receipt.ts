@@ -1,16 +1,37 @@
 // GET  /api/payments/[id]/receipt — download receipt PDF
 // POST /api/payments/[id]/receipt — generate PDF + email to client
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+//
+// This is a Pages Router API route, not an App Router route handler, even
+// though every other API route in this project lives under app/api/. That's
+// deliberate — see pages/api/bookings/[id]/contractors/[assignmentId]/
+// call-sheet.ts for the full explanation: any file under app/** that builds
+// a react-pdf element tree gets compiled through Next's app-router
+// "react-server" webpack condition, which resolves `react` to a
+// Server-Components-only build missing the reconciler internals
+// @react-pdf/renderer needs (it resolves `react` the normal Node.js way).
+// Two different `react` module instances in the same process means every
+// element ReceiptTemplate builds gets rejected by react-pdf's own
+// reconciler as "not a valid React child" (Minified React error #31) —
+// this is exactly the crash that was showing up, verbatim, in the Payments
+// card UI (SendReceiptButton just forwards whatever error message the API
+// returns). Pages Router API routes never enter that module graph, so
+// `react` resolves once, consistently, for both sides.
+//
+// Everything below is otherwise unchanged from the old app/api route: same
+// buildReceiptData query steps, same Drive upload, same receipt email HTML.
+// Only the transport changed — NextRequest/NextResponse + async params to
+// NextApiRequest/NextApiResponse + req.query, and createPagesClient
+// (req/res cookies) instead of the App Router-only createClient()
+// (next/headers cookies()).
+import type { NextApiRequest, NextApiResponse } from "next";
+import { createPagesClient } from "@/lib/supabase/pages-server";
 import { renderToBuffer } from "@/lib/pdf/renderQueue";
 import { ReceiptTemplate } from "@/lib/pdf/ReceiptTemplate";
 import type { ReceiptData } from "@/lib/pdf/ReceiptTemplate";
 import { createElement } from "react";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
-import { apiError, getAppUrl } from "@/lib/utils";
-
-type Params = { params: Promise<{ id: string }> };
+import { getAppUrl } from "@/lib/utils";
 
 type ReceiptPayload = {
   receiptData: ReceiptData;
@@ -21,13 +42,9 @@ type ReceiptPayload = {
   eventDate: string | null;
 };
 
-// Plain (non-discriminated-union) result shape. This project's tsconfig has
-// "strict": false, which disables strictNullChecks -- and without
-// strictNullChecks, TypeScript's control-flow narrowing on discriminated
-// unions (the `if (!result.ok) return ...` pattern) does NOT reliably narrow
-// and fails to compile. So instead of a tagged union, this uses a flat object
-// with a nullable `data` field and a separate nullable `errorReason` field --
-// no narrowing required, just plain null checks.
+// Plain (non-discriminated-union) result shape — see the original app/api
+// route's history for why (this project's tsconfig disables
+// strictNullChecks, which breaks control-flow narrowing on tagged unions).
 type BuildOutcome = {
   data: ReceiptPayload | null;
   errorReason: "NOT_FOUND" | "NOT_PAID" | "QUERY_ERROR" | null;
@@ -35,12 +52,10 @@ type BuildOutcome = {
 };
 
 // ── Shared: build receipt data from payment id ──────────────────────────────
-// NOTE: deliberately flat, single-table queries chained together instead of
-// nested embeds (e.g. payments->bookings->packages). Multi-level PostgREST
-// embeds in this project have repeatedly proven unreliable (ambiguous/failed
-// relationship resolution), so every step below fetches one table at a time.
+// Deliberately flat, single-table queries chained together instead of nested
+// embeds (e.g. payments->bookings->packages) — multi-level PostgREST embeds
+// in this project have repeatedly proven unreliable.
 async function buildReceiptData(paymentId: string, supabase: any): Promise<BuildOutcome> {
-  // Step 1: fetch the payment row itself — no joins.
   const { data: payment, error: paymentErr } = await supabase
     .from("payments")
     .select("*")
@@ -58,7 +73,6 @@ async function buildReceiptData(paymentId: string, supabase: any): Promise<Build
     return { data: null, errorReason: "NOT_PAID", errorDetail: `status=${payment.status}` };
   }
 
-  // Step 2: fetch the booking separately using payment.booking_id.
   const { data: booking, error: bookingErr } = await supabase
     .from("bookings")
     .select("id, client_id, event_date, service_type, quoted_total, package_id")
@@ -69,7 +83,6 @@ async function buildReceiptData(paymentId: string, supabase: any): Promise<Build
     console.error("[receipt] bookings query failed:", bookingErr.message);
   }
 
-  // Step 3: fetch the package name separately using booking.package_id (if any).
   let packageName: string | undefined;
   if (booking?.package_id) {
     const { data: pkg, error: pkgErr } = await supabase
@@ -81,7 +94,6 @@ async function buildReceiptData(paymentId: string, supabase: any): Promise<Build
     packageName = pkg?.name;
   }
 
-  // Step 4: fetch the client separately using booking.client_id.
   const { data: client, error: clientErr } = await supabase
     .from("clients")
     .select("id, first_name, last_name, email, gdrive_folder_id")
@@ -90,11 +102,10 @@ async function buildReceiptData(paymentId: string, supabase: any): Promise<Build
 
   if (clientErr) console.error("[receipt] clients query failed:", clientErr.message);
 
-  // Generate receipt number: REC-YYYYMM-{last6 of payment id}
   const now     = new Date();
-      const yyyymm  = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
-      const shortId = paymentId.replace(/-/g, "").slice(-6).toUpperCase();
-      const receiptNumber = `REC-${yyyymm}-${shortId}`;
+  const yyyymm  = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const shortId = paymentId.replace(/-/g, "").slice(-6).toUpperCase();
+  const receiptNumber = `REC-${yyyymm}-${shortId}`;
 
   const receiptData: ReceiptData = {
     receiptNumber,
@@ -105,16 +116,13 @@ async function buildReceiptData(paymentId: string, supabase: any): Promise<Build
     method:          payment.method ?? "Bank Transfer",
     reference:       payment.reference,
     notes:           payment.notes,
-    // Booking
     eventType:       booking?.service_type  ?? "Event",
     eventDate:       booking?.event_date,
     packageName:     packageName,
     totalQuoted:     booking?.quoted_total,
-    // Client
     clientFirstName: client?.first_name ?? "",
     clientLastName:  client?.last_name  ?? "",
     clientEmail:     client?.email,
-    // Computed
     isBalancePayment: payment.payment_type === "BALANCE",
     abn: process.env.NEXT_PUBLIC_BUSINESS_ABN ?? "",
   };
@@ -131,7 +139,8 @@ async function buildReceiptData(paymentId: string, supabase: any): Promise<Build
   };
 }
 
-function receiptErrorResponse(
+function sendReceiptError(
+  res: NextApiResponse,
   errorReason: "NOT_FOUND" | "NOT_PAID" | "QUERY_ERROR" | null,
   errorDetail?: string
 ) {
@@ -142,111 +151,82 @@ function receiptErrorResponse(
       : errorReason === "QUERY_ERROR"
         ? "Could not look up this payment (database error). Check server logs."
         : "Payment not found.";
-  return NextResponse.json({ error: message }, { status: errorReason === "QUERY_ERROR" ? 500 : 404 });
+  return res.status(errorReason === "QUERY_ERROR" ? 500 : 404).json({ error: message });
 }
 
-// ── GET — return PDF as download ────────────────────────────────────────────
-export async function GET(_req: NextRequest, props: Params) {
-  const params = await props.params;
-  const supabase = await createClient();
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const paymentId = String(req.query.id);
+  const supabase = createPagesClient(req, res);
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
-  if (authErr || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (authErr || !user) return res.status(401).json({ error: "Unauthorized" });
 
   // Verify payment belongs to owner
   const { data: ownerCheck } = await supabase
-        .from("payments").select("id").eq("id", params.id).eq("owner_id", user.id).maybeSingle();
-  if (!ownerCheck) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    .from("payments").select("id").eq("id", paymentId).eq("owner_id", user.id).maybeSingle();
+  if (!ownerCheck) return res.status(404).json({ error: "Not found" });
 
-  const outcome = await buildReceiptData(params.id, supabase);
-  if (!outcome.data) return receiptErrorResponse(outcome.errorReason, outcome.errorDetail);
+  const outcome = await buildReceiptData(paymentId, supabase);
+  if (!outcome.data) return sendReceiptError(res, outcome.errorReason, outcome.errorDetail);
 
-  const { receiptData, clientFolderId, clientName, clientId, eventDate } = outcome.data;
+  if (req.method === "GET") {
+    const { receiptData, clientFolderId, clientName, clientId, eventDate } = outcome.data;
+    try {
+      const pdfBuffer = await renderToBuffer(
+        createElement(ReceiptTemplate, { data: receiptData }) as any
+      );
 
-  try {
-    const pdfBuffer = await renderToBuffer(
-      createElement(ReceiptTemplate, { data: receiptData }) as any
-    );
-
-    // Upload to Drive if configured
-    if (isDriveConfigured() && clientId) {
-      try {
-        const folderId = clientFolderId
-          ? clientFolderId
-          : await getOrCreateClientFolder(clientId, clientName, eventDate);
-        await uploadToDriveFolder(
-          folderId, "Receipts",
-          `${receiptData.receiptNumber}.pdf`,
-          pdfBuffer as Buffer
-        );
-      } catch (e: any) {
-        console.warn("[drive] Receipt upload failed:", e?.message);
+      if (isDriveConfigured() && clientId) {
+        try {
+          const folderId = clientFolderId
+            ? clientFolderId
+            : await getOrCreateClientFolder(clientId, clientName, eventDate);
+          await uploadToDriveFolder(folderId, "Receipts", `${receiptData.receiptNumber}.pdf`, pdfBuffer as Buffer);
+        } catch (e: any) {
+          console.warn("[drive] Receipt upload failed:", e?.message);
+        }
       }
-    }
 
-    return new NextResponse(pdfBuffer as unknown as BodyInit, {
-      status: 200,
-      headers: {
-        "Content-Type":        "application/pdf",
-        "Content-Disposition": `attachment; filename="${receiptData.receiptNumber}.pdf"`,
-        "Content-Length":      String(pdfBuffer.length),
-        "Cache-Control":       "no-store",
-      },
-    });
-  } catch (err: any) {
-          console.error("[receipt/GET] renderToBuffer error:", err);
-          return NextResponse.json({ error: `PDF generation failed: ${err.message}` }, { status: 500 });
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${receiptData.receiptNumber}.pdf"`);
+      res.setHeader("Content-Length", String((pdfBuffer as Buffer).length));
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).send(pdfBuffer);
+    } catch (err: any) {
+      console.error("[receipt/GET] renderToBuffer error:", err);
+      return res.status(500).json({ error: `PDF generation failed: ${err.message}` });
+    }
   }
-}
 
-// ── POST — generate PDF + email to client ──────────────────────────────────
-export async function POST(_req: NextRequest, props: Params) {
-  const params = await props.params;
-  const supabase = await createClient();
-  const { data: { user }, error: authErr } = await supabase.auth.getUser();
-  if (authErr || !user) return apiError("Unauthorized", 401);
+  if (req.method === "POST") {
+    const { receiptData, clientEmail, clientName, clientFolderId, clientId, eventDate } = outcome.data;
+    if (!clientEmail) return res.status(422).json({ error: "Client has no email address" });
 
-  const { data: ownerCheck } = await supabase
-        .from("payments").select("id").eq("id", params.id).eq("owner_id", user.id).maybeSingle();
-  if (!ownerCheck) return apiError("Not found", 404);
+    try {
+      const pdfBuffer = await renderToBuffer(
+        createElement(ReceiptTemplate, { data: receiptData }) as any
+      );
 
-  const outcome = await buildReceiptData(params.id, supabase);
-  if (!outcome.data) return receiptErrorResponse(outcome.errorReason, outcome.errorDetail);
-
-  const { receiptData, clientEmail, clientName, clientFolderId, clientId, eventDate } = outcome.data;
-
-  if (!clientEmail) return apiError("Client has no email address", 422);
-
-  try {
-    const pdfBuffer = await renderToBuffer(
-      createElement(ReceiptTemplate, { data: receiptData }) as any
-    );
-
-    // Upload to Drive if configured
-    if (isDriveConfigured() && clientId) {
-      try {
-        const folderId = clientFolderId
-          ? clientFolderId
-          : await getOrCreateClientFolder(clientId, clientName, eventDate);
-        await uploadToDriveFolder(
-          folderId, "Receipts",
-          `${receiptData.receiptNumber}.pdf`,
-          pdfBuffer as Buffer
-        );
-      } catch (e: any) {
-        console.warn("[drive] Receipt upload failed:", e?.message);
+      if (isDriveConfigured() && clientId) {
+        try {
+          const folderId = clientFolderId
+            ? clientFolderId
+            : await getOrCreateClientFolder(clientId, clientName, eventDate);
+          await uploadToDriveFolder(folderId, "Receipts", `${receiptData.receiptNumber}.pdf`, pdfBuffer as Buffer);
+        } catch (e: any) {
+          console.warn("[drive] Receipt upload failed:", e?.message);
+        }
       }
-    }
 
-    const paymentLabel = receiptData.isBalancePayment
-      ? "Balance Payment — Paid in Full"
-      : receiptData.paymentType === "DEPOSIT"
-        ? "Deposit Payment"
-        : "Payment";
+      const paymentLabel = receiptData.isBalancePayment
+        ? "Balance Payment — Paid in Full"
+        : receiptData.paymentType === "DEPOSIT"
+          ? "Deposit Payment"
+          : "Payment";
 
-    const appUrl = getAppUrl();
-    const logoUrl = `${appUrl}/PNG/LetterHeadNavy.png`;
+      const appUrl = getAppUrl();
+      const logoUrl = `${appUrl}/PNG/LetterHeadNavy.png`;
 
-    const html = `
+      const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -315,20 +295,24 @@ export async function POST(_req: NextRequest, props: Params) {
 </body>
 </html>`;
 
-    await sendEmailViaSMTP({
-      to:      clientEmail,
-      subject: `Payment Receipt — ${receiptData.receiptNumber} — JNguyen Co.`,
-      html,
-      text: `Hi ${clientName},\n\nThank you for your payment of $${receiptData.amount.toFixed(2)}.\nReceipt: ${receiptData.receiptNumber}\nDate: ${new Date(receiptData.paidDate).toLocaleDateString("en-AU")}\n\nPlease find your receipt PDF attached.\n\n— JNguyen Co.`,
-      pdfAttachment: {
-        filename: `${receiptData.receiptNumber}.pdf`,
-        data:     Buffer.from(pdfBuffer as any).toString("base64"),
-      },
-    });
+      await sendEmailViaSMTP({
+        to:      clientEmail,
+        subject: `Payment Receipt — ${receiptData.receiptNumber} — JNguyen Co.`,
+        html,
+        text: `Hi ${clientName},\n\nThank you for your payment of $${receiptData.amount.toFixed(2)}.\nReceipt: ${receiptData.receiptNumber}\nDate: ${new Date(receiptData.paidDate).toLocaleDateString("en-AU")}\n\nPlease find your receipt PDF attached.\n\n— JNguyen Co.`,
+        pdfAttachment: {
+          filename: `${receiptData.receiptNumber}.pdf`,
+          data:     Buffer.from(pdfBuffer as any).toString("base64"),
+        },
+      });
 
-    return NextResponse.json({ ok: true, receiptNumber: receiptData.receiptNumber });
-  } catch (err: any) {
-          console.error("[receipt/POST] error:", err);
-          return NextResponse.json({ error: err.message }, { status: 500 });
+      return res.status(200).json({ ok: true, receiptNumber: receiptData.receiptNumber });
+    } catch (err: any) {
+      console.error("[receipt/POST] error:", err);
+      return res.status(500).json({ error: err.message });
+    }
   }
+
+  res.setHeader("Allow", "GET, POST");
+  return res.status(405).json({ error: "Method not allowed" });
 }
