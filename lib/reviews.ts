@@ -5,7 +5,6 @@ export type Review = {
   relative_time_description: string;
   text: string;
 };
-
 export type ReviewsData = {
   name: string;
   rating: number;
@@ -13,58 +12,51 @@ export type ReviewsData = {
   source: string;
   reviews: Review[];
 };
-
 const FALLBACK: ReviewsData = {
   name:         "Jnguyen.co | Canberra Photographer & Videographer",
   rating:       5.0,
-  totalReviews: 13,
+  totalReviews: 15,
   source:       "fallback",
   reviews: [
     {
-      author_name:               "Vinh Dong",
+      author_name:               "Shradha Dhakal",
       profile_photo_url:         "",
       rating:                    5,
-      relative_time_description: "3 weeks ago",
-      text: "The photos were amazing! Johnny was so kind, patient, and friendly, and we received photos and videos that couldn't have been better. Highly recommend to anyone looking for a photographer or videographer!",
+      relative_time_description: "8 weeks ago",
+      text: "Jonny was very friendly and created a warm and welcoming environment for us during the photo session. The photos turned out beautifully, capturing our perfect moments.",
     },
     {
-      author_name:               "Hannah Pham",
+      author_name:               "DIMIL JOSE",
       profile_photo_url:         "",
       rating:                    5,
-      relative_time_description: "4 weeks ago",
-      text: "We couldn't be happier with our experience. Johnny was professional, unobtrusive, and captured our day beautifully. They kept everyone calm during busy moments and instinctively knew exactly where to be to catch the best memories. The final photos exceeded all expectations!",
+      relative_time_description: "13 weeks ago",
+      text: "Great work, guys! 🎉 Amazing job. I absolutely loved it. Everything was handled very professionally. Thank you for all your hard work and dedication.",
     },
     {
-      author_name:               "Anna Marcus",
+      author_name:               "Shashmitha Reddy",
       profile_photo_url:         "",
       rating:                    5,
-      relative_time_description: "3 weeks ago",
-      text: "Johnny captured our Autumn photos not too long ago. They turned out so beautifully! Johnny was really kind, patient, and welcoming, and made sure our experience made us leave with a smile on our faces. Will definitely be booking in the future for our photos! Thank you Johnny 🫰☺️",
+      relative_time_description: "6 weeks ago",
+      text: "Johnny did an amazing job capturing our daughter's First Holy Communion. He was professional, friendly, and made the whole experience special.",
     },
   ],
 };
-
 export async function fetchReviews(): Promise<ReviewsData> {
   const apiKey  = process.env.GOOGLE_PLACES_API_KEY;
   const placeId = process.env.GOOGLE_PLACE_ID;
-
   if (!apiKey || !placeId) return FALLBACK;
-
   try {
     const url = new URL("https://maps.googleapis.com/maps/api/place/details/json");
     url.searchParams.set("place_id",    placeId);
     url.searchParams.set("fields",      "name,rating,user_ratings_total,reviews");
     url.searchParams.set("reviews_sort","newest");
     url.searchParams.set("key",         apiKey);
-
     const res  = await fetch(url.toString(), { next: { revalidate: 3600 } });
     const data = await res.json() as any;
-
     if (!data.result) {
       console.warn("[reviews] Places API status:", data.status, "— using fallback");
       return FALLBACK;
     }
-
     return {
       name:         data.result.name,
       rating:       data.result.rating,
