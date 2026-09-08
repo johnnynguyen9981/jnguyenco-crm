@@ -6,8 +6,9 @@ import React from "react";
 import fs from "fs";
 import path from "path";
 import {
-  Document, Page, Text, View, StyleSheet, renderToBuffer, Image,
+  Document, Page, Text, View, StyleSheet, Image,
 } from "@react-pdf/renderer";
+import { renderToBuffer } from "@/lib/pdf/renderQueue";
 
 // ─── Brand colours ─────────────────────────────────────────────────────────────
 const NAVY      = "#083a4f";

@@ -9,7 +9,7 @@ import { getOwnerUserId } from "@/lib/team";
 import { apiSuccess, apiError } from "@/lib/utils";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 import { generateContractPDF, EnquiryData } from "@/lib/generate-contract";
-import { renderToBuffer } from "@react-pdf/renderer";
+import { renderToBuffer } from "@/lib/pdf/renderQueue";
 import { InvoiceTemplate } from "@/lib/pdf/InvoiceTemplate";
 import { createElement } from "react";
 import type { InvoiceWithDetails } from "@/lib/supabase/types";

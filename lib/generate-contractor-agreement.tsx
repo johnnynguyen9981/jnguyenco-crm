@@ -17,8 +17,9 @@
  */
 import React from "react";
 import {
-  Document, Page, Text, View, StyleSheet, renderToBuffer, Image, Font, Svg, Path,
+  Document, Page, Text, View, StyleSheet, Image, Font, Svg, Path,
 } from "@react-pdf/renderer";
+import { renderToBuffer } from "@/lib/pdf/renderQueue";
 import path from "path";
 import fs from "fs";
 

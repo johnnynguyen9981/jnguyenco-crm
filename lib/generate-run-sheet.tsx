@@ -8,8 +8,9 @@
  */
 import React from "react";
 import {
-  Document, Page, Text, View, StyleSheet, renderToBuffer, Svg, Path, Font,
+  Document, Page, Text, View, StyleSheet, Svg, Path, Font,
 } from "@react-pdf/renderer";
+import { renderToBuffer } from "@/lib/pdf/renderQueue";
 import path from "path";
 import { fmtRunSheetTime, RunSheetItem } from "@/lib/run-sheet";
 

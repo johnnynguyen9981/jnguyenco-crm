@@ -3,7 +3,7 @@
 // Uses @react-pdf/renderer renderToBuffer — runs entirely on the server.
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { renderToBuffer } from "@react-pdf/renderer";
+import { renderToBuffer } from "@/lib/pdf/renderQueue";
 import { InvoiceTemplate } from "@/lib/pdf/InvoiceTemplate";
 import { createElement } from "react";
 import type { InvoiceWithDetails } from "@/lib/supabase/types";

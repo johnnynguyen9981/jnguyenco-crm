@@ -2,7 +2,7 @@
 // POST /api/payments/[id]/receipt — generate PDF + email to client
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { renderToBuffer } from "@react-pdf/renderer";
+import { renderToBuffer } from "@/lib/pdf/renderQueue";
 import { ReceiptTemplate } from "@/lib/pdf/ReceiptTemplate";
 import type { ReceiptData } from "@/lib/pdf/ReceiptTemplate";
 import { createElement } from "react";
