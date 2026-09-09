@@ -1,9 +1,20 @@
 "use client";
 // Inline, click-to-edit Deadline cell for one row of the Booking Assignments
 // table on the contractor detail page. Click the date (or "—") to swap in a
-// native date input; it saves on blur/Enter through the same PATCH endpoint
-// the booking detail page's inline deadline edit uses, and reverts on
-// failure — same optimistic pattern as PaidToggle.tsx in this folder.
+// native date input; it saves as soon as a complete date is entered, through
+// the same PATCH endpoint the booking detail page's inline deadline edit
+// uses, and reverts on failure — same optimistic pattern as PaidToggle.tsx
+// in this folder.
+//
+// Saves on onChange rather than onBlur: a native <input type="date"> only
+// reports a non-empty value once every segment (day/month/year) is filled
+// in, and onChange only fires at that point — so it's the reliable "the
+// user picked a real date" signal (same trigger DeliverableStatusSelect.tsx
+// uses for its dropdown). Saving on blur instead was the original bug here:
+// clicking away before finishing all three segments delivers an empty
+// value, which matched the empty "no deadline yet" starting state, so the
+// save() guard silently treated it as "nothing changed" and never sent the
+// request at all.
 //
 // Once work has been marked received (work_received_at set), the deadline
 // becomes historical record-keeping rather than something to keep nudging —
@@ -72,9 +83,18 @@ export function DeadlineEditor({
         autoFocus
         defaultValue={deadline}
         disabled={saving}
-        onBlur={(e) => save(e.target.value)}
+        onChange={(e) => {
+          // Native date inputs only fire onChange once a complete date is
+          // picked, so this is exactly the "user chose a real date" signal
+          // — no empty/partial value ever reaches save() here.
+          if (e.target.value) save(e.target.value);
+        }}
+        onBlur={(e) => {
+          // Clicked/tabbed away without finishing the date (still empty) —
+          // just close the editor, nothing to save.
+          if (!e.target.value) setEditing(false);
+        }}
         onKeyDown={(e) => {
-          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           if (e.key === "Escape") setEditing(false);
         }}
         className="input text-sm py-0.5 px-1.5 w-[9.5rem] disabled:opacity-60"
