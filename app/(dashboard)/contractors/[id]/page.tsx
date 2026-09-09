@@ -9,6 +9,7 @@ import { ArrowLeft, Mail, Phone, Edit, CalendarDays } from "lucide-react";
 import { GenerateContractButton } from "./GenerateContractButton";
 import { DeleteContractorButton } from "../DeleteContractorButton";
 import { PaidToggle } from "./PaidToggle";
+import { DeadlineEditor } from "./DeadlineEditor";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -201,12 +202,12 @@ export default async function ContractorDetailPage(props: Params) {
                   </thead>
                   <tbody>
                     {assignments.map((a: any) => {
-                      // Received work is never "overdue" regardless of how the
-                      // date compares to today — see ContractorAssignment.tsx's
-                      // deadlineBadge() for the fuller version of this logic
-                      // used on the booking detail page; kept in sync here.
-                      const overdue = !a.work_received_at && a.deadline &&
-                        new Date(`${a.deadline}T00:00:00`) < new Date(new Date().toDateString());
+                      // Overdue/received display logic now lives in
+                      // DeadlineEditor.tsx (it needs to recompute "overdue"
+                      // client-side after an inline edit) — see
+                      // ContractorAssignment.tsx's deadlineBadge() for the
+                      // fuller version of this logic used on the booking
+                      // detail page; kept in sync here.
                       const client = a.bookings?.clients;
                       const clientName = client ? `${client.first_name} ${client.last_name}` : "—";
                       return (
@@ -223,14 +224,19 @@ export default async function ContractorDetailPage(props: Params) {
                           <td className="table-cell text-sm text-gray-600">{ROLE_LABELS[a.role] ?? a.role}</td>
                           <td className="table-cell text-right font-semibold text-sm">{formatCurrency(a.agreed_rate)}</td>
                           <td className="table-cell text-sm">
-                            {a.work_received_at ? (
+                            {a.bookings?.id ? (
+                              <DeadlineEditor
+                                bookingId={a.bookings.id}
+                                assignmentId={a.id}
+                                initialDeadline={a.deadline ?? null}
+                                workReceivedAt={a.work_received_at ?? null}
+                              />
+                            ) : a.work_received_at ? (
                               <span className="text-green-700 font-medium">
                                 Received {formatDate(a.work_received_at)}
                               </span>
                             ) : a.deadline ? (
-                              <span className={overdue ? "text-red-600 font-medium" : "text-gray-600"}>
-                                {formatDate(a.deadline)}{overdue && " (overdue)"}
-                              </span>
+                              <span className="text-gray-600">{formatDate(a.deadline)}</span>
                             ) : (
                               <span className="text-gray-300">—</span>
                             )}
