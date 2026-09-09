@@ -8,6 +8,7 @@ import { formatDate, formatPhone, formatCurrency } from "@/lib/utils";
 import { ArrowLeft, Mail, Phone, Edit, CalendarDays } from "lucide-react";
 import { GenerateContractButton } from "./GenerateContractButton";
 import { DeleteContractorButton } from "../DeleteContractorButton";
+import { PaidToggle } from "./PaidToggle";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -235,9 +236,17 @@ export default async function ContractorDetailPage(props: Params) {
                             )}
                           </td>
                           <td className="table-cell">
-                            <span className={a.paid ? "badge badge-confirmed" : "badge badge-pending"}>
-                              {a.paid ? "Paid" : "Unpaid"}
-                            </span>
+                            {a.bookings?.id ? (
+                              <PaidToggle
+                                bookingId={a.bookings.id}
+                                assignmentId={a.id}
+                                initialPaid={!!a.paid}
+                              />
+                            ) : (
+                              <span className={a.paid ? "badge badge-confirmed" : "badge badge-pending"}>
+                                {a.paid ? "Paid" : "Unpaid"}
+                              </span>
+                            )}
                           </td>
                         </tr>
                       );
