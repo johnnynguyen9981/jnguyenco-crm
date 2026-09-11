@@ -161,6 +161,18 @@ export default async function BookingDetailPage(props: Props) {
                 <dt className="text-gray-400">Package</dt>
                 <dd className="font-medium mt-0.5">{pkg?.name ?? "Custom"}</dd>
               </div>
+              <div>
+                <dt className="text-gray-400">Venue Name</dt>
+                <dd className="font-medium mt-0.5">
+                  {booking.venue_name || <span className="text-gray-400 italic font-normal">Not set</span>}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-gray-400">Venue Address</dt>
+                <dd className="font-medium mt-0.5">
+                  {booking.venue_address || <span className="text-gray-400 italic font-normal">Not set</span>}
+                </dd>
+              </div>
               {showFinancials && (
                 <div>
                   <dt className="text-gray-400">Quoted Total</dt>
