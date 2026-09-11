@@ -8,10 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getOwnerUserId } from "@/lib/team";
 import { apiSuccess, apiError } from "@/lib/utils";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
-import { generateContractPDF, EnquiryData } from "@/lib/generate-contract";
-import { renderToBuffer } from "@react-pdf/renderer";
-import { InvoiceTemplate } from "@/lib/pdf/InvoiceTemplate";
-import { createElement } from "react";
+import type { EnquiryData } from "@/lib/generate-contract";
+import { renderPdfInternal } from "@/lib/pdf/render-client";
 import type { InvoiceWithDetails } from "@/lib/supabase/types";
 
 // ─── Package key mapper (mirrors fill-contract route) ────────
@@ -34,7 +32,7 @@ function packageNameToKey(name: string): PkgKey | null {
 
 // ─── Route ───────────────────────────────────────────────────
 
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return apiError("Unauthorized", 401);
@@ -141,7 +139,7 @@ export async function POST(_req: NextRequest) {
           }
         }
 
-        const contractBuf      = await generateContractPDF(enquiryData);
+        const contractBuf      = await renderPdfInternal("/api/pdf/contract", { enquiryData }, req.url);
         const contractFilename = `Contract_${clientName.replace(/\s+/g, "_")}.pdf`;
         const contractUrl      = await uploadToDriveFolder(clientFolderId, "Contracts", contractFilename, contractBuf);
         clientResult.contract  = contractUrl;
@@ -165,10 +163,12 @@ export async function POST(_req: NextRequest) {
           invoice.invoice_line_items = (invoice.invoice_line_items ?? []).sort(
             (a: any, b: any) => a.sort_order - b.sort_order
           );
-          const pdfBuf = await renderToBuffer(
-            createElement(InvoiceTemplate, { invoice: invoice as unknown as InvoiceWithDetails }) as any
+          const pdfBuf = await renderPdfInternal(
+            "/api/pdf/invoice",
+            invoice as unknown as InvoiceWithDetails,
+            req.url
           );
-          const url = await uploadToDriveFolder(clientFolderId, "Invoices", `${invoice.invoice_number}.pdf`, pdfBuf as Buffer);
+          const url = await uploadToDriveFolder(clientFolderId, "Invoices", `${invoice.invoice_number}.pdf`, pdfBuf);
           clientResult.invoices.push(url);
         } catch (e: any) {
           clientResult.errors.push(`Invoice ${invoice.invoice_number}: ${e.message}`);

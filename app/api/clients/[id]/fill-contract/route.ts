@@ -8,7 +8,8 @@ import { execFileSync } from "child_process";
 import { writeFileSync, unlinkSync, existsSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { generateContractPDF, EnquiryData } from "@/lib/generate-contract";
+import type { EnquiryData } from "@/lib/generate-contract";
+import { renderPdfInternal } from "@/lib/pdf/render-client";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 
 const BUCKET = "documents";
@@ -188,7 +189,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
   let pdfBuffer: Buffer;
   try {
-    pdfBuffer = await generateContractPDF(enquiryData);
+    pdfBuffer = await renderPdfInternal("/api/pdf/contract", { enquiryData }, req.url);
   } catch (e) {
     console.error("PDF generation error:", e);
     return NextResponse.json({ error: "Failed to generate contract PDF" }, { status: 500 });

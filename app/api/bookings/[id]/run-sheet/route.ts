@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getOwnerUserId, getCurrentTeamMember, isFounder } from "@/lib/team";
 import { apiSuccess, apiError, formatServiceType } from "@/lib/utils";
 import { generateDefaultRunSheet, RunSheetItem } from "@/lib/run-sheet";
-import { generateRunSheetPDF, RunSheetData } from "@/lib/generate-run-sheet";
+import type { RunSheetData } from "@/lib/generate-run-sheet";
+import { renderPdfInternal } from "@/lib/pdf/render-client";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -77,7 +78,7 @@ export async function PATCH(req: NextRequest, props: Params) {
   return apiSuccess(data);
 }
 
-export async function POST(_req: NextRequest, props: Params) {
+export async function POST(req: NextRequest, props: Params) {
   const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
@@ -141,7 +142,7 @@ export async function POST(_req: NextRequest, props: Params) {
 
   let pdfBuffer: Buffer;
   try {
-    pdfBuffer = await generateRunSheetPDF(data);
+    pdfBuffer = await renderPdfInternal("/api/pdf/run-sheet", data, req.url);
   } catch (e) {
     console.error("[run-sheet] PDF generation error:", e);
     return NextResponse.json({ error: "Failed to generate run sheet" }, { status: 500 });

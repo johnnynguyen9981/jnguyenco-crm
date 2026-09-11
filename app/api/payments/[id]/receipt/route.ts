@@ -2,10 +2,8 @@
 // POST /api/payments/[id]/receipt — generate PDF + email to client
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { renderToBuffer } from "@react-pdf/renderer";
-import { ReceiptTemplate } from "@/lib/pdf/ReceiptTemplate";
 import type { ReceiptData } from "@/lib/pdf/ReceiptTemplate";
-import { createElement } from "react";
+import { renderPdfInternal } from "@/lib/pdf/render-client";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 import { apiError, getAppUrl } from "@/lib/utils";
@@ -146,7 +144,7 @@ function receiptErrorResponse(
 }
 
 // ── GET — return PDF as download ────────────────────────────────────────────
-export async function GET(_req: NextRequest, props: Params) {
+export async function GET(req: NextRequest, props: Params) {
   const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
@@ -163,9 +161,7 @@ export async function GET(_req: NextRequest, props: Params) {
   const { receiptData, clientFolderId, clientName, clientId, eventDate } = outcome.data;
 
   try {
-    const pdfBuffer = await renderToBuffer(
-      createElement(ReceiptTemplate, { data: receiptData }) as any
-    );
+    const pdfBuffer = await renderPdfInternal("/api/pdf/receipt", receiptData, req.url);
 
     // Upload to Drive if configured
     if (isDriveConfigured() && clientId) {
@@ -176,7 +172,7 @@ export async function GET(_req: NextRequest, props: Params) {
         await uploadToDriveFolder(
           folderId, "Receipts",
           `${receiptData.receiptNumber}.pdf`,
-          pdfBuffer as Buffer
+          pdfBuffer
         );
       } catch (e: any) {
         console.warn("[drive] Receipt upload failed:", e?.message);
@@ -193,13 +189,13 @@ export async function GET(_req: NextRequest, props: Params) {
       },
     });
   } catch (err: any) {
-          console.error("[receipt/GET] renderToBuffer error:", err);
+          console.error("[receipt/GET] render error:", err);
           return NextResponse.json({ error: `PDF generation failed: ${err.message}` }, { status: 500 });
   }
 }
 
 // ── POST — generate PDF + email to client ──────────────────────────────────
-export async function POST(_req: NextRequest, props: Params) {
+export async function POST(req: NextRequest, props: Params) {
   const params = await props.params;
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
@@ -217,9 +213,7 @@ export async function POST(_req: NextRequest, props: Params) {
   if (!clientEmail) return apiError("Client has no email address", 422);
 
   try {
-    const pdfBuffer = await renderToBuffer(
-      createElement(ReceiptTemplate, { data: receiptData }) as any
-    );
+    const pdfBuffer = await renderPdfInternal("/api/pdf/receipt", receiptData, req.url);
 
     // Upload to Drive if configured
     if (isDriveConfigured() && clientId) {
@@ -230,7 +224,7 @@ export async function POST(_req: NextRequest, props: Params) {
         await uploadToDriveFolder(
           folderId, "Receipts",
           `${receiptData.receiptNumber}.pdf`,
-          pdfBuffer as Buffer
+          pdfBuffer
         );
       } catch (e: any) {
         console.warn("[drive] Receipt upload failed:", e?.message);

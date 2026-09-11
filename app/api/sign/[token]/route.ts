@@ -8,7 +8,8 @@
 //   5. Marks booking as signed, invalidates token
 import { NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { generateContractPDF, EnquiryData } from "@/lib/generate-contract";
+import type { EnquiryData } from "@/lib/generate-contract";
+import { renderPdfInternal } from "@/lib/pdf/render-client";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 import { contractSignedConfirmationHtml } from "@/lib/google/gmail";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
@@ -111,10 +112,13 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
   // ── Generate signed PDF ──────────────────────────────────────────────────
   let pdfBuffer: Buffer;
   try {
-        pdfBuffer = await generateContractPDF(enquiryData, {
-                clientSignatureDataUri: signature_data_uri,
-                clientSignedAt:         now.toISOString(),
-        });
+        pdfBuffer = await renderPdfInternal("/api/pdf/contract", {
+                enquiryData,
+                signOptions: {
+                        clientSignatureDataUri: signature_data_uri,
+                        clientSignedAt:         now.toISOString(),
+                },
+        }, req.url);
   } catch (e: any) {
         console.error("[sign/token] PDF generation failed:", e);
         return apiError("Failed to generate signed contract PDF: " + e.message, 500);
