@@ -5,7 +5,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getOwnerUserId, getCurrentTeamMember, isFounder } from "@/lib/team";
-import { generateContractorAgreementPDF, ContractorAgreementData, ContractLanguage } from "@/lib/generate-contractor-agreement";
+import type { ContractorAgreementData, ContractLanguage } from "@/lib/generate-contractor-agreement";
+import { renderPdfInternal } from "@/lib/pdf/render-client";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest, props: Params) {
 
   let pdfBuffer: Buffer;
   try {
-    pdfBuffer = await generateContractorAgreementPDF(agreementData, language);
+    pdfBuffer = await renderPdfInternal("/api/pdf/contractor-agreement", { data: agreementData, language }, req.url);
   } catch (e) {
     console.error("[contractors/generate-contract] PDF generation error:", e);
     return NextResponse.json({ error: "Failed to generate agreement PDF" }, { status: 500 });

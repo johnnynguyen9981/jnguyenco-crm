@@ -53,7 +53,13 @@ export async function middleware(request: NextRequest) {
     // instead, checked inside each route handler. Without this bypass,
     // middleware would redirect every cron hit to /login before the route's
     // own secret check ever runs, silently breaking the scheduled job.
-    !request.nextUrl.pathname.startsWith("/api/cron")
+    !request.nextUrl.pathname.startsWith("/api/cron") &&
+    // Internal PDF-render endpoints (pages/api/pdf/*.ts) — pure functions of
+    // their JSON body with no DB access, called server-to-server from both
+    // authenticated App Router routes and the public e-sign flow
+    // (app/api/sign/[token]/route.ts), so they carry no session cookie.
+    // See lib/pdf/render-client.ts for why this indirection exists.
+    !request.nextUrl.pathname.startsWith("/api/pdf/")
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

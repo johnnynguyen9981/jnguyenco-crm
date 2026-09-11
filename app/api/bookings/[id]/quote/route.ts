@@ -3,7 +3,9 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { apiSuccess, apiError } from "@/lib/utils";
-import { generateQuotePDF, PACKAGE_DELIVERABLES, DEFAULT_DELIVERABLES, type QuoteData } from "@/lib/generate-quote";
+import { PACKAGE_DELIVERABLES, DEFAULT_DELIVERABLES } from "@/lib/quote-deliverables";
+import type { QuoteData } from "@/lib/generate-quote";
+import { renderPdfInternal } from "@/lib/pdf/render-client";
 import { sendEmailViaSMTP } from "@/lib/email/smtp";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 
@@ -84,7 +86,7 @@ export async function POST(req: NextRequest, props: Params) {
   // Generate PDF
   let pdfBuffer: Buffer;
   try {
-    pdfBuffer = await generateQuotePDF(quoteData);
+    pdfBuffer = await renderPdfInternal("/api/pdf/quote", quoteData, req.url);
   } catch (err: any) {
     console.error("[quote/pdf] Generation error:", err);
     return apiError(`PDF generation failed: ${err.message}`, 500);

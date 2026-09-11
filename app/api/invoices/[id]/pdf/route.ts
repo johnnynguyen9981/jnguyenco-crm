@@ -1,11 +1,11 @@
 // GET /api/invoices/[id]/pdf
 // Renders the branded invoice PDF server-side and returns it as a downloadable file.
-// Uses @react-pdf/renderer renderToBuffer — runs entirely on the server.
+// The actual @react-pdf/renderer renderToBuffer() call happens in
+// pages/api/pdf/invoice.ts (Pages Router), reached via a loopback fetch —
+// see lib/pdf/render-client.ts for why it can't be called directly here.
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { renderToBuffer } from "@react-pdf/renderer";
-import { InvoiceTemplate } from "@/lib/pdf/InvoiceTemplate";
-import { createElement } from "react";
+import { renderPdfInternal } from "@/lib/pdf/render-client";
 import type { InvoiceWithDetails } from "@/lib/supabase/types";
 import { getOrCreateClientFolder, uploadToDriveFolder, isDriveConfigured } from "@/lib/google/drive";
 import { isCurrentUserFounder } from "@/lib/team";
@@ -58,9 +58,11 @@ export async function GET(req: NextRequest, props: Params) {
   }
 
   try {
-    // Render PDF to a Node.js Buffer using renderToBuffer
-    const pdfBuffer = await renderToBuffer(
-      createElement(InvoiceTemplate, { invoice: invoice as unknown as InvoiceWithDetails }) as any
+    // Render PDF via the Pages Router internal endpoint (see lib/pdf/render-client.ts)
+    const pdfBuffer = await renderPdfInternal(
+      "/api/pdf/invoice",
+      invoice as unknown as InvoiceWithDetails,
+      req.url
     );
 
     // Upload to Google Drive before returning response (Vercel kills fire-and-forget tasks)
@@ -73,7 +75,7 @@ export async function GET(req: NextRequest, props: Params) {
           const folderId = clientRow.gdrive_folder_id
             ? clientRow.gdrive_folder_id
             : await getOrCreateClientFolder(clientRow.id, clientName, bookingRow?.event_date);
-          await uploadToDriveFolder(folderId, "Invoices", `${invoice.invoice_number}.pdf`, pdfBuffer as Buffer);
+          await uploadToDriveFolder(folderId, "Invoices", `${invoice.invoice_number}.pdf`, pdfBuffer);
         } catch (e: any) {
           console.warn("[drive] Invoice upload failed:", e?.message, e?.stack?.split("\n")[1]);
         }
