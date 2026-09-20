@@ -138,67 +138,59 @@ export async function PATCH(req: NextRequest, props: Params) {
   const receivedUpdate: Record<string, unknown> = {};
   if (body.work_received_at !== undefined) receivedUpdate.work_received_at = body.work_received_at;
 
-  const selectCols =
+  // Single merged update payload, pruned in place below as migration-gated
+  // columns turn out to be missing — this replaced an earlier chain of
+  // fallback branches that each guessed which column had caused the error
+  // from the *request body's* shape rather than the database's actual
+  // response. That guess was wrong whenever a request only touched one
+  // migration-gated field (e.g. "Mark work received" sends only
+  // work_received_at): the SELECT's unconditional `amount_paid` reference
+  // failed first (that migration hadn't run yet), the chain misread it as a
+  // work_received_at/coverage problem instead, and its matching fallback
+  // dropped the *actual* update fields entirely, ending on a `.update({})`
+  // no-op that still returned 200 — the request appeared to succeed while
+  // silently changing nothing.
+  let fullUpdate: Record<string, unknown> = { ...update, ...coverageUpdate, ...receivedUpdate, ...amountPaidUpdate };
+  let selectCols =
     "id, role, agreed_rate, confirmed, paid, amount_paid, deadline, work_received_at, rate_type, coverage_start_time, coverage_end_time, " +
     "contractors (id, first_name, last_name, email, phone, role, default_rate, rate_type)";
 
-  let { data, error } = await supabase
-    .from("booking_contractors")
-    .update({ ...update, ...coverageUpdate, ...receivedUpdate, ...amountPaidUpdate })
-    .eq("id", params.assignmentId)
-    .eq("booking_id", params.id)
-    .select(selectCols)
-    .single();
-
-  // amount_paid doesn't exist yet — strip it from `update` itself (not just
-  // this one retry) so every fallback below stays consistent, and retry.
-  if (error && isMissingColumnError(error) && (Object.keys(amountPaidUpdate).length > 0 || "amount_paid" in update)) {
-    if ("amount_paid" in update) {
-      const { amount_paid: _drop, ...rest } = update;
-      update = rest;
-    }
-    ({ data, error } = await supabase
+  async function attempt() {
+    return supabase
       .from("booking_contractors")
-      .update({ ...update, ...coverageUpdate, ...receivedUpdate })
-      .eq("id", params.assignmentId)
-      .eq("booking_id", params.id)
-      .select(selectCols.replace(", amount_paid", ""))
-      .single());
-  }
-
-  // work_received_at doesn't exist yet — retry without it so
-  // confirmed/paid/deadline/coverage updates still work.
-  if (error && isMissingColumnError(error) && Object.keys(receivedUpdate).length > 0) {
-    ({ data, error } = await supabase
-      .from("booking_contractors")
-      .update({ ...update, ...coverageUpdate })
-      .eq("id", params.assignmentId)
-      .eq("booking_id", params.id)
-      .select(selectCols.replace(", work_received_at", ""))
-      .single());
-  }
-
-  // rate_type/coverage columns don't exist yet — retry with only the
-  // original fields so confirmed/paid/agreed_rate updates still work.
-  if (error && isMissingColumnError(error) && Object.keys(coverageUpdate).length > 0) {
-    ({ data, error } = await supabase
-      .from("booking_contractors")
-      .update(update)
+      .update(fullUpdate)
       .eq("id", params.assignmentId)
       .eq("booking_id", params.id)
       .select(selectCols)
-      .single());
+      .single();
   }
 
-  // The select itself references columns (rate_type/coverage_*/default_rate/
-  // work_received_at/amount_paid) that may not exist yet — fall back to a
-  // minimal select so the core confirmed/paid toggle never breaks because
-  // of newer columns.
+  let { data, error } = await attempt();
+
+  // Each of these columns was added in its own later migration and may not
+  // exist yet on a database that hasn't had it run. On a missing-column
+  // error, drop whichever of these are actually present in this request/
+  // select and retry — never touching fields the request didn't ask to
+  // change — until the update succeeds or nothing more can be dropped.
+  const migrationGatedColumns = [
+    "amount_paid", "work_received_at", "rate_type", "coverage_start_time", "coverage_end_time", "deadline",
+  ];
+  for (const col of migrationGatedColumns) {
+    if (!error || !isMissingColumnError(error)) break;
+    if (!(col in fullUpdate) && !selectCols.includes(col)) continue;
+    const { [col]: _drop, ...rest } = fullUpdate;
+    fullUpdate = rest;
+    selectCols = selectCols.replace(new RegExp(`,\\s*${col}\\b`), "");
+    ({ data, error } = await attempt());
+  }
+
+  // Still failing on some other missing column (e.g. default_rate on
+  // contractors) — fall back to the original, always-present columns only.
   const minimalSelectCols = "id, role, agreed_rate, confirmed, paid, deadline, contractors (id, first_name, last_name, email, phone, role)";
   if (error && isMissingColumnError(error)) {
     ({ data, error } = await supabase
       .from("booking_contractors")
-      .update(update)
+      .update(fullUpdate)
       .eq("id", params.assignmentId)
       .eq("booking_id", params.id)
       .select(minimalSelectCols)
