@@ -54,7 +54,11 @@ export async function PATCH(req: NextRequest, props: Params) {
     return apiError("Invalid JSON body");
   }
 
-  // Validate email if provided
+  // Email is optional — a blank value clears it (stored as NULL so it
+  // doesn't collide on the (owner_id, email) unique index).
+  if (body.email !== undefined) {
+    body.email = body.email?.trim() ? body.email.toLowerCase().trim() : null;
+  }
   if (body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
     return apiError("Invalid email address");
   }

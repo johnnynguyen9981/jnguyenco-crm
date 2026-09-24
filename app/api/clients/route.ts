@@ -65,26 +65,31 @@ export async function POST(req: NextRequest) {
   // Validate required fields
   if (!body.first_name?.trim()) return apiError("first_name is required");
   if (!body.last_name?.trim())  return apiError("last_name is required");
-  if (!body.email?.trim())      return apiError("email is required");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+
+  // Email is optional — some enquiries come in via Messenger/DMs with no
+  // address. It gets captured later (e.g. on the contract signing page).
+  const email = body.email?.trim() ? body.email.toLowerCase().trim() : null;
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return apiError("Invalid email address");
   }
 
   // Check for duplicate email under this owner
-  const { data: existing } = await supabase
-    .from("clients")
-    .select("id")
-    .eq("owner_id", user.id)
-    .eq("email", body.email.toLowerCase().trim())
-    .maybeSingle();
+  if (email) {
+    const { data: existing } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("owner_id", user.id)
+      .eq("email", email)
+      .maybeSingle();
 
-  if (existing) return apiError("A client with this email already exists", 409);
+    if (existing) return apiError("A client with this email already exists", 409);
+  }
 
   const { data, error } = await supabase
     .from("clients")
     .insert({
       ...body,
-      email:    body.email.toLowerCase().trim(),
+      email,
       owner_id: user.id,
     })
     .select()

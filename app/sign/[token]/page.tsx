@@ -100,7 +100,10 @@ export default async function SignContractPage(props: Props) {
             Images may be used by JNguyen Co. for portfolio and marketing purposes unless the client opts out in writing prior to the event.
           </Term>
           <p style={{ fontSize: 12, color: "#888", marginTop: 14 }}>
-            The full contract was sent to {client.email}. By signing below you confirm you have read and agree to all terms.
+            {client.email
+              ? <>The full contract was sent to {client.email}. </>
+              : <>A copy of the full signed contract will be emailed to you. </>}
+            By signing below you confirm you have read and agree to all terms.
           </p>
         </div>
 
@@ -108,6 +111,7 @@ export default async function SignContractPage(props: Props) {
         <SigningForm
           token={token}
           clientName={`${client.first_name} ${client.last_name}`}
+          needsEmail={!client.email}
         />
       </div>
     </div>
