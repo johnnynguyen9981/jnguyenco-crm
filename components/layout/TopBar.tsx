@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, Menu } from "lucide-react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { GlobalSearch } from "./GlobalSearch";
 import { useMobileNav } from "./MobileNavContext";
@@ -26,7 +27,10 @@ interface TopBarProps {
 }
 
 export function TopBar({ title, subtitle, backHref, backLabel }: TopBarProps) {
-  const { setOpen } = useMobileNav();
+  const { setOpen, registerTopBar } = useMobileNav();
+
+  // Tell the layout a TopBar is present so it hides its fallback MobileHeader.
+  useEffect(() => registerTopBar(), [registerTopBar]);
 
   return (
     <header
