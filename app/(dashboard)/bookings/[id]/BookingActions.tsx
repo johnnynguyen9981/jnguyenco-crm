@@ -579,14 +579,14 @@ export function BookingActions({ booking, client }: Props) {
         />
       )}
 
-      <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-col items-start lg:items-end gap-2">
         {message && (
           <p className={`text-xs px-3 py-1.5 rounded-lg ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
             {message.text}
           </p>
         )}
 
-        <div className="flex flex-wrap gap-1.5 justify-end">
+        <div className="flex flex-wrap gap-1.5 lg:justify-end">
 
           {/* 1 — Quote */}
           <button onClick={sendQuote} disabled={!!actionLoading}

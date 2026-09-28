@@ -107,14 +107,14 @@ export function Sidebar({ role: roleProp }: { role?: string }) {
 
       {/* Brand mark */}
       <div className="px-5 pt-6 pb-4">
-        <div className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3">
           <FlameMark size={36} color="#a58d66" />
           <div>
             <p className="text-white text-xs font-bold tracking-[0.14em] uppercase leading-snug">JNGUYEN</p>
             <p className="text-white text-xs font-bold tracking-[0.2em] uppercase leading-snug">CO.</p>
             <p className="text-brand-pale-blue text-[10px] tracking-widest uppercase mt-1">CRM</p>
           </div>
-        </div>
+        </Link>
         {/* Gold rule */}
         <div className="mt-4 h-px" style={{ background: "linear-gradient(90deg, #a58d66 0%, transparent 80%)" }} />
       </div>

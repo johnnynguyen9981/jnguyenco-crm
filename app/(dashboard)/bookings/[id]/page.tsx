@@ -98,14 +98,14 @@ export default async function BookingDetailPage(props: Props) {
   const statusBadge = getBookingStatusBadge(booking.status);
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/bookings" className="text-gray-400 hover:text-gray-600 text-sm">← Bookings</Link>
-          <span className="text-gray-300">/</span>
-          <div>
-            <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3 min-w-0">
+          <Link href="/bookings" className="text-gray-400 hover:text-gray-600 text-sm shrink-0">← Bookings</Link>
+          <span className="text-gray-300 hidden sm:inline">/</span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <h1 className="text-2xl font-semibold text-brand-navy">
                 {client ? `${client.first_name} ${client.last_name}` : "Booking"}
               </h1>
@@ -119,7 +119,7 @@ export default async function BookingDetailPage(props: Props) {
 
         {/* Action buttons — founder only */}
         {showFinancials && (
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="flex items-start gap-2 flex-wrap lg:justify-end">
             <Link href={`/bookings/${booking.id}/edit`} className="btn-secondary text-sm py-1.5">Edit</Link>
             <BookingActions booking={booking} client={client} />
             <DeleteBookingButton bookingId={booking.id} clientId={booking.client_id} />

@@ -1,10 +1,14 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 
 type MobileNavContextValue = {
   open: boolean;
   setOpen: (open: boolean) => void;
+  // Number of TopBars currently mounted. Pages that render a TopBar get the
+  // hamburger from it; pages that don't fall back to the layout's MobileHeader.
+  topBarCount: number;
+  registerTopBar: () => () => void;
 };
 
 const MobileNavContext = createContext<MobileNavContextValue | null>(null);
@@ -14,8 +18,15 @@ const MobileNavContext = createContext<MobileNavContextValue | null>(null);
 // even though they're siblings rendered at different points in the tree.
 export function MobileNavProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [topBarCount, setTopBarCount] = useState(0);
+
+  const registerTopBar = useCallback(() => {
+    setTopBarCount(c => c + 1);
+    return () => setTopBarCount(c => c - 1);
+  }, []);
+
   return (
-    <MobileNavContext.Provider value={{ open, setOpen }}>
+    <MobileNavContext.Provider value={{ open, setOpen, topBarCount, registerTopBar }}>
       {children}
     </MobileNavContext.Provider>
   );

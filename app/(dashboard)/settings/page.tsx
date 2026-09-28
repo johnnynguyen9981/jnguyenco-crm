@@ -37,7 +37,7 @@ export default async function SettingsPage(props: { searchParams: Promise<{ goog
     .single();
 
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="p-4 sm:p-6 max-w-2xl space-y-8">
       {googleStatus === "connected" && (
         <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3">
           ✓ Google account connected successfully. Calendar sync and Gmail are now active.

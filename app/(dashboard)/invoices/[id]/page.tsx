@@ -44,7 +44,7 @@ export default async function InvoiceDetailPage(props: Props) {
   const isOverdue = invoice.due_date && new Date(invoice.due_date) < new Date() && invoice.status !== "PAID";
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
