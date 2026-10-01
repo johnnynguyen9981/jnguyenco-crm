@@ -46,23 +46,31 @@ export async function fetchReviews(): Promise<ReviewsData> {
   const placeId = process.env.GOOGLE_PLACE_ID;
   if (!apiKey || !placeId) return FALLBACK;
   try {
-    const url = new URL("https://maps.googleapis.com/maps/api/place/details/json");
-    url.searchParams.set("place_id",    placeId);
-    url.searchParams.set("fields",      "name,rating,user_ratings_total,reviews");
-    url.searchParams.set("reviews_sort","newest");
-    url.searchParams.set("key",         apiKey);
-    const res  = await fetch(url.toString(), { next: { revalidate: 3600 } });
+    // Places API (New) — the legacy place/details endpoint isn't enabled on new GCP projects
+    const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+      headers: {
+        "X-Goog-Api-Key":   apiKey,
+        "X-Goog-FieldMask": "displayName,rating,userRatingCount,reviews",
+      },
+      next: { revalidate: 3600 },
+    });
     const data = await res.json() as any;
-    if (!data.result) {
-      console.warn("[reviews] Places API status:", data.status, "— using fallback");
+    if (!res.ok || !data.rating) {
+      console.warn("[reviews] Places API error:", data.error?.status ?? res.status, data.error?.message ?? "", "— using fallback");
       return FALLBACK;
     }
     return {
-      name:         data.result.name,
-      rating:       data.result.rating,
-      totalReviews: data.result.user_ratings_total,
+      name:         data.displayName?.text ?? FALLBACK.name,
+      rating:       data.rating,
+      totalReviews: data.userRatingCount ?? 0,
       source:       "live",
-      reviews:      data.result.reviews ?? [],
+      reviews:      (data.reviews ?? []).map((r: any): Review => ({
+        author_name:               r.authorAttribution?.displayName ?? "Google user",
+        profile_photo_url:         r.authorAttribution?.photoUri ?? "",
+        rating:                    r.rating ?? 5,
+        relative_time_description: r.relativePublishTimeDescription ?? "",
+        text:                      r.originalText?.text ?? r.text?.text ?? "",
+      })),
     };
   } catch (err) {
     console.error("[reviews]", err);
