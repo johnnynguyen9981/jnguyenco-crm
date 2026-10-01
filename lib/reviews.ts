@@ -64,13 +64,16 @@ export async function fetchReviews(): Promise<ReviewsData> {
       rating:       data.rating,
       totalReviews: data.userRatingCount ?? 0,
       source:       "live",
-      reviews:      (data.reviews ?? []).map((r: any): Review => ({
-        author_name:               r.authorAttribution?.displayName ?? "Google user",
-        profile_photo_url:         r.authorAttribution?.photoUri ?? "",
-        rating:                    r.rating ?? 5,
-        relative_time_description: r.relativePublishTimeDescription ?? "",
-        text:                      r.originalText?.text ?? r.text?.text ?? "",
-      })),
+      // API returns its 5 "most relevant" reviews with no sort option — show newest first
+      reviews:      [...(data.reviews ?? [])]
+        .sort((a: any, b: any) => new Date(b.publishTime ?? 0).getTime() - new Date(a.publishTime ?? 0).getTime())
+        .map((r: any): Review => ({
+          author_name:               r.authorAttribution?.displayName ?? "Google user",
+          profile_photo_url:         r.authorAttribution?.photoUri ?? "",
+          rating:                    r.rating ?? 5,
+          relative_time_description: r.relativePublishTimeDescription ?? "",
+          text:                      r.originalText?.text ?? r.text?.text ?? "",
+        })),
     };
   } catch (err) {
     console.error("[reviews]", err);
