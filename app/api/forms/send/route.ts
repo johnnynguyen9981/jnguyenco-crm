@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
             </p>
             <p style="margin:0 0 20px;color:#555;font-size:14px;line-height:1.7;">
               Please fill it in and reply with the completed form, and I'll get back
-              to you with a personalised quote within <strong>24–48 hours</strong>.
+              to you with a personalised quote within <strong>24 hours</strong>.
             </p>
 
             <!-- Steps -->
