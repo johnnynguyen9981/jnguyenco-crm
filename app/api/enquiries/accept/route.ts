@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
-  const { clientId, userId, bookingId } = await req.json();
+  const { clientId, userId } = await req.json();
   if (!clientId || !userId) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
@@ -28,12 +28,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to accept" }, { status: 500 });
   }
 
-  // Update booking status from INQUIRY to PENDING
-  if (bookingId) {
-    await admin
-      .from("bookings")
-      .update({ status: "PENDING" })
-      .eq("id", bookingId);
+  // Claim the enquiry's booking(s) too. They are created ownerless by the public form
+  // and stay at INQUIRY status until a quote is sent.
+  const { error: bookingErr } = await admin
+    .from("bookings")
+    .update({ owner_id: userId })
+    .eq("client_id", clientId)
+    .is("owner_id", null);
+
+  if (bookingErr) {
+    console.error("Accept enquiry booking error:", bookingErr);
+    return NextResponse.json({ error: "Enquiry accepted, but its booking could not be claimed" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

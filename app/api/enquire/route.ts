@@ -88,7 +88,7 @@ function buildConfirmationHtml(firstName: string, email: string): string {
     "<p style='font-size:14px;line-height:1.6'>Hi " + firstName + ",</p>",
     "<p style='font-size:14px;line-height:1.6'>",
     "Thank you for reaching out! I have received your enquiry and will review your details.",
-    " You can expect to hear back from me within <strong>24-48 hours</strong> with a personalised quote.",
+    " You can expect to hear back from me within <strong>24 hours</strong> with a personalised quote.",
     "</p>",
     "<div style='background:#f7f4f1;border-left:3px solid #a58d66;padding:12px 16px;border-radius:0 6px 6px 0;margin:16px 0'>",
     "<p style='font-size:13px;color:#555;margin:0'>",

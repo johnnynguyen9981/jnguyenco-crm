@@ -220,7 +220,7 @@ export default function EnquirePage() {
           </div>
           <h1 className="text-2xl font-bold text-[#083a4f] mb-3">Thank you, {form.first_name}!</h1>
           <p className="text-gray-600 text-sm leading-relaxed mb-2">
-            Your enquiry has been received. I will review your details and be in touch within 24-48 hours with a personalised quote.
+            Your enquiry has been received. I will review your details and be in touch within 24 hours with a personalised quote.
           </p>
           <p className="text-gray-400 text-xs">
             A confirmation has been sent to <strong>{form.email}</strong>
@@ -262,7 +262,7 @@ export default function EnquirePage() {
       <div className="bg-white border-b border-[#c0d5d6] px-6 py-8 text-center">
         <h1 className="text-2xl font-bold text-[#083a4f] mb-2">Book Your Session</h1>
         <p className="text-gray-500 text-sm max-w-lg mx-auto">
-          Fill in your details below and I will get back to you within 24-48 hours with a personalised quote.
+          Fill in your details below and I will get back to you within 24 hours with a personalised quote.
           No commitment required.
         </p>
       </div>
@@ -487,7 +487,7 @@ export default function EnquirePage() {
             ) : "Send Enquiry"}
           </button>
           <p className="text-center text-xs text-gray-400 mt-3">
-            No payment required. I will be in touch within 24-48 hours.
+            No payment required. I will be in touch within 24 hours.
           </p>
         </div>
 
