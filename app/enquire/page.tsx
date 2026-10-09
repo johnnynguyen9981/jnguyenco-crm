@@ -378,6 +378,7 @@ export default function EnquirePage() {
             <div>
               <label className={labelCls}>Event Date <span className="text-red-400">*</span></label>
               <input type="date" min={TODAY} required className={inputCls} value={form.event_date} onChange={e => set("event_date", e.target.value)} />
+              <p className="text-xs text-gray-400 mt-1">An approximate date is fine.</p>
             </div>
             <div>
               <label className={labelCls}>Start Time</label>
