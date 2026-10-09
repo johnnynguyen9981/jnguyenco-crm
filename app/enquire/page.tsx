@@ -22,6 +22,12 @@ const PACKAGES = [
   { id: "not_sure",           label: "Not sure — please advise me",           price: null,      desc: "" },
 ];
 
+// Celebration-type events only see event packages (plus "not sure")
+const CELEBRATION_EVENT_TYPES = new Set(["Birthday", "Baptism", "Baby Shower", "Gender Reveal"]);
+const EVENT_PACKAGE_IDS = new Set(["celebration_photo_2hr", "full_party_photo_3hr", "celebration_photo_film_2hr", "full_party_photo_film_3hr", "hourly_photo", "hourly_video", "hourly_photo_video", "not_sure"]);
+const packagesFor = (eventType: string) =>
+  CELEBRATION_EVENT_TYPES.has(eventType) ? PACKAGES.filter(p => EVENT_PACKAGE_IDS.has(p.id)) : PACKAGES;
+
 const EVENT_TYPES = [
   "Wedding / Elopement",
   "Birthday",
@@ -345,7 +351,7 @@ export default function EnquirePage() {
 
           <div>
             <label className={labelCls}>Event Type</label>
-            <select className={inputCls} value={form.event_type} onChange={e => set("event_type", e.target.value)}>
+            <select className={inputCls} value={form.event_type} onChange={e => { const v = e.target.value; set("event_type", v); if (form.selected_package && !packagesFor(v).some(p => p.id === form.selected_package)) set("selected_package", ""); }}>
               <option value="">Select type...</option>
               {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
@@ -404,7 +410,7 @@ export default function EnquirePage() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
           <SectionHeader num="03" title="Package Interest" note="Not sure? Select the last option and I will advise you." />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {PACKAGES.map(pkg => (
+            {packagesFor(form.event_type).map(pkg => (
               <OptionCard
                 key={pkg.id}
                 selected={form.selected_package === pkg.id}
