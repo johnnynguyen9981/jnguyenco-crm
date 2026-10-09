@@ -376,8 +376,8 @@ export default function EnquirePage() {
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className={labelCls}>Event Date</label>
-              <input type="date" min={TODAY} className={inputCls} value={form.event_date} onChange={e => set("event_date", e.target.value)} />
+              <label className={labelCls}>Event Date <span className="text-red-400">*</span></label>
+              <input type="date" min={TODAY} required className={inputCls} value={form.event_date} onChange={e => set("event_date", e.target.value)} />
             </div>
             <div>
               <label className={labelCls}>Start Time</label>

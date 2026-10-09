@@ -252,7 +252,7 @@ export default function EnquireEmbedPage() {
             </div>
           )}
           <div className="grid grid-cols-3 gap-4">
-            <div><label className={lbl}>Event Date</label><input type="date" min={TODAY} className={inp} value={form.event_date} onChange={e => set("event_date", e.target.value)} /></div>
+            <div><label className={lbl}>Event Date <span className="text-red-400">*</span></label><input type="date" min={TODAY} required className={inp} value={form.event_date} onChange={e => set("event_date", e.target.value)} /></div>
             <div><label className={lbl}>Start Time</label><input type="time" className={inp} value={form.event_start_time} onChange={e => set("event_start_time", e.target.value)} /></div>
             <div><label className={lbl}>End Time</label><input type="time" className={inp} value={form.event_end_time} onChange={e => set("event_end_time", e.target.value)} /></div>
           </div>
