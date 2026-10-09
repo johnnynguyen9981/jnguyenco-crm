@@ -2,13 +2,17 @@
 import { useState, useEffect, useRef } from "react";
 
 const PACKAGES = [
-  { id: "quiet_elopement",  label: "The Quiet Elopement",           price: "$999",  desc: "Up to 2 hrs · 1 Photographer · 80–100 images · Photography only · Sun-Thu only" },
+  { id: "quiet_elopement",  label: "The Quiet Elopement",           price: "$999",  desc: "Up to 2 hrs · 1 Photographer · 200–300 images · Photography only · Sun-Thu only" },
   { id: "vietnamese_tea_ceremony", label: "Vietnamese Tea Ceremony",       price: "$1,650",  desc: "Up to 2 hrs · 1 Photographer + 1 Videographer · 200-350 images · Full ceremony coverage · 2-3 min film" },
-  { id: "mini_wedding",       label: "Mini Wedding / Elopement",              price: "$2,300",  desc: "Up to 4 hrs · 1 Photographer + 1 Videographer · 200–350 images · 3–5 min film" },
+  { id: "mini_wedding",       label: "Mini Wedding / Elopement",              price: "$2,300",  desc: "Up to 4 hrs · 1 Photographer + 1 Videographer · 300–400 images · 3–5 min film" },
   { id: "full_day_essential", label: "Full Day Essential",                    price: "$4,500",  desc: "Up to 8 hrs · 1 Photographer + 1 Videographer · 400–600 images · 5–7 min highlight film" },
   { id: "full_day_premium",   label: "Full Day Premium",                      price: "$7,300",  desc: "Up to 10 hrs · 2 Photographers + 2 Videographers · 700–1,000 images" },
   { id: "wedding_photo_only", label: "Wedding Photography Only",              price: "$2,650",  desc: "Up to 8 hrs · Photographer only, no videographer · 400–600 images" },
   { id: "wedding_video_only", label: "Wedding Videography Only (Cinematic)",  price: "$2,650",  desc: "Up to 8 hrs · Videographer only, no photographer · 5–7 min cinematic film" },
+  { id: "celebration_photo_2hr", label: "The Celebration", price: "$460", desc: "Up to 2 hrs · 1 Photographer · 100+ edited images · Online gallery" },
+  { id: "full_party_photo_3hr", label: "The Full Party", price: "$690", desc: "Up to 3 hrs · 1 Photographer · 150+ edited images · Online gallery" },
+  { id: "celebration_photo_film_2hr", label: "Celebration Photo + Film", price: "$850", desc: "Up to 2 hrs · 1 Photographer + 1 Videographer · 100+ images · 2–3 min highlight reel" },
+  { id: "full_party_photo_film_3hr", label: "Full Party Photo + Film", price: "$1,275", desc: "Up to 3 hrs · 1 Photographer + 1 Videographer · 150+ images · 2–3 min highlight reel" },
   { id: "hourly_photo",       label: "Event Photography Only",                price: "$230/hr", desc: "50–80 edited images per hour · Online gallery · 2–4 week turnaround" },
   { id: "hourly_video",       label: "Event Videography Only",                price: "$280/hr", desc: "1–2 min highlight reel per hour of coverage · Online gallery · 6–8 week turnaround" },
   { id: "hourly_photo_video", label: "Event Photography & Videography",       price: "$425/hr", desc: "50–80 images/hr + 1–2 min highlight reel per hour · Online gallery" },
@@ -16,7 +20,13 @@ const PACKAGES = [
   { id: "not_sure",           label: "Not sure — please advise me",           price: null,      desc: "" },
 ];
 
-const EVENT_TYPES = ["Wedding / Elopement","Birthday","Baptism","Party / Celebration","Corporate Event","Portrait Session","Other"];
+// Celebration-type events only see event packages (plus "not sure")
+const CELEBRATION_EVENT_TYPES = new Set(["Birthday", "Baptism", "Baby Shower", "Gender Reveal"]);
+const EVENT_PACKAGE_IDS = new Set(["celebration_photo_2hr", "full_party_photo_3hr", "celebration_photo_film_2hr", "full_party_photo_film_3hr", "hourly_photo", "hourly_video", "hourly_photo_video", "not_sure"]);
+const packagesFor = (eventType: string) =>
+  CELEBRATION_EVENT_TYPES.has(eventType) ? PACKAGES.filter(p => EVENT_PACKAGE_IDS.has(p.id)) : PACKAGES;
+
+const EVENT_TYPES = ["Wedding / Elopement","Birthday","Baptism","Baby Shower","Gender Reveal","Party / Celebration","Corporate Event","Portrait Session","Other"];
 
 // Qualifying question — shown for wedding/elopement enquiries only, before package selection,
 // to steer intent toward Mini Wedding (ceremony + reception) vs The Quiet Elopement (ceremony only)
@@ -224,7 +234,7 @@ export default function EnquireEmbedPage() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <SectionHeader num="02" title="Event Details" note="Fill in as much as you know — you can always update later." />
           <div><label className={lbl}>Event Type</label>
-            <select className={inp} value={form.event_type} onChange={e => set("event_type", e.target.value)}>
+            <select className={inp} value={form.event_type} onChange={e => { const v = e.target.value; set("event_type", v); if (form.selected_package && !packagesFor(v).some(p => p.id === form.selected_package)) set("selected_package", ""); }}>
               <option value="">Select type...</option>
               {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
@@ -257,7 +267,7 @@ export default function EnquireEmbedPage() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
           <SectionHeader num="03" title="Package Interest" note="Not sure? Select the last option and I will advise you." />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {PACKAGES.map(pkg => (
+            {packagesFor(form.event_type).map(pkg => (
               <OptionCard key={pkg.id} selected={form.selected_package === pkg.id}
                 onSelect={() => set("selected_package", form.selected_package === pkg.id ? "" : pkg.id)}
                 label={pkg.label} price={pkg.price} sub={pkg.desc || undefined} />
