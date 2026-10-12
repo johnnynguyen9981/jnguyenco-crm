@@ -1,5 +1,6 @@
 // app/(dashboard)/invoices/[id]/page.tsx
 // Invoice detail — PDF download, send via Gmail, mark as paid, status management.
+import { BUSINESS_ABN } from "@/lib/business";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -79,8 +80,8 @@ export default async function InvoiceDetailPage(props: Props) {
                 <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">From</p>
                 <p className="font-semibold text-brand-navy">{process.env.NEXT_PUBLIC_BUSINESS_NAME || "JNguyen Co."}</p>
                 <p className="text-sm text-gray-500">{process.env.NEXT_PUBLIC_BUSINESS_EMAIL || "johnny.nguyen@jnguyen.co"}</p>
-                {process.env.NEXT_PUBLIC_BUSINESS_ABN && (
-                  <p className="text-sm text-gray-500">ABN: {process.env.NEXT_PUBLIC_BUSINESS_ABN}</p>
+                {BUSINESS_ABN && (
+                  <p className="text-sm text-gray-500">ABN: {BUSINESS_ABN}</p>
                 )}
               </div>
               <div>

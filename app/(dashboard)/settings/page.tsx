@@ -1,5 +1,6 @@
 // app/(dashboard)/settings/page.tsx
 // Settings page — Google integration status, connect/disconnect, business info, team.
+import { BUSINESS_ABN } from "@/lib/business";
 import { createClient } from "@/lib/supabase/server";
 import { isGoogleConnected } from "@/lib/google/auth";
 import { GoogleConnectButton } from "./GoogleConnectButton";
@@ -205,7 +206,7 @@ export default async function SettingsPage(props: { searchParams: Promise<{ goog
             { label: "Business Name", value: process.env.NEXT_PUBLIC_BUSINESS_NAME },
             { label: "Business Email", value: process.env.NEXT_PUBLIC_BUSINESS_EMAIL },
             { label: "Phone", value: process.env.NEXT_PUBLIC_BUSINESS_PHONE },
-            { label: "ABN", value: process.env.NEXT_PUBLIC_BUSINESS_ABN },
+            { label: "ABN", value: BUSINESS_ABN },
           ].map((f) => (
             <div key={f.label}>
               <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{f.label}</p>
