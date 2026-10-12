@@ -18,7 +18,7 @@ export default async function SignContractPage(props: Props) {
   const { data: booking } = await supabase
     .from("bookings")
     .select(`
-      id, event_date, quoted_total, deposit_amount,
+      id, event_date, quoted_total, deposit_amount, media_usage_terms,
       contract_signed_at, contract_sign_expires_at,
       clients (first_name, last_name, email, partner_first, partner_last),
       packages (name)
@@ -97,7 +97,20 @@ export default async function SignContractPage(props: Props) {
             JNguyen Co. retains copyright of all images. The client receives a personal-use licence. Commercial use requires written permission.
           </Term>
           <Term heading="Privacy">
-            Images may be used by JNguyen Co. for portfolio and marketing purposes unless the client opts out in writing prior to the event.
+            {booking.media_usage_terms ? (
+              <>
+                JNguyen Co. will only use the following for portfolio or marketing, and nothing will be posted without your written approval first:
+                <ul style={{ margin: "4px 0 0 18px", listStyle: "disc" }}>
+                  {booking.media_usage_terms
+                    .split("\n")
+                    .map((l: string) => l.replace(/^[\s•\-*]+/, "").trim())
+                    .filter(Boolean)
+                    .map((l: string, i: number) => <li key={i}>{l}</li>)}
+                </ul>
+              </>
+            ) : (
+              "Images may be used by JNguyen Co. for portfolio and marketing purposes unless the client opts out in writing prior to the event."
+            )}
           </Term>
           <p style={{ fontSize: 12, color: "#888", marginTop: 14 }}>
             {client.email

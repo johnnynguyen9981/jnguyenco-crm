@@ -52,11 +52,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
     .from("bookings")
     .select(`
       id, owner_id, event_date, event_start_time, event_end_time,
-      venue_name, service_type, quoted_total, deposit_amount,
-      hours_booked, special_requests,
+      venue_name, venue_address, service_type, quoted_total, deposit_amount,
+      hours_booked, special_requests, media_usage_terms,
       contract_signed_at, contract_sign_expires_at,
-      clients (id, first_name, last_name, email, gdrive_folder_id),
-      packages (id, name, includes_photography, includes_videography, base_price, max_hours)
+      clients (id, first_name, last_name, email, gdrive_folder_id, partner_first, partner_last),
+      packages (id, name, includes_photography, includes_videography, base_price, max_hours, team, deliverables, timeline, photo_count_min, photo_count_max)
     `)
     .eq("contract_sign_token", token)
     .single();
@@ -107,9 +107,13 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
         start_time:      booking.event_start_time ?? undefined,
         end_time:        booking.event_end_time   ?? undefined,
         venue:           booking.venue_name       ?? undefined,
+        suburb:          booking.venue_address    ?? undefined,
         special_requests: booking.special_requests ?? undefined,
+        media_usage_terms: booking.media_usage_terms ?? undefined,
+        partner_name:    `${client.partner_first ?? ""} ${client.partner_last ?? ""}`.trim() || undefined,
         total_fee:       booking.quoted_total     ?? undefined,
         deposit_amount:  booking.deposit_amount   ?? undefined,
+        hoursBooked:     booking.hours_booked     ?? undefined,
   };
 
   if (pkg?.name) {
@@ -131,6 +135,21 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
       } else {
               enquiryData.svc_photo = "Yes";
       }
+
+      // Same live package data fill-contract passes, so the signed copy's
+      // Section 3 matches the contract the client was sent.
+      enquiryData.pkgData = {
+              hours:  pkg.max_hours ?? null,
+              fee:    pkg.base_price ?? null,
+              images: (pkg.photo_count_min != null && pkg.photo_count_max != null)
+                ? `${pkg.photo_count_min}–${pkg.photo_count_max}`
+                : null,
+              photoCountMin: pkg.photo_count_min ?? null,
+              photoCountMax: pkg.photo_count_max ?? null,
+              team:         pkg.team ?? null,
+              deliverables: pkg.deliverables ?? null,
+              timeline:     pkg.timeline ?? null,
+      };
   }
 
   // ── Generate signed PDF ──────────────────────────────────────────────────

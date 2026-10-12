@@ -93,6 +93,16 @@ export interface CallSheetData {
   rate_type?: "HOURLY" | "PER_PROJECT" | null;
   confirmed: boolean;
 
+  // Deliverable turnaround deadline (e.g. edited photos/footage due back to
+  // Johnny). Not every role has one — a shooter with no post-production
+  // responsibility on this booking will have both null — so the field is
+  // only rendered when deadline is set. work_received_at (also set from the
+  // same "Booking Assignments" table as DeadlineEditor.tsx) means the work
+  // has already been turned in, so the call sheet shows that instead of a
+  // now-moot due date.
+  deadline?: string | null;         // "YYYY-MM-DD"
+  work_received_at?: string | null; // "YYYY-MM-DD"
+
   client_name: string;
   service_type: string;       // already label-formatted, e.g. "Wedding"
   package_name?: string | null;
@@ -143,6 +153,17 @@ function fmtRate(amount?: number | null, rateType?: "HOURLY" | "PER_PROJECT" | n
 
 function generatedOn(): string {
   return new Date().toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/** Mirrors the overdue check in DeadlineEditor.tsx / ContractorAssignment.tsx's deadlineBadge(). */
+function isOverdue(deadline: string): boolean {
+  return new Date(`${deadline}T00:00:00`) < new Date(new Date().toDateString());
+}
+
+function fmtDeadline(deadline?: string | null, workReceivedAt?: string | null): string | null {
+  if (workReceivedAt) return `Received ${fmtDate(workReceivedAt)}`;
+  if (!deadline) return null;
+  return fmtDate(deadline) + (isOverdue(deadline) ? " (overdue)" : "");
 }
 
 // ─── Styles ──────────────────────────────────────────────────
@@ -257,6 +278,8 @@ const CallSheetPage = ({ d }: { d: CallSheetData }) => {
     ? `${fmtTime(d.start_time)} – ${d.end_time ? fmtTime(d.end_time) : "TBC"}`
     : "TBC";
   const venue = [d.venue_name, d.venue_address].filter(Boolean).join(" — ") || "TBC";
+  const deadlineStr = fmtDeadline(d.deadline, d.work_received_at);
+  const deadlineOverdue = !!d.deadline && !d.work_received_at && isOverdue(d.deadline);
 
   return (
     <Page size="A4" style={s.page}>
@@ -316,6 +339,14 @@ const CallSheetPage = ({ d }: { d: CallSheetData }) => {
         <Field label="Role:"          value={d.contractor_role} />
         <Field label="Agreed Rate:"   value={fmtRate(d.agreed_rate, d.rate_type)} />
         <Field label="Status:"        value={d.confirmed ? "Confirmed" : "Pending confirmation"} />
+        {deadlineStr && (
+          <View style={s.field}>
+            <Text style={s.label}>Deliverable Deadline:</Text>
+            <Text style={deadlineOverdue ? [s.value, { color: AMBER, fontFamily: "Montserrat-SemiBold" }] : s.value}>
+              {deadlineStr}
+            </Text>
+          </View>
+        )}
       </View>
 
       {(d.shot_list || d.special_requests) && (

@@ -137,6 +137,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       agreed_rate:      assignment.agreed_rate,
       rate_type:        assignment.rate_type ?? null,
       confirmed:         !!assignment.confirmed,
+      deadline:         assignment.deadline ?? null,
+      work_received_at: assignment.work_received_at ?? null,
       client_name:      client ? `${client.first_name} ${client.last_name}`.trim() : "—",
       service_type:     formatServiceType(booking.service_type),
       package_name:     pkg?.name ?? null,
