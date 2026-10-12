@@ -47,6 +47,8 @@ export function ContractCard({
   const [uploading,    setUploading]    = useState(false);
   const [uploadError,  setUploadError]  = useState("");
   const [dragging,     setDragging]     = useState(false);
+  const [shareUrl,     setShareUrl]     = useState<string | null>(null);
+  const [copied,       setCopied]       = useState(false);
 
   async function patch(fields: Record<string, string | null>) {
     const key = Object.keys(fields)[0];
@@ -92,6 +94,62 @@ export function ContractCard({
       setLoading(null);
     }
   }
+
+  // Gets a signing link without emailing it — for clients reached via
+  // Messenger/Instagram/SMS, or with no email on file (they enter one when signing).
+  async function copySigningLink() {
+    setLoading("link");
+    setMessage(null);
+    setCopied(false);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/sign-request`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ delivery: "link" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create signing link");
+      const url: string = data.data.signing_url;
+      setShareUrl(url);
+      setSigLinkToken(url.split("/sign/")[1] ?? sigLinkToken);
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+      } catch { /* clipboard blocked — the link is shown below to copy by hand */ }
+      router.refresh();
+    } catch (err: any) {
+      setMessage({ type: "error", text: err.message });
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  const copyLinkButton = (
+    <button
+      onClick={copySigningLink}
+      disabled={loading !== null || uploading}
+      className={clientEmail
+        ? "w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-brand-teal text-brand-teal text-xs font-semibold hover:bg-brand-pale-blue/40 transition-colors disabled:opacity-50"
+        : "w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-brand-teal text-white text-sm font-semibold hover:bg-brand-navy transition-colors disabled:opacity-50"}
+    >
+      {loading === "link" ? "Creating link…" : "🔗 Copy Signing Link"}
+    </button>
+  );
+
+  const shareLinkBox = shareUrl && (
+    <div className="space-y-1">
+      <input
+        readOnly
+        value={shareUrl}
+        onFocus={e => e.currentTarget.select()}
+        className="input w-full py-1.5 text-xs"
+      />
+      <p className="text-xs text-green-600 text-center">
+        {copied ? "Copied! " : ""}Paste it into Messenger / Instagram / SMS.
+        {!clientEmail && " They’ll enter their email when signing so we can send their copy."}
+      </p>
+    </div>
+  );
 
   const handleUploadFile = useCallback(async (file: File) => {
     setUploadError("");
@@ -152,13 +210,13 @@ export function ContractCard({
       {status === "NOT_SENT" && (
         <div className="space-y-2">
           {/* Primary: send e-signature link */}
-          <button
+          {clientEmail && <button
             onClick={sendSigningLink}
-            disabled={loading !== null || !clientEmail}
+            disabled={loading !== null}
             className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-brand-teal text-white text-sm font-semibold hover:bg-brand-navy transition-colors disabled:opacity-50"
           >
             {loading === "esign" ? "Sending…" : sigLinkSent ? "✅ Link Sent — Resend?" : "✍️ Send for E-Signature"}
-          </button>
+          </button>}
           {sigLinkSent && (
             <p className="text-xs text-green-600 text-center">
               Client received a link to sign electronically. This page will update automatically when they sign.
@@ -169,8 +227,12 @@ export function ContractCard({
               A signing link was previously sent and is pending.
             </p>
           )}
-          {!clientEmail && (
-            <p className="text-xs text-red-400 text-center">Add an email address to this client first.</p>
+          {copyLinkButton}
+          {shareLinkBox}
+          {!clientEmail && !shareUrl && (
+            <p className="text-xs text-gray-400 text-center">
+              No email on file — share the link via Messenger instead. They&apos;ll enter their email when signing.
+            </p>
           )}
           {/* Divider */}
           <div className="flex items-center gap-2 pt-1">
@@ -247,16 +309,18 @@ export function ContractCard({
             <div className="flex-1 border-t border-gray-100" />
           </div>
 
-          {sigLinkToken && (
+          {copyLinkButton}
+          {shareLinkBox}
+          {sigLinkToken && clientEmail && (
             <button
               onClick={sendSigningLink}
-              disabled={loading !== null || uploading || !clientEmail}
+              disabled={loading !== null || uploading}
               className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-brand-teal text-brand-teal text-xs font-semibold hover:bg-brand-pale-blue/40 transition-colors disabled:opacity-50"
             >
               {loading === "esign" ? "Resending…" : "🔄 Resend Signing Link"}
             </button>
           )}
-          {sigLinkToken && (
+          {sigLinkToken && clientEmail && (
             <p className="text-xs text-gray-400 text-center -mt-1">
               Generates a fresh link and emails it again — useful if the client couldn&apos;t open the original.
             </p>

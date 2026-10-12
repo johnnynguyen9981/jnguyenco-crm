@@ -5,16 +5,19 @@ import { useRef, useState, useEffect } from "react";
 interface Props {
   token:      string;
   clientName: string;
+  /** No email on file (e.g. booked via Messenger) — ask for one so we can send their signed copy. */
+  needsEmail?: boolean;
 }
 
 type Tab = "draw" | "type";
 
-export function SigningForm({ token, clientName }: Props) {
+export function SigningForm({ token, clientName, needsEmail = false }: Props) {
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const [tab, setTab]         = useState<Tab>("draw");
   const [typedName, setTyped] = useState("");
   const [hasDrawn, setHasDrawn] = useState(false);
   const [agreed, setAgreed]   = useState(false);
+  const [email, setEmail]     = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
   const [done, setDone]       = useState(false);
@@ -102,6 +105,10 @@ export function SigningForm({ token, clientName }: Props) {
     e.preventDefault();
     setError(null);
 
+    if (needsEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Please enter a valid email address so we can send you your signed copy.");
+      return;
+    }
     if (!agreed) { setError("Please tick the agreement checkbox before signing."); return; }
 
     const sigDataUri = await buildSignatureDataUri();
@@ -115,7 +122,9 @@ export function SigningForm({ token, clientName }: Props) {
       const res = await fetch(`/api/sign/${token}`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ signature_data_uri: sigDataUri, signed_name: typedName.trim() || clientName }),
+        body:    JSON.stringify({ signature_data_uri: sigDataUri, signed_name: typedName.trim() || clientName,
+          ...(needsEmail ? { email: email.trim() } : {}),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `Error ${res.status}`);
@@ -144,7 +153,9 @@ export function SigningForm({ token, clientName }: Props) {
     );
   }
 
-  const canSubmit = agreed && (tab === "draw" ? hasDrawn : typedName.trim().length > 0);
+  const canSubmit = agreed
+    && (tab === "draw" ? hasDrawn : typedName.trim().length > 0)
+    && (!needsEmail || email.trim().length > 0);
 
   return (
     <form onSubmit={handleSubmit}>
@@ -230,6 +241,35 @@ export function SigningForm({ token, clientName }: Props) {
             />
             <p style={{ fontSize: 12, color: "#aaa", marginTop: 6 }}>
               Your typed name will be rendered as a signature on the contract.
+            </p>
+          </div>
+        )}
+
+        {/* Email — only when none is on file */}
+        {needsEmail && (
+          <div style={{ marginTop: 20 }}>
+            <label htmlFor="signer-email" style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#083a4f", marginBottom: 6 }}>
+              Your email address
+            </label>
+            <input
+              id="signer-email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              style={{
+                width: "100%", boxSizing: "border-box",
+                padding: "10px 14px",
+                border: "1px solid #c0d5d6",
+                borderRadius: 8,
+                fontSize: 15,
+                color: "#083a4f",
+                outline: "none",
+              }}
+            />
+            <p style={{ fontSize: 12, color: "#aaa", marginTop: 6 }}>
+              We&apos;ll email your signed copy of the contract here.
             </p>
           </div>
         )}

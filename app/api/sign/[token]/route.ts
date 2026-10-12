@@ -35,9 +35,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
   const params = await props.params;
   const { token } = params;
   const body = await req.json();
-  const { signature_data_uri, signed_name } = body as {
+  const { signature_data_uri, signed_name, email: providedEmail } = body as {
         signature_data_uri: string;
         signed_name:        string;
+        email?:             string;
   };
 
   if (!signature_data_uri) return apiError("signature_data_uri is required");
@@ -73,7 +74,30 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
   const client = booking.clients as any;
   const pkg    = booking.packages as any;
 
-  if (!client?.email) return apiError("No client email on file.", 500);
+  if (!client) return apiError("No client linked to this booking.", 500);
+
+  let emailNote = "";
+  // Clients booked via Messenger/DMs may have no email on file — the signing
+  // page asks for one, which we save to their record and send the copy to.
+  if (!client.email) {
+    const email = (providedEmail ?? "").toLowerCase().trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return apiError("Please enter a valid email address so we can send your signed copy.");
+    }
+    client.email = email;
+    const { error: emailErr } = await supabase
+      .from("clients")
+      .update({ email, updated_at: now.toISOString() })
+      .eq("id", client.id);
+    if (emailErr) {
+      // Most likely another client record already uses this address.
+      // Still let them sign and email the copy — just flag it to the photographer.
+      console.warn("[sign/token] Could not save client email:", emailErr.message);
+      emailNote = `<p>They entered <strong>${email}</strong> when signing, but it couldn't be saved to their client record (${emailErr.message}). Please update it manually.</p>`;
+    } else {
+      emailNote = `<p>They entered <strong>${email}</strong> when signing — it's been saved to their client record.</p>`;
+    }
+  }
 
   // ── Build EnquiryData ────────────────────────────────────────────────────
   const enquiryData: EnquiryData = {
@@ -203,6 +227,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
         <p>Hi Johnny,</p>
         <p><strong>${clientName}</strong> just signed their contract for <strong>${eventDate}</strong> (${packageName}).</p>
         <p>The signed contract is attached. ${savedWhereNote}</p>
+        ${emailNote}
         <p>Next step: send the deposit invoice to secure the date.</p>
         <p>— JNguyen Co. CRM</p>
       `,

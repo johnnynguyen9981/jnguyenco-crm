@@ -187,8 +187,8 @@ export default function NewClientPage() {
     e.preventDefault();
     setError("");
 
-    if (!form.first_name.trim() || !form.last_name.trim() || !form.email.trim()) {
-      setError("First name, last name and email are required.");
+    if (!form.first_name.trim() || !form.last_name.trim()) {
+      setError("First name and last name are required.");
       return;
     }
 
@@ -201,7 +201,7 @@ export default function NewClientPage() {
         body: JSON.stringify({
           first_name:       form.first_name.trim(),
           last_name:        form.last_name.trim(),
-          email:            form.email.trim(),
+          email:            form.email.trim() || null,
           phone:            form.phone || null,
           instagram_handle: form.instagram_handle || null,
           referral_source:  form.referral_source  || null,
@@ -303,9 +303,9 @@ export default function NewClientPage() {
           </div>
 
           <div>
-            <label className="label">Email Address *</label>
+            <label className="label">Email Address <span className="text-gray-400 font-normal">(optional)</span></label>
             <input type="email" className={ic} value={form.email}
-              onChange={e => set("email", e.target.value)} required />
+              onChange={e => set("email", e.target.value)} />
           </div>
 
           <div>
