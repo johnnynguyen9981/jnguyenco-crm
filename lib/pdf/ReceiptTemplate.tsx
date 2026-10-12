@@ -1,6 +1,7 @@
 // lib/pdf/ReceiptTemplate.tsx
 // Branded payment receipt PDF using @react-pdf/renderer
 // Brand: Navy #083a4f · Sand #a58d66 · Pale Blue #c0d5d6 · Cream #e5e1dd
+import { BUSINESS_ABN } from "@/lib/business";
 import {
   Document, Page, Text, View, StyleSheet, Image,
 } from "@react-pdf/renderer";
@@ -265,7 +266,7 @@ function humanMethod(m?: string) {
 }
 
 // ── Component ──
-export function ReceiptTemplate({ data, abn = process.env.NEXT_PUBLIC_BUSINESS_ABN ?? "" }: {
+export function ReceiptTemplate({ data, abn = BUSINESS_ABN }: {
   data: ReceiptData;
   abn?: string;
 }) {

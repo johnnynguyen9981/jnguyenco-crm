@@ -2,6 +2,7 @@
  * Server-side quote PDF generation using @react-pdf/renderer.
  * Branded with JNguyen Co. colours — mirrors the contract PDF style.
  */
+import { BUSINESS_ABN } from "@/lib/business";
 import React from "react";
 import fs from "fs";
 import path from "path";
@@ -274,7 +275,7 @@ function QuoteDoc({ d }: { d: QuoteData }) {
 
         {/* ── Footer ── */}
         <View style={s.footer} fixed>
-          <Text style={s.footerText}>JNguyen Co. · Photography &amp; Videography · Canberra ACT</Text>
+          <Text style={s.footerText}>JNguyen Co. · ABN {BUSINESS_ABN} · Photography &amp; Videography · Canberra ACT</Text>
           <Text style={s.footerText}>johnny.nguyen@jnguyen.co · jnguyen.co</Text>
         </View>
 

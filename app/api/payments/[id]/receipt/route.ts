@@ -1,5 +1,6 @@
 // GET  /api/payments/[id]/receipt — download receipt PDF
 // POST /api/payments/[id]/receipt — generate PDF + email to client
+import { BUSINESS_ABN } from "@/lib/business";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { ReceiptData } from "@/lib/pdf/ReceiptTemplate";
@@ -114,7 +115,7 @@ async function buildReceiptData(paymentId: string, supabase: any): Promise<Build
     clientEmail:     client?.email,
     // Computed
     isBalancePayment: payment.payment_type === "BALANCE",
-    abn: process.env.NEXT_PUBLIC_BUSINESS_ABN ?? "",
+    abn: BUSINESS_ABN,
   };
 
   const clientName     = `${client?.first_name ?? ""} ${client?.last_name ?? ""}`.trim();

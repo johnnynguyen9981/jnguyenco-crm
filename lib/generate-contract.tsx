@@ -2,6 +2,7 @@
  * Server-side contract PDF generation using @react-pdf/renderer.
  * Branded with JNguyen Co. brand colors and real logo.
  */
+import { BUSINESS_ABN, BUSINESS_OWNER_LEGAL } from "@/lib/business";
 import React from "react";
 import {
   Document, Page, Text, View, StyleSheet, renderToBuffer, Image, Svg, Path, Font,
@@ -394,7 +395,7 @@ const Footer = () => (
     <View style={s.footerRule} />
     <View style={s.footerRow}>
       <Text style={s.footerLeft}>
-        JNguyen Co. Photography &amp; Videography &middot; Canberra, Australia &middot; johnny.nguyen@jnguyen.co &middot; www.jnguyen.co
+        JNguyen Co. &middot; ABN {BUSINESS_ABN} &middot; Canberra, Australia &middot; johnny.nguyen@jnguyen.co &middot; www.jnguyen.co
       </Text>
       <Text
         style={s.footerRight}
@@ -559,8 +560,10 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
           {"THIS AGREEMENT is made as of " + today() + " between "}
           <Text style={{ fontFamily: "Montserrat-SemiBold" }}>{clientName}</Text>
           {" (\"Client\") and "}
-          <Text style={{ fontFamily: "Montserrat-SemiBold" }}>Johnny Nguyen</Text>
-          {" (\"Photographer\")."}
+          <Text style={{ fontFamily: "Montserrat-SemiBold" }}>{BUSINESS_OWNER_LEGAL}</Text>
+          {" trading as "}
+          <Text style={{ fontFamily: "Montserrat-SemiBold" }}>JNguyen Co.</Text>
+          {" (ABN " + BUSINESS_ABN + ") (\"Photographer\")."}
         </Text>
 
         <Divider />

@@ -1,6 +1,7 @@
 // lib/pdf/InvoiceTemplate.tsx
 // Branded invoice PDF using @react-pdf/renderer
 // Brand: Navy #083a4f · Sand #a58d66 · Pale Blue #c0d5d6 · Cream #e5e1dd
+import { BUSINESS_ABN } from "@/lib/business";
 import {
   Document, Page, Text, View, StyleSheet, Font, Image,
 } from "@react-pdf/renderer";
@@ -300,7 +301,7 @@ interface InvoiceTemplateProps {
 
 export function InvoiceTemplate({
   invoice,
-  abn           = process.env.NEXT_PUBLIC_BUSINESS_ABN ?? "",
+  abn           = BUSINESS_ABN,
   bankName      = "Commonwealth Bank",
   bsb           = "082-902",
   accountNumber = "890398777",
@@ -479,7 +480,7 @@ export function InvoiceTemplate({
         {/* ── FOOTER ────────────────────────────────────── */}
         <View style={S.footer}>
           <Text style={S.footerText}>
-            Thank you for choosing JNguyen Co. · Canberra, ACT · johnny.nguyen@jnguyen.co · www.jnguyen.co
+            Thank you for choosing JNguyen Co. · ABN {abn} · Canberra, ACT · johnny.nguyen@jnguyen.co · www.jnguyen.co
           </Text>
           <Text style={S.footerBrand}>JNguyen Co.</Text>
           <Text style={S.footerText}>
