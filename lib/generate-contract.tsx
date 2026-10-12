@@ -365,7 +365,7 @@ const s = StyleSheet.create({
   footer:      { position: "absolute", bottom: "0.7cm", left: "1.8cm", right: "1.8cm" },
   footerRule:  { borderTopWidth: 0.5, borderTopColor: PALE_BLUE, marginBottom: 3 },
   footerRow:   { flexDirection: "row", justifyContent: "space-between" },
-  footerLeft:  { fontSize: 6.5, color: "#aaa" },
+  footerLeft:  { fontSize: 6.5, color: "#aaa", flex: 1, marginRight: 12 },
   footerRight: { fontSize: 6.5, color: PALE_BLUE },
   notice:     { backgroundColor: CREAM_BG, padding: "5 8", borderRadius: 3, marginVertical: 5 },
   noticeText: { fontSize: 7.5, color: "#555", lineHeight: 1.5 },

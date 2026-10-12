@@ -479,10 +479,9 @@ export function InvoiceTemplate({
 
         {/* ── FOOTER ────────────────────────────────────── */}
         <View style={S.footer}>
-          <Text style={S.footerText}>
-            Thank you for choosing JNguyen Co. · ABN {abn} · Canberra, ACT · johnny.nguyen@jnguyen.co · www.jnguyen.co
+          <Text style={{ ...S.footerText, flex: 1, marginRight: 16 }}>
+            JNguyen Co. · ABN {abn} · Canberra, ACT · johnny.nguyen@jnguyen.co · www.jnguyen.co
           </Text>
-          <Text style={S.footerBrand}>JNguyen Co.</Text>
           <Text style={S.footerText}>
             Page 1 of 1 · {invoice.invoice_number}
           </Text>
