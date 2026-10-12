@@ -61,11 +61,16 @@ export async function POST(req: NextRequest) {
   if (!booking) return apiError("Booking not found", 404);
 
   // Auto-generate invoice number: INV-YYYY-NNN
-  const { count: existingCount } = await supabase
-    .from("invoices").select("id", { count: "exact", head: true }).eq("owner_id", user.id);
-  const seq    = (existingCount ?? 0) + 1;
-  const year   = new Date().getFullYear();
-  const invNum = `INV-${year}-${String(seq).padStart(3, "0")}`;
+  // Use the highest existing number for this year + 1 (not a row count — counting
+  // breaks as soon as an invoice is deleted and produces duplicate numbers).
+  const year = new Date().getFullYear();
+  const { data: existingNums } = await supabase
+    .from("invoices").select("invoice_number").eq("owner_id", user.id).like("invoice_number", `INV-${year}-%`);
+  const maxSeq = (existingNums ?? []).reduce((m: number, r: { invoice_number: string | null }) => {
+    const n = parseInt((r.invoice_number ?? "").split("-")[2] ?? "", 10);
+    return Number.isFinite(n) && n > m ? n : m;
+  }, 0);
+  const invNum = `INV-${year}-${String(maxSeq + 1).padStart(3, "0")}`;
 
   // Strip client-only fields before inserting — these don't exist as DB columns
   const {
