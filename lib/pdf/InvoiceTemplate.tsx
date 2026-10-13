@@ -302,7 +302,7 @@ interface InvoiceTemplateProps {
 export function InvoiceTemplate({
   invoice,
   abn           = BUSINESS_ABN,
-  bankName      = "Commonwealth Bank",
+  bankName      = "NAB",
   bsb           = "082-902",
   accountNumber = "890398777",
   accountName   = "Thanh Nhan Nguyen",
