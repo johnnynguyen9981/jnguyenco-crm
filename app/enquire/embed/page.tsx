@@ -74,6 +74,19 @@ const NEEDS_PARTNER    = (eventType: string, pkg: string) =>
   eventType.toLowerCase().includes("wedding") || eventType.toLowerCase().includes("elopement") ||
   WEDDING_PACKAGES.has(pkg);
 const SERVICES_INFERRED = (pkg: string) => WEDDING_PACKAGES.has(pkg); // wedding pkgs include both
+
+// What each package covers, so the CRM records the right service even when the
+// "Services Required" question is hidden (e.g. Photography Only shouldn't come through blank)
+const PACKAGE_SERVICES: Record<string, string> = {
+  quiet_elopement: "PHOTO", wedding_photo_only: "PHOTO", wedding_video_only: "VIDEO",
+  vietnamese_tea_ceremony: "BOTH", mini_wedding: "BOTH", spring_mini_wedding: "BOTH",
+  half_day_wedding: "BOTH", full_day_essential: "BOTH", full_day_premium: "BOTH",
+  celebration_photo_2hr: "PHOTO", full_party_photo_3hr: "PHOTO",
+  celebration_photo_film_2hr: "BOTH", full_party_photo_film_3hr: "BOTH",
+  hourly_photo: "PHOTO", hourly_video: "VIDEO", hourly_photo_video: "BOTH", portrait: "PHOTO",
+};
+const withServices = <T extends { selected_package: string; services_required: string }>(f: T): T =>
+  ({ ...f, services_required: f.services_required || PACKAGE_SERVICES[f.selected_package] || "" });
 const BUDGET_NEEDED     = (pkg: string) => !pkg || pkg === "not_sure";
 const REFERRAL_HAS_NOTES = (src: string) => src === "WORD_OF_MOUTH" || src === "OTHER" || src === "FACEBOOK_GROUP";
 const IS_WEDDING_EVENT_TYPE = (eventType: string) =>
@@ -168,7 +181,7 @@ export default function EnquireEmbedPage() {
     }
     setLoading(true);
     try {
-      const res  = await fetch("/api/enquire", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const res  = await fetch("/api/enquire", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(withServices(form)) });
       const json = await res.json();
       if (!res.ok) { setError(json.error ?? "Something went wrong. Please try again."); return; }
       setSubmitted(true);
