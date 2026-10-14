@@ -129,6 +129,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
   }
 
+  // "Facebook group" isn't a referral_source enum value: store it as FACEBOOK and keep the group name in the notes
+  if (body.referral_source === "FACEBOOK_GROUP") {
+    body.referral_source = "FACEBOOK";
+    body.referral_notes  = "Facebook group" + (body.referral_notes ? ": " + body.referral_notes : "");
+  }
+
   const admin = adminClient();
 
   // 1. Create client record

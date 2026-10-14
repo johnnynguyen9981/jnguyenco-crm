@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from "react";
 const PACKAGES = [
   { id: "quiet_elopement",  label: "The Quiet Elopement",           price: "$999",  desc: "Up to 2 hrs · 1 Photographer · 200–300 images · Photography only · Sun-Thu only" },
   { id: "vietnamese_tea_ceremony", label: "Vietnamese Tea Ceremony",       price: "$1,650",  desc: "Up to 2 hrs · 1 Photographer + 1 Videographer · 200-350 images · Full ceremony coverage · 2-3 min film" },
+  { id: "spring_mini_wedding", label: "Spring Weekend Special — Mini Wedding", price: "$1,610", desc: "30% off Mini Wedding (was $2,300) · Weekend weddings Oct–15 Nov 2026 · Book by 31 Oct · Paid in full before the day · All Mini inclusions" },
   { id: "mini_wedding",       label: "Mini Wedding / Elopement",              price: "$2,300",  desc: "Up to 4 hrs · 1 Photographer + 1 Videographer · 300–400 images · 3–5 min film" },
+  { id: "half_day_wedding",   label: "Half Day Wedding",                      price: "$3,300",  desc: "Up to 6 hrs · 1 Photographer + 1 Videographer · 300–450 images · 4–6 min film" },
   { id: "full_day_essential", label: "Full Day Essential",                    price: "$4,500",  desc: "Up to 8 hrs · 1 Photographer + 1 Videographer · 400–600 images · 5–7 min highlight film" },
   { id: "full_day_premium",   label: "Full Day Premium",                      price: "$7,300",  desc: "Up to 10 hrs · 2 Photographers + 2 Videographers · 700–1,000 images" },
   { id: "wedding_photo_only", label: "Wedding Photography Only",              price: "$2,650",  desc: "Up to 8 hrs · Photographer only, no videographer · 400–600 images" },
@@ -20,11 +22,17 @@ const PACKAGES = [
   { id: "not_sure",           label: "Not sure — please advise me",           price: null,      desc: "" },
 ];
 
+// Spring Weekend Special is only offered until the booking deadline (Canberra time)
+const SPRING_LAST_BOOKING_DAY = "2026-10-31";
+const isSpringOpen = () =>
+  new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) <= SPRING_LAST_BOOKING_DAY;
+const visiblePackages = () => PACKAGES.filter(p => p.id !== "spring_mini_wedding" || isSpringOpen());
+
 // Celebration-type events only see event packages (plus "not sure")
 const CELEBRATION_EVENT_TYPES = new Set(["Birthday", "Baptism", "Baby Shower", "Gender Reveal"]);
 const EVENT_PACKAGE_IDS = new Set(["celebration_photo_2hr", "full_party_photo_3hr", "celebration_photo_film_2hr", "full_party_photo_film_3hr", "hourly_photo", "hourly_video", "hourly_photo_video", "not_sure"]);
 const packagesFor = (eventType: string) =>
-  CELEBRATION_EVENT_TYPES.has(eventType) ? PACKAGES.filter(p => EVENT_PACKAGE_IDS.has(p.id)) : PACKAGES;
+  CELEBRATION_EVENT_TYPES.has(eventType) ? visiblePackages().filter(p => EVENT_PACKAGE_IDS.has(p.id)) : visiblePackages();
 
 const EVENT_TYPES = ["Wedding / Elopement","Birthday","Baptism","Baby Shower","Gender Reveal","Party / Celebration","Corporate Event","Portrait Session","Other"];
 
@@ -52,6 +60,7 @@ const REFERRAL_OPTIONS = [
   { id: "WORD_OF_MOUTH", label: "Word of Mouth" },
   { id: "WEDDING_WIRE",  label: "Wedding Wire" },
   { id: "FACEBOOK",      label: "Facebook" },
+  { id: "FACEBOOK_GROUP", label: "Facebook group" },
   { id: "OTHER",         label: "Other" },
 ];
 
@@ -60,13 +69,13 @@ const lbl = "block text-xs font-semibold text-gray-600 mb-1";
 
 const TODAY = new Date().toISOString().split("T")[0];
 
-const WEDDING_PACKAGES = new Set(["mini_wedding", "full_day_essential", "full_day_premium", "wedding_photo_only", "wedding_video_only", "hybrid_mini_session"]);
+const WEDDING_PACKAGES = new Set(["mini_wedding", "spring_mini_wedding", "half_day_wedding", "full_day_essential", "full_day_premium", "wedding_photo_only", "wedding_video_only", "hybrid_mini_session"]);
 const NEEDS_PARTNER    = (eventType: string, pkg: string) =>
   eventType.toLowerCase().includes("wedding") || eventType.toLowerCase().includes("elopement") ||
   WEDDING_PACKAGES.has(pkg);
 const SERVICES_INFERRED = (pkg: string) => WEDDING_PACKAGES.has(pkg); // wedding pkgs include both
 const BUDGET_NEEDED     = (pkg: string) => !pkg || pkg === "not_sure";
-const REFERRAL_HAS_NOTES = (src: string) => src === "WORD_OF_MOUTH" || src === "OTHER";
+const REFERRAL_HAS_NOTES = (src: string) => src === "WORD_OF_MOUTH" || src === "OTHER" || src === "FACEBOOK_GROUP";
 const IS_WEDDING_EVENT_TYPE = (eventType: string) =>
   eventType.toLowerCase().includes("wedding") || eventType.toLowerCase().includes("elopement");
 
@@ -211,7 +220,7 @@ export default function EnquireEmbedPage() {
                 {REFERRAL_OPTIONS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
               </select>
               {REFERRAL_HAS_NOTES(form.referral_source) && (
-                <input className={inp} value={form.referral_notes} onChange={e => set("referral_notes", e.target.value)} placeholder="e.g. Referred by Sarah & Tom" />
+                <input className={inp} value={form.referral_notes} onChange={e => set("referral_notes", e.target.value)} placeholder={form.referral_source === "FACEBOOK_GROUP" ? "Which group? e.g. Canberra Weddings" : "e.g. Referred by Sarah & Tom"} />
               )}
             </div>
           </div>
