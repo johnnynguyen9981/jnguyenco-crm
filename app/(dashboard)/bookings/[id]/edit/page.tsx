@@ -99,6 +99,7 @@ export default function EditBookingPage() {
   const [venueAddress,    setVenueAddress]    = useState("");
   const [shotList,        setShotList]        = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
+  const [mediaUsageTerms, setMediaUsageTerms] = useState("");
   const [internalNotes,   setInternalNotes]   = useState("");
 
   // Load booking + packages
@@ -125,6 +126,7 @@ export default function EditBookingPage() {
       setVenueAddress(b.venue_address ?? "");
       setShotList(b.shot_list ?? "");
       setSpecialRequests(b.special_requests ?? "");
+      setMediaUsageTerms(b.media_usage_terms ?? "");
       setInternalNotes(b.internal_notes ?? "");
       setPayments(b.payments ?? []);
       setDbPackages(pd.packages ?? pd.data?.packages ?? []);
@@ -212,6 +214,7 @@ export default function EditBookingPage() {
         venue_address:   venueAddress || null,
         shot_list:       shotList     || null,
         special_requests: specialRequests || null,
+        media_usage_terms: mediaUsageTerms.trim() || null,
         internal_notes:  internalNotes   || null,
       };
       const res  = await fetch(`/api/bookings/${id}`, {
@@ -517,6 +520,15 @@ export default function EditBookingPage() {
             <textarea rows={2} className={ic + " resize-y"}
               value={specialRequests} onChange={e => setSpecialRequests(e.target.value)}
               placeholder="Any special considerations, access requirements…" />
+          </div>
+          <div>
+            <label className="label">
+              Privacy / Media Use Terms{" "}
+              <span className="text-gray-400 font-normal normal-case">(goes into the contract)</span>
+            </label>
+            <textarea rows={3} className={ic + " resize-y"}
+              value={mediaUsageTerms} onChange={e => setMediaUsageTerms(e.target.value)}
+              placeholder={"Leave blank for the standard portfolio licence. Otherwise, one permitted use per line, e.g.\nVenue-only shots\nClose-ups of hands and details"} />
           </div>
           <div>
             <label className="label">

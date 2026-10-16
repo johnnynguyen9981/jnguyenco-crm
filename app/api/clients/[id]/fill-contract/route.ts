@@ -61,7 +61,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
   const { data: client } = await supabase
     .from("clients")
-    .select("first_name, last_name, email, phone")
+    .select("first_name, last_name, email, phone, partner_first, partner_last")
     .eq("id", params.id)
     .eq("owner_id", user.id)
     .single();
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   // Always override with latest DB booking data
   const { data: booking } = await supabase
     .from("bookings")
-    .select("event_date, event_start_time, event_end_time, venue_name, service_type, quoted_total, deposit_amount, package_id, hours_booked, special_requests")
+    .select("event_date, event_start_time, event_end_time, venue_name, service_type, quoted_total, deposit_amount, package_id, hours_booked, special_requests, media_usage_terms, venue_address")
     .eq("client_id", params.id)
     .eq("owner_id", user.id)
     .order("event_date", { ascending: false })
@@ -107,10 +107,12 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     if (booking.event_start_time)        enquiryData.start_time       = booking.event_start_time;
     if (booking.event_end_time)          enquiryData.end_time         = booking.event_end_time;
     if (booking.venue_name)              enquiryData.venue            = booking.venue_name;
+    if (booking.venue_address)           enquiryData.suburb           = booking.venue_address;
     if (booking.hours_booked   != null)  enquiryData.hoursBooked      = booking.hours_booked;
     if (booking.quoted_total   != null)  enquiryData.total_fee        = booking.quoted_total;
     if (booking.deposit_amount != null)  enquiryData.deposit_amount   = booking.deposit_amount;
     if (booking.special_requests)        enquiryData.special_requests = booking.special_requests;
+    if (booking.media_usage_terms)       enquiryData.media_usage_terms = booking.media_usage_terms;
 
     // Always recompute remaining_balance from the authoritative DB values above
     // rather than trusting whatever the caller prefilled — a stale/incorrect
@@ -185,6 +187,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       enquiryData.full_name = enquiryData.full_name.trim();
     }
     if (!enquiryData.email) enquiryData.email = client.email ?? "";
+    const partner = `${client.partner_first ?? ""} ${client.partner_last ?? ""}`.trim();
+    if (partner && !enquiryData.partner_name) enquiryData.partner_name = partner;
   }
 
   let pdfBuffer: Buffer;

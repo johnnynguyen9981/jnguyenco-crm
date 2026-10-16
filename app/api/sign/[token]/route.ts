@@ -35,9 +35,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
   const params = await props.params;
   const { token } = params;
   const body = await req.json();
-  const { signature_data_uri, signed_name } = body as {
+  const { signature_data_uri, signed_name, email: providedEmail } = body as {
         signature_data_uri: string;
         signed_name:        string;
+        email?:             string;
   };
 
   if (!signature_data_uri) return apiError("signature_data_uri is required");
@@ -51,11 +52,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
     .from("bookings")
     .select(`
       id, owner_id, event_date, event_start_time, event_end_time,
-      venue_name, service_type, quoted_total, deposit_amount,
-      hours_booked, special_requests,
+      venue_name, venue_address, service_type, quoted_total, deposit_amount,
+      hours_booked, special_requests, media_usage_terms,
       contract_signed_at, contract_sign_expires_at,
-      clients (id, first_name, last_name, email, gdrive_folder_id),
-      packages (id, name, includes_photography, includes_videography, base_price, max_hours)
+      clients (id, first_name, last_name, email, gdrive_folder_id, partner_first, partner_last),
+      packages (id, name, includes_photography, includes_videography, base_price, max_hours, team, deliverables, timeline, photo_count_min, photo_count_max)
     `)
     .eq("contract_sign_token", token)
     .single();
@@ -73,7 +74,30 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
   const client = booking.clients as any;
   const pkg    = booking.packages as any;
 
-  if (!client?.email) return apiError("No client email on file.", 500);
+  if (!client) return apiError("No client linked to this booking.", 500);
+
+  let emailNote = "";
+  // Clients booked via Messenger/DMs may have no email on file — the signing
+  // page asks for one, which we save to their record and send the copy to.
+  if (!client.email) {
+    const email = (providedEmail ?? "").toLowerCase().trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return apiError("Please enter a valid email address so we can send your signed copy.");
+    }
+    client.email = email;
+    const { error: emailErr } = await supabase
+      .from("clients")
+      .update({ email, updated_at: now.toISOString() })
+      .eq("id", client.id);
+    if (emailErr) {
+      // Most likely another client record already uses this address.
+      // Still let them sign and email the copy — just flag it to the photographer.
+      console.warn("[sign/token] Could not save client email:", emailErr.message);
+      emailNote = `<p>They entered <strong>${email}</strong> when signing, but it couldn't be saved to their client record (${emailErr.message}). Please update it manually.</p>`;
+    } else {
+      emailNote = `<p>They entered <strong>${email}</strong> when signing — it's been saved to their client record.</p>`;
+    }
+  }
 
   // ── Build EnquiryData ────────────────────────────────────────────────────
   const enquiryData: EnquiryData = {
@@ -83,9 +107,13 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
         start_time:      booking.event_start_time ?? undefined,
         end_time:        booking.event_end_time   ?? undefined,
         venue:           booking.venue_name       ?? undefined,
+        suburb:          booking.venue_address    ?? undefined,
         special_requests: booking.special_requests ?? undefined,
+        media_usage_terms: booking.media_usage_terms ?? undefined,
+        partner_name:    `${client.partner_first ?? ""} ${client.partner_last ?? ""}`.trim() || undefined,
         total_fee:       booking.quoted_total     ?? undefined,
         deposit_amount:  booking.deposit_amount   ?? undefined,
+        hoursBooked:     booking.hours_booked     ?? undefined,
   };
 
   if (pkg?.name) {
@@ -107,6 +135,21 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
       } else {
               enquiryData.svc_photo = "Yes";
       }
+
+      // Same live package data fill-contract passes, so the signed copy's
+      // Section 3 matches the contract the client was sent.
+      enquiryData.pkgData = {
+              hours:  pkg.max_hours ?? null,
+              fee:    pkg.base_price ?? null,
+              images: (pkg.photo_count_min != null && pkg.photo_count_max != null)
+                ? `${pkg.photo_count_min}–${pkg.photo_count_max}`
+                : null,
+              photoCountMin: pkg.photo_count_min ?? null,
+              photoCountMax: pkg.photo_count_max ?? null,
+              team:         pkg.team ?? null,
+              deliverables: pkg.deliverables ?? null,
+              timeline:     pkg.timeline ?? null,
+      };
   }
 
   // ── Generate signed PDF ──────────────────────────────────────────────────
@@ -203,6 +246,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
         <p>Hi Johnny,</p>
         <p><strong>${clientName}</strong> just signed their contract for <strong>${eventDate}</strong> (${packageName}).</p>
         <p>The signed contract is attached. ${savedWhereNote}</p>
+        ${emailNote}
         <p>Next step: send the deposit invoice to secure the date.</p>
         <p>— JNguyen Co. CRM</p>
       `,

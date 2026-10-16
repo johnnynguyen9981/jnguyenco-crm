@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       const { data: booking } = await supabase
         .from("bookings")
         .select(
-          "id, event_date, event_start_time, event_end_time, venue_name, quoted_total, deposit_amount, package_id, hours_booked, special_requests"
+          "id, event_date, event_start_time, event_end_time, venue_name, quoted_total, deposit_amount, package_id, hours_booked, special_requests, media_usage_terms"
         )
         .eq("client_id", client.id)
         .order("event_date", { ascending: true })
@@ -105,6 +105,7 @@ export async function POST(req: NextRequest) {
           if (booking.quoted_total   != null) enquiryData.total_fee        = booking.quoted_total;
           if (booking.deposit_amount != null) enquiryData.deposit_amount   = booking.deposit_amount;
           if (booking.special_requests)       enquiryData.special_requests = booking.special_requests;
+          if (booking.media_usage_terms)      enquiryData.media_usage_terms = booking.media_usage_terms;
 
           if (booking.package_id) {
             // Clear any existing package flags

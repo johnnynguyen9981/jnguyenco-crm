@@ -204,6 +204,13 @@ export interface EnquiryData {
   // will NOT use this Client's Images for portfolio/website/social media/
   // marketing purposes. Set per-booking for clients who request privacy.
   no_portfolio_marketing_use?: boolean;
+  // Per-booking privacy terms (bookings.media_usage_terms), one permitted use
+  // per line — e.g. "Venue-only shots". When set, Section 6.4 limits
+  // Photographer's portfolio/marketing use to exactly these Images, each only
+  // after Client's written approval. Takes precedence over the flag above.
+  media_usage_terms?: string;
+  // Client's partner (clients.partner_first/last) — named as a joint party.
+  partner_name?: string;
   // Explicit pricing — override package-derived values when supplied
   total_fee?: string | number;
   deposit_amount?: string | number;
@@ -440,6 +447,7 @@ const SummaryCard = ({ d, pkg, svc, total, deposit, remaining, listPrice, discou
     <View>
       <Text style={s.summaryLabel}>CLIENT</Text>
       <Text style={s.summaryValue}>{d.full_name || "—"}</Text>
+      {d.partner_name ? <Text style={s.summaryValue}>{"& " + d.partner_name}</Text> : null}
       <Text style={s.summarySub}>{d.email || ""}</Text>
     </View>
     <View>
@@ -493,6 +501,15 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
   const hours      = pkg?.hours ?? null;        // fixed package duration (Wedding/Portrait) — null for hourly packages
   const images     = pkg?.images ?? null;
   const clientName = d.full_name || "—";
+  const partyNames = d.partner_name ? clientName + " & " + d.partner_name : clientName;
+  const mediaTerms = (d.media_usage_terms ?? "")
+    .split("\n")
+    .map((l) => l.replace(/^[\s•\-*]+/, "").trim())
+    .filter(Boolean);
+  const agreementTitle =
+    svc === "Videography" ? "VIDEOGRAPHY SERVICES AGREEMENT"
+    : svc === "Photography & Videography" ? "PHOTOGRAPHY & VIDEOGRAPHY SERVICES AGREEMENT"
+    : "PHOTOGRAPHY SERVICES AGREEMENT";
 
   // Hourly (Event) packages have no fixed `hours` — the real duration comes
   // from the booking itself (hours_booked). Multiply the package's per-hour
@@ -545,12 +562,12 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
       : fmtTime(d.start_time) + " – " + fmtTime(d.end_time);
 
   return (
-    <Document title={"Photography Contract – " + clientName} author="JNguyen Co.">
+    <Document title={"Contract – " + partyNames} author="JNguyen Co.">
       <Page size="A4" style={s.page}>
         <Header />
         <Footer />
 
-        <Text style={s.contractTitle}>PHOTOGRAPHY SERVICES AGREEMENT</Text>
+        <Text style={s.contractTitle}>{agreementTitle}</Text>
         <Text style={s.contractSubtitle}>{"Agreement Date: " + today()}</Text>
 
         <SummaryCard d={d} pkg={pkg} svc={svc} total={total} deposit={deposit} remaining={remaining}
@@ -559,7 +576,9 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         <Text style={s.body}>
           {"THIS AGREEMENT is made as of " + today() + " between "}
           <Text style={{ fontFamily: "Montserrat-SemiBold" }}>{clientName}</Text>
-          {" (\"Client\") and "}
+          {d.partner_name ? " and " : ""}
+          {d.partner_name ? <Text style={{ fontFamily: "Montserrat-SemiBold" }}>{d.partner_name}</Text> : null}
+          {d.partner_name ? " (together, \"Client\") and " : " (\"Client\") and "}
           <Text style={{ fontFamily: "Montserrat-SemiBold" }}>{BUSINESS_OWNER_LEGAL}</Text>
           {" trading as "}
           <Text style={{ fontFamily: "Montserrat-SemiBold" }}>JNguyen Co.</Text>
@@ -766,8 +785,30 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
           unknown, relating to the sale, display, license, use and exploitation of Images
           pursuant to this Agreement.
         </Text>
-        <Text style={s.subheading}>6.4 Model Release</Text>
-        {d.no_portfolio_marketing_use ? (
+        <Text style={s.subheading}>{mediaTerms.length ? "6.4 Privacy and Media Use" : "6.4 Model Release"}</Text>
+        {mediaTerms.length ? (
+          <>
+            <Text style={s.body}>
+              By agreement with Client, Photographer&apos;s standard portfolio and marketing
+              licence does not apply to this booking. Photographer may use only the following
+              Images for Photographer&apos;s portfolio, website, social media, or other marketing
+              or promotional materials:
+            </Text>
+            {mediaTerms.map((t, i) => (
+              <Text key={i} style={s.bullet}>{"•  " + t}</Text>
+            ))}
+            <View style={s.notice}>
+              <Text style={s.noticeText}>
+                No Image, clip or excerpt from this engagement will be posted, published or
+                shared publicly in any form without Client&apos;s prior written approval of that
+                specific Image or clip. Approval may be given or withheld at Client&apos;s sole
+                discretion. All other Images will be used solely to produce and deliver Client&apos;s Work Product. This
+                clause prevails over any other provision of this Agreement, including Sections
+                6.3 and 10.
+              </Text>
+            </View>
+          </>
+        ) : d.no_portfolio_marketing_use ? (
           <>
             <Text style={s.body}>
               Client (on behalf of himself/herself and all persons whose likeness is captured
@@ -896,6 +937,7 @@ const ContractDoc = ({ d, signatureDataUri, clientSignatureDataUri, clientSigned
         {/* 10 */}
         <Section title="10. Ownership of Work Product" />
         <Text style={s.body}>
+          {mediaTerms.length || d.no_portfolio_marketing_use ? "Subject to Section 6.4, " : ""}
           Photographer will own all right, title and interest in all Work Product. Client
           hereby grants Photographer and any of its service providers an exclusive,
           royalty-free, worldwide, irrevocable, transferable and sublicensable license to
