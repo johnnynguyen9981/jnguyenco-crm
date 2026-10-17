@@ -1,5 +1,9 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import {
+  EnquirerTypeToggle, HoneypotField, VendorFields, EMPTY_VENDOR_FORM, HONEYPOT_FIELD, vendorFormError,
+  type EnquirerType, type VendorForm,
+} from "@/components/enquire/VendorEnquiry";
 
 const PACKAGES = [
   { id: "quiet_elopement",  label: "The Quiet Elopement",           price: "$999",  desc: "Up to 2 hrs · 1 Photographer · 200–300 images · Photography only · Sun-Thu only" },
@@ -132,6 +136,9 @@ export default function EnquireEmbedPage() {
   const [loading, setLoading]     = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError]         = useState("");
+  const [enquirerType, setEnquirerType] = useState<EnquirerType>("client");
+  const [vendor, setVendor]       = useState<VendorForm>(EMPTY_VENDOR_FORM);
+  const [honeypot, setHoneypot]   = useState("");
   const [form, setForm] = useState({
     first_name: "", last_name: "", email: "", phone: "", instagram_handle: "",
     referral_source: "", referral_notes: "",
@@ -151,10 +158,14 @@ export default function EnquireEmbedPage() {
     const ro = new ResizeObserver(reportHeight);
     if (containerRef.current) ro.observe(containerRef.current);
     return () => ro.disconnect();
-  }, [submitted, error]);
+  }, [submitted, error, enquirerType]);
 
   function set(field: keyof typeof form, val: string) {
     setForm(prev => ({ ...prev, [field]: val }));
+  }
+
+  function setVendorField(field: keyof VendorForm, val: string) {
+    setVendor(prev => ({ ...prev, [field]: val }));
   }
 
   // Toggles the ceremony-scope qualifying answer and, unless the couple has already picked a
@@ -175,13 +186,20 @@ export default function EnquireEmbedPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!form.first_name.trim() || !form.last_name.trim() || !form.email.trim()) {
+    const isVendor = enquirerType === "vendor";
+    if (isVendor) {
+      const vErr = vendorFormError(vendor);
+      if (vErr) { setError(vErr); return; }
+    } else if (!form.first_name.trim() || !form.last_name.trim() || !form.email.trim()) {
       setError("Please fill in your first name, last name and email address.");
       return;
     }
+    const payload = isVendor
+      ? { enquirer_type: "vendor", ...vendor, [HONEYPOT_FIELD]: honeypot }
+      : { ...withServices(form), [HONEYPOT_FIELD]: honeypot };
     setLoading(true);
     try {
-      const res  = await fetch("/api/enquire", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(withServices(form)) });
+      const res  = await fetch("/api/enquire", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await res.json();
       if (!res.ok) { setError(json.error ?? "Something went wrong. Please try again."); return; }
       setSubmitted(true);
@@ -190,6 +208,17 @@ export default function EnquireEmbedPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (submitted && enquirerType === "vendor") {
+    return (
+      <div ref={containerRef} className="bg-transparent py-16 px-4 text-center">
+        <h2 className="text-2xl font-bold text-[#083a4f] mb-3">Thanks, {vendor.first_name}!</h2>
+        <p className="text-gray-600 text-sm leading-relaxed">
+          Your message has been sent. I&apos;ll get back to you if it&apos;s a good fit.
+        </p>
+      </div>
+    );
   }
 
   if (submitted) {
@@ -214,6 +243,23 @@ export default function EnquireEmbedPage() {
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto px-4 py-8 space-y-6">
 
         {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">{error}</div>}
+
+        <HoneypotField value={honeypot} onChange={setHoneypot} />
+
+        {/* Who is enquiring — keeps vendor pitches out of the client pipeline */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
+          <SectionHeader num="" title="Who are you?" />
+          <EnquirerTypeToggle value={enquirerType} onChange={v => { setEnquirerType(v); setError(""); }} />
+        </div>
+
+        {enquirerType === "vendor" && (
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+          <SectionHeader num="" title="Your Message" />
+          <VendorFields form={vendor} set={setVendorField} inputCls={inp} labelCls={lbl} />
+        </div>
+        )}
+
+        {enquirerType === "client" && (<>
 
         {/* 01 Your Details */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
@@ -333,15 +379,19 @@ export default function EnquireEmbedPage() {
             placeholder="e.g. We would love a first look moment, outdoor ceremony, and a must-have shot of the venue at golden hour..." />
         </div>
 
+        </>)}
+
         {/* Submit */}
         <div className="pb-4">
           <button type="submit" disabled={loading}
             className="w-full bg-[#083a4f] hover:bg-[#0a4d68] disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl transition-colors text-sm flex items-center justify-center gap-2">
             {loading ? (
               <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Sending enquiry...</>
-            ) : "Send Enquiry"}
+            ) : enquirerType === "vendor" ? "Send Message" : "Send Enquiry"}
           </button>
-          <p className="text-center text-xs text-gray-400 mt-3">No payment required. I will be in touch within 24 hours.</p>
+          {enquirerType === "client" && (
+            <p className="text-center text-xs text-gray-400 mt-3">No payment required. I will be in touch within 24 hours.</p>
+          )}
         </div>
 
       </form>

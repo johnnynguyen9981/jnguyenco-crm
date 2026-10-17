@@ -1,6 +1,10 @@
 "use client";
 // app/enquire/page.tsx — Public-facing client enquiry form (no auth required)
 import { useState } from "react";
+import {
+  EnquirerTypeToggle, HoneypotField, VendorFields, EMPTY_VENDOR_FORM, HONEYPOT_FIELD, vendorFormError,
+  type EnquirerType, type VendorForm,
+} from "@/components/enquire/VendorEnquiry";
 
 // ─── Package options ──────────────────────────────────────────────────────────
 const PACKAGES = [
@@ -167,6 +171,9 @@ export default function EnquirePage() {
   const [loading, setLoading]   = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError]       = useState("");
+  const [enquirerType, setEnquirerType] = useState<EnquirerType>("client");
+  const [vendor, setVendor]     = useState<VendorForm>(EMPTY_VENDOR_FORM);
+  const [honeypot, setHoneypot] = useState("");
 
   const [form, setForm] = useState({
     // 01 Your details
@@ -191,6 +198,10 @@ export default function EnquirePage() {
     setForm(prev => ({ ...prev, [field]: val }));
   }
 
+  function setVendorField(field: keyof VendorForm, val: string) {
+    setVendor(prev => ({ ...prev, [field]: val }));
+  }
+
     // Toggles the ceremony-scope qualifying answer and, unless the couple has already picked a
     // specific package themselves, pre-selects the matching one in step 03 (still changeable there).
     function selectCeremonyScope(id: string) {
@@ -209,16 +220,23 @@ export default function EnquirePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!form.first_name.trim() || !form.last_name.trim() || !form.email.trim()) {
+    const isVendor = enquirerType === "vendor";
+    if (isVendor) {
+      const vErr = vendorFormError(vendor);
+      if (vErr) { setError(vErr); return; }
+    } else if (!form.first_name.trim() || !form.last_name.trim() || !form.email.trim()) {
       setError("Please fill in your first name, last name and email address.");
       return;
     }
+    const payload = isVendor
+      ? { enquirer_type: "vendor", ...vendor, [HONEYPOT_FIELD]: honeypot }
+      : { ...withServices(form), [HONEYPOT_FIELD]: honeypot };
     setLoading(true);
     try {
       const res = await fetch("/api/enquire", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(withServices(form)),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok) { setError(json.error ?? "Something went wrong. Please try again."); return; }
@@ -231,6 +249,19 @@ export default function EnquirePage() {
   }
 
   // ── Success state ─────────────────────────────────────────────────────────
+  if (submitted && enquirerType === "vendor") {
+    return (
+      <div className="min-h-screen bg-[#f7f4f1] flex items-center justify-center p-6">
+        <div className="max-w-md w-full text-center">
+          <h1 className="text-2xl font-bold text-[#083a4f] mb-3">Thanks, {vendor.first_name}!</h1>
+          <p className="text-gray-600 text-sm leading-relaxed">
+            Your message has been sent. I&apos;ll get back to you if it&apos;s a good fit.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (submitted) {
     return (
       <div className="min-h-screen bg-[#f7f4f1] flex items-center justify-center p-6">
@@ -298,6 +329,22 @@ export default function EnquirePage() {
           </div>
         )}
 
+        <HoneypotField value={honeypot} onChange={setHoneypot} />
+
+        {/* Who is enquiring — keeps vendor pitches out of the client pipeline */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
+          <SectionHeader num="" title="Who are you?" />
+          <EnquirerTypeToggle value={enquirerType} onChange={v => { setEnquirerType(v); setError(""); }} />
+        </div>
+
+        {enquirerType === "vendor" && (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+            <SectionHeader num="" title="Your Message" />
+            <VendorFields form={vendor} set={setVendorField} inputCls={inputCls} labelCls={labelCls} />
+          </div>
+        )}
+
+        {enquirerType === "client" && (<>
         {/* 01 — Your Details */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <SectionHeader num="01" title="Your Details" />
@@ -492,6 +539,8 @@ export default function EnquirePage() {
           />
         </div>
 
+        </>)}
+
         {/* Submit */}
         <div className="pb-8">
           <button
@@ -507,11 +556,13 @@ export default function EnquirePage() {
                 </svg>
                 Sending enquiry...
               </>
-            ) : "Send Enquiry"}
+            ) : enquirerType === "vendor" ? "Send Message" : "Send Enquiry"}
           </button>
-          <p className="text-center text-xs text-gray-400 mt-3">
-            No payment required. I will be in touch within 24 hours.
-          </p>
+          {enquirerType === "client" && (
+            <p className="text-center text-xs text-gray-400 mt-3">
+              No payment required. I will be in touch within 24 hours.
+            </p>
+          )}
         </div>
 
       </form>
