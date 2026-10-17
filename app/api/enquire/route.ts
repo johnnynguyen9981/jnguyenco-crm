@@ -110,12 +110,82 @@ function buildConfirmationHtml(firstName: string, email: string): string {
   ].join("");
 }
 
+function escapeHtml(s: string | undefined): string {
+  return (s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Email to Johnny for a business / vendor message. Nothing is saved to the CRM.
+function buildVendorHtml(d: Record<string, string>): string {
+  const row = (label: string, value: string) =>
+    "<tr><td style='padding:8px 0;border-bottom:1px solid #f0ece8;color:#666;width:160px;vertical-align:top'>" + label + "</td>" +
+    "<td style='padding:8px 0;border-bottom:1px solid #f0ece8'>" + value + "</td></tr>";
+  const name = escapeHtml([d.first_name, d.last_name].filter(Boolean).join(" ").trim());
+  const email = escapeHtml(d.email);
+  return [
+    "<div style='font-family:sans-serif;max-width:600px;color:#1a1a1a'>",
+    "<div style='background:#6b7280;padding:16px 24px;border-radius:8px 8px 0 0'>",
+    "<h1 style='color:#fff;font-size:16px;margin:0'>Business / vendor message (not a client enquiry)</h1>",
+    "</div>",
+    "<div style='background:#fff;border:1px solid #e8e3dd;border-top:none;padding:24px;border-radius:0 0 8px 8px'>",
+    "<table style='width:100%;border-collapse:collapse;font-size:14px'>",
+    row("Name", name || "-"),
+    row("Email", email ? "<a href='mailto:" + email + "'>" + email + "</a>" : "-"),
+    row("Business", escapeHtml(d.business_name) || "-"),
+    row("Website / Instagram", escapeHtml(d.business_link) || "-"),
+    row("Message", escapeHtml(d.message).replace(/\n/g, "<br>") || "-"),
+    "</table>",
+    "<p style='font-size:12px;color:#888;margin-top:16px'>Sent from the website enquiry form. No client, booking or auto-reply was created.</p>",
+    "</div>",
+    "</div>",
+  ].join("");
+}
+
 export async function POST(req: NextRequest) {
   let body: Record<string, string>;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  // Honeypot: a hidden field real people never see. If it's filled in, it's a bot.
+  // Reply "success" so the bot moves on, but save and send nothing.
+  if ((body.hp_company_url ?? "").trim()) {
+    return NextResponse.json({ success: true });
+  }
+
+  // Businesses offering services (editors, vendors): forward to Johnny only.
+  // No client record, no INQUIRY booking, no client auto-reply, no referral-source stat.
+  if (body.enquirer_type === "vendor") {
+    const vFirst = (body.first_name ?? "").trim();
+    const vEmail = (body.email ?? "").trim();
+    const vMessage = (body.message ?? "").trim();
+    if (!vFirst || !vEmail || !vMessage) {
+      return NextResponse.json({ error: "Please fill in your name, email and message." }, { status: 400 });
+    }
+    if (!EMAIL_RE.test(vEmail)) {
+      return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
+    }
+    try {
+      const notifyTo = process.env.SMTP_USER ?? "johnny.nguyen@jnguyen.co";
+      const who = [vFirst, (body.last_name ?? "").trim()].filter(Boolean).join(" ");
+      const biz = (body.business_name ?? "").trim();
+      await sendEmailViaSMTP({
+        to:      notifyTo,
+        subject: "[Vendor] " + who + (biz ? " (" + biz + ")" : ""),
+        html:    buildVendorHtml(body),
+        replyTo: vEmail,
+      });
+    } catch (e) {
+      console.error("Vendor message email failed:", e);
+      return NextResponse.json({ error: "Sorry, your message could not be sent. Please email johnny.nguyen@jnguyen.co directly." }, { status: 500 });
+    }
+    return NextResponse.json({ success: true, vendor: true });
   }
 
   const firstName = (body.first_name ?? "").trim();

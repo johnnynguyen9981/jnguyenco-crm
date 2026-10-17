@@ -8,6 +8,8 @@ interface EmailOptions {
   subject: string;
   html:    string;
   text?:   string;
+  /** Optional Reply-To address (e.g. so replying to a vendor message goes to the vendor) */
+  replyTo?: string;
   pdfAttachment?: {
     filename: string;
     data:     string; // base64-encoded PDF bytes
@@ -74,6 +76,7 @@ export async function sendEmailViaSMTP(
     subject:     opts.subject,
     html:        opts.html,
     text:        opts.text,
+    replyTo:     opts.replyTo,
     attachments,
   });
 
