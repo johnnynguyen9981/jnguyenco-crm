@@ -13,6 +13,10 @@ const PACKAGES = [
   { id: "half_day_wedding",   label: "Half Day Wedding",                      price: "$3,300",  desc: "Up to 6 hrs · 1 Photographer + 1 Videographer · 300–450 images · 4–6 min film" },
   { id: "full_day_essential", label: "Full Day Essential",                    price: "$4,500",  desc: "Up to 8 hrs · 1 Photographer + 1 Videographer · 400–600 images · 5–7 min highlight film" },
   { id: "full_day_premium",   label: "Full Day Premium",                      price: "$7,300",  desc: "Up to 10 hrs · 2 Photographers + 2 Videographers · 700–1,000 images" },
+  { id: "winter27_full_day_premium",   label: "WINTER27 — Full Day Premium (20% off)",   price: "$5,840", desc: "Was $7,300 · Weddings 1 Jun–31 Aug 2027 · Book by 28 Feb 2027 · Limited to 6 winter dates · Up to 10 hrs · 2 Photographers + 2 Videographers" },
+  { id: "winter27_full_day_essential", label: "WINTER27 — Full Day Essential (20% off)", price: "$3,600", desc: "Was $4,500 · Weddings 1 Jun–31 Aug 2027 · Book by 28 Feb 2027 · Limited to 6 winter dates · Up to 8 hrs · 1 Photographer + 1 Videographer" },
+  { id: "winter27_wedding_photo_only", label: "WINTER27 — Wedding Photography Only (20% off)", price: "$2,120", desc: "Was $2,650 · Weddings 1 Jun–31 Aug 2027 · Book by 28 Feb 2027 · Limited to 6 winter dates · Up to 8 hrs · Photographer only" },
+  { id: "winter27_wedding_video_only", label: "WINTER27 — Wedding Videography Only (20% off)", price: "$2,120", desc: "Was $2,650 · Weddings 1 Jun–31 Aug 2027 · Book by 28 Feb 2027 · Limited to 6 winter dates · Up to 8 hrs · Videographer only" },
   { id: "wedding_photo_only", label: "Wedding Photography Only",              price: "$2,650",  desc: "Up to 8 hrs · Photographer only, no videographer · 400–600 images" },
   { id: "wedding_video_only", label: "Wedding Videography Only (Cinematic)",  price: "$2,650",  desc: "Up to 8 hrs · Videographer only, no photographer · 5–7 min cinematic film" },
   { id: "celebration_photo_2hr", label: "The Celebration", price: "$460", desc: "Up to 2 hrs · 1 Photographer · 100+ edited images · Online gallery" },
@@ -30,7 +34,18 @@ const PACKAGES = [
 const SPRING_LAST_BOOKING_DAY = "2026-10-31";
 const isSpringOpen = () =>
   new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) <= SPRING_LAST_BOOKING_DAY;
-const visiblePackages = () => PACKAGES.filter(p => p.id !== "spring_mini_wedding" || isSpringOpen());
+// WINTER27 (20% off selected packages, Jun–Aug 2027 weddings) is offered from launch
+// day until the booking deadline, Canberra time. The 6-date cap is managed manually.
+const WINTER27_LAUNCH_DAY = "2026-11-16";
+const WINTER27_LAST_BOOKING_DAY = "2027-02-28";
+const isWinter27Open = () => {
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+  return today >= WINTER27_LAUNCH_DAY && today <= WINTER27_LAST_BOOKING_DAY;
+};
+const isWinter27Package = (id: string) => id.startsWith("winter27_");
+const visiblePackages = () => PACKAGES.filter(p =>
+  (p.id !== "spring_mini_wedding" || isSpringOpen()) &&
+  (!isWinter27Package(p.id) || isWinter27Open()));
 
 // Celebration-type events only see event packages (plus "not sure")
 const CELEBRATION_EVENT_TYPES = new Set(["Birthday", "Baptism", "Baby Shower", "Gender Reveal"]);
@@ -73,7 +88,7 @@ const lbl = "block text-xs font-semibold text-gray-600 mb-1";
 
 const TODAY = new Date().toISOString().split("T")[0];
 
-const WEDDING_PACKAGES = new Set(["mini_wedding", "spring_mini_wedding", "half_day_wedding", "full_day_essential", "full_day_premium", "wedding_photo_only", "wedding_video_only", "hybrid_mini_session"]);
+const WEDDING_PACKAGES = new Set(["winter27_full_day_premium", "winter27_full_day_essential", "winter27_wedding_photo_only", "winter27_wedding_video_only", "mini_wedding", "spring_mini_wedding", "half_day_wedding", "full_day_essential", "full_day_premium", "wedding_photo_only", "wedding_video_only", "hybrid_mini_session"]);
 const NEEDS_PARTNER    = (eventType: string, pkg: string) =>
   eventType.toLowerCase().includes("wedding") || eventType.toLowerCase().includes("elopement") ||
   WEDDING_PACKAGES.has(pkg);
@@ -85,6 +100,8 @@ const PACKAGE_SERVICES: Record<string, string> = {
   quiet_elopement: "PHOTO", wedding_photo_only: "PHOTO", wedding_video_only: "VIDEO",
   vietnamese_tea_ceremony: "BOTH", mini_wedding: "BOTH", spring_mini_wedding: "BOTH",
   half_day_wedding: "BOTH", full_day_essential: "BOTH", full_day_premium: "BOTH",
+  winter27_full_day_premium: "BOTH", winter27_full_day_essential: "BOTH",
+  winter27_wedding_photo_only: "PHOTO", winter27_wedding_video_only: "VIDEO",
   celebration_photo_2hr: "PHOTO", full_party_photo_3hr: "PHOTO",
   celebration_photo_film_2hr: "BOTH", full_party_photo_film_3hr: "BOTH",
   hourly_photo: "PHOTO", hourly_video: "VIDEO", hourly_photo_video: "BOTH", portrait: "PHOTO",
