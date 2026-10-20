@@ -203,6 +203,9 @@ export default function EnquireEmbedPage() {
       const json = await res.json();
       if (!res.ok) { setError(json.error ?? "Something went wrong. Please try again."); return; }
       setSubmitted(true);
+      // Tell the parent (Squarespace) page so it can fire the Google Analytics key event.
+      // Deliberately sends no personal details.
+      window.parent.postMessage({ type: "jn-enquiry-submitted", event_type: form.event_type || "unknown", package: form.selected_package || "unknown" }, "*");
     } catch {
       setError("Network error. Please check your connection and try again.");
     } finally {
