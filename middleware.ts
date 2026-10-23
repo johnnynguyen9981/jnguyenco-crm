@@ -45,6 +45,8 @@ export async function middleware(request: NextRequest) {
     !request.nextUrl.pathname.startsWith("/enquire") &&
     !request.nextUrl.pathname.startsWith("/api/enquire") &&
     !request.nextUrl.pathname.startsWith("/sign") &&
+    // Public e-sign submit endpoint - the signing token authenticates it inside the route.
+    !request.nextUrl.pathname.startsWith("/api/sign/") &&
     !request.nextUrl.pathname.startsWith("/api/reviews") &&
     !request.nextUrl.pathname.startsWith("/api/admin/test-drive") &&
     !request.nextUrl.pathname.startsWith("/api/admin/debug-drive-env") &&
