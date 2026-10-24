@@ -4,6 +4,7 @@ import {
   EnquirerTypeToggle, HoneypotField, VendorFields, EMPTY_VENDOR_FORM, HONEYPOT_FIELD, vendorFormError,
   type EnquirerType, type VendorForm,
 } from "@/components/enquire/VendorEnquiry";
+import { DateAvailability } from "@/components/enquire/DateAvailability";
 
 const PACKAGES = [
   { id: "quiet_elopement",  label: "The Quiet Elopement",           price: "$999",  desc: "Up to 2 hrs · 1 Photographer · 200–300 images · Photography only · Sun-Thu only" },
@@ -327,6 +328,7 @@ export default function EnquireEmbedPage() {
             <div><label className={lbl}>Start Time</label><input type="time" className={inp} value={form.event_start_time} onChange={e => set("event_start_time", e.target.value)} /></div>
             <div><label className={lbl}>End Time</label><input type="time" className={inp} value={form.event_end_time} onChange={e => set("event_end_time", e.target.value)} /></div>
           </div>
+          <DateAvailability date={form.event_date} eventType={form.event_type} />
           <div className="grid grid-cols-2 gap-4">
             <div><label className={lbl}>Venue / Location Name</label><input className={inp} value={form.venue_name} onChange={e => set("venue_name", e.target.value)} placeholder="Venue name" /></div>
             <div><label className={lbl}>Suburb / City</label><input className={inp} value={form.venue_suburb} onChange={e => set("venue_suburb", e.target.value)} placeholder="e.g. Canberra, ACT" /></div>

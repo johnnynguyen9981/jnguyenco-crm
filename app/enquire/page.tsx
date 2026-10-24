@@ -5,6 +5,7 @@ import {
   EnquirerTypeToggle, HoneypotField, VendorFields, EMPTY_VENDOR_FORM, HONEYPOT_FIELD, vendorFormError,
   type EnquirerType, type VendorForm,
 } from "@/components/enquire/VendorEnquiry";
+import { DateAvailability } from "@/components/enquire/DateAvailability";
 
 // ─── Package options ──────────────────────────────────────────────────────────
 const PACKAGES = [
@@ -458,6 +459,7 @@ export default function EnquirePage() {
               <input type="time" className={inputCls} value={form.event_end_time} onChange={e => set("event_end_time", e.target.value)} />
             </div>
           </div>
+          <DateAvailability date={form.event_date} eventType={form.event_type} />
 
           <div className="grid grid-cols-2 gap-4">
             <div>
