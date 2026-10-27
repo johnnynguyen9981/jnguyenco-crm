@@ -192,8 +192,9 @@ export async function POST(req: NextRequest) {
   const lastName  = (body.last_name  ?? "").trim();
   const email     = (body.email      ?? "").trim();
 
-  if (!firstName || !lastName || !email) {
-    return NextResponse.json({ error: "First name, last name and email are required." }, { status: 400 });
+  // Last name is optional (Johnny adds it at quote stage); stored as "" when not given.
+  if (!firstName || !email) {
+    return NextResponse.json({ error: "First name and email are required." }, { status: 400 });
   }
   if (!EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
@@ -277,7 +278,7 @@ export async function POST(req: NextRequest) {
     const notifyTo = process.env.SMTP_USER ?? "johnny.nguyen@jnguyen.co";
     await sendEmailViaSMTP({
       to:      notifyTo,
-      subject: "New Enquiry: " + firstName + " " + lastName + (body.event_date ? " — " + body.event_date : ""),
+      subject: "New Enquiry: " + [firstName, lastName].filter(Boolean).join(" ") + (body.event_date ? " — " + body.event_date : ""),
       html:    buildNotificationHtml(body, clientEmailFailed),
     });
   } catch (e) {
