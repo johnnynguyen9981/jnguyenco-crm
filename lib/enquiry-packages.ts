@@ -19,7 +19,8 @@ export interface EnquiryPackage {
   showUntil?: string;        // last day it is offered (YYYY-MM-DD, Sydney)
 }
 
-// Spring Weekend Special — extended by Johnny on 27 Oct 2026 to the end of November.
+// Spring Weekend Special — extended by Johnny on 27 Oct 2026: book by 30 Nov,
+// for weekend weddings up to Sun 21 Dec 2026.
 export const SPRING_LAST_BOOKING_DAY = "2026-11-30";
 
 // WINTER27 — 20% off selected packages for Jun–Aug 2027 weddings. The 6-date cap is
@@ -33,7 +34,7 @@ export const PACKAGES: EnquiryPackage[] = [
   // Weddings & elopements (tea ceremony sits here too)
   { id: "quiet_elopement",         group: "WEDDING", label: "The Quiet Elopement",            price: "$999",   meta: "Up to 2 hrs · Photographer · Sun–Thu only", services: "PHOTO" },
   { id: "vietnamese_tea_ceremony", group: "WEDDING", label: "Vietnamese Tea Ceremony",        price: "$1,650", meta: "Up to 2 hrs · Photo + video · 2–3 min film", services: "BOTH" },
-  { id: "spring_mini_wedding",     group: "WEDDING", label: "Spring Special — Mini Wedding",  price: "$1,610", meta: "30% off (was $2,300) · Weekends · Book by 30 Nov · Paid in full before the day", services: "BOTH", showUntil: SPRING_LAST_BOOKING_DAY },
+  { id: "spring_mini_wedding",     group: "WEDDING", label: "Spring Special — Mini Wedding",  price: "$1,610", meta: "30% off (was $2,300) · Weekend weddings until 21 Dec · Book by 30 Nov · Paid in full before the day", services: "BOTH", showUntil: SPRING_LAST_BOOKING_DAY },
   { id: "mini_wedding",            group: "WEDDING", label: "Mini Wedding / Elopement",       price: "$2,300", meta: "Up to 4 hrs · Photo + video · 3–5 min film", services: "BOTH" },
   { id: "wedding_photo_only",      group: "WEDDING", label: "Wedding Photography Only",       price: "$2,650", meta: "Up to 8 hrs · Photographer only", services: "PHOTO" },
   { id: "wedding_video_only",      group: "WEDDING", label: "Wedding Videography Only",       price: "$2,650", meta: "Up to 8 hrs · Videographer only · 5–7 min film", services: "VIDEO" },
