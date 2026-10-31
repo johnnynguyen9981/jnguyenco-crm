@@ -20,6 +20,13 @@ const MAX_REVIEWS = 5;
 type PinnedReview = Omit<Review, "relative_time_description"> & { date: string };
 const PINNED: PinnedReview[] = [
   {
+    author_name:       "Lisa Holgate",
+    profile_photo_url: "",
+    rating:            5,
+    date:              "2026-10-14",
+    text: "Johnny was absolutely incredible as our wedding photographer! He captured every moment of our special day so beautifully, from all the fun, laughter and celebrations to the quiet, intimate moments that we’ll treasure forever. He has such a wonderful eye for detail and a natural ability to capture the emotions and atmosphere of the day without anything ever feeling forced or staged. Looking through our photos brings all those beautiful memories flooding back, and we couldn’t be happier with how he captured our day. Johnny made us feel so comfortable and at ease, and his passion and talent truly shine through in his work. We are so grateful to have these memories captured so perfectly and couldn’t recommend him highly enough to anyone looking for a photographer who goes above and beyond. Thank you, Johnny, for giving us photos we’ll cherish for a lifetime! ❤️📸",
+  },
+  {
     author_name:       "Chloe Wentworth",
     profile_photo_url: "",
     rating:            5,
@@ -67,7 +74,7 @@ function mergeReviews(google: (Review & { time: number })[]): Review[] {
 const FALLBACK: ReviewsData = {
   name:         "Jnguyen.co | Canberra Photographer & Videographer",
   rating:       5.0,
-  totalReviews: 16,
+  totalReviews: 17,
   source:       "fallback",
   reviews:      [],
 };
