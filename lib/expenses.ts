@@ -96,19 +96,20 @@ export function getCategoryBadge(category: ExpenseCategory) {
 
 /**
  * Checks for due monthly recurring expenses and auto-creates entries.
- * Call this on the expenses page server render.
+ * Called on every expenses page render, so several runs can overlap.
  *
  * Logic:
  *   - Find all recurring template expenses (parent_expense_id IS NULL, is_recurring = true)
- *   - For each, check if today's month/year > last_generated_date month/year
- *   - If so, insert a new non-recurring child entry for the current month and update last_generated_date
+ *   - Work out every month due since last_generated_date
+ *   - Write them in one upsert. The unique index on (parent_expense_id, date)
+ *     makes this safe to repeat: a month that already exists is skipped.
+ *   - Only move last_generated_date forward once that write has succeeded
  */
 export async function generateDueRecurringExpenses(
   supabase: any,
   ownerUserId: string
 ): Promise<number> {
   const today = new Date();
-  const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
 
   // Fetch active recurring templates
   const { data: templates, error } = await supabase
@@ -134,36 +135,44 @@ export async function generateDueRecurringExpenses(
     // Only generate if nextDue is in the past or today
     if (nextDue > today) continue;
 
-    // Generate all missing months up to today
-    let cursor = new Date(nextDue);
+    // Build all missing months up to today
+    const rows: Record<string, unknown>[] = [];
+    const cursor = new Date(nextDue);
     while (cursor <= today) {
-      const entryDate = cursor.toISOString().split("T")[0];
-      const fy = getAustralianFY(cursor);
-
-      await supabase.from("expenses").insert({
+      rows.push({
         owner_id:           ownerUserId,
         title:              template.title,
         vendor:             template.vendor,
         category:           template.category,
         amount:             template.amount,
-        date:               entryDate,
+        date:               cursor.toISOString().split("T")[0],
         notes:              template.notes,
         is_recurring:       false,
-        financial_year:     fy,
+        financial_year:     getAustralianFY(cursor),
         parent_expense_id:  template.id,
       });
 
       // Advance by 1 month
       cursor.setMonth(cursor.getMonth() + 1);
-      generated++;
     }
 
+    const { data: inserted, error: insertError } = await supabase
+      .from("expenses")
+      .upsert(rows, { onConflict: "parent_expense_id,date", ignoreDuplicates: true })
+      .select("id");
+
+    if (insertError) {
+      // Leave last_generated_date alone so the next page load tries again
+      console.error("[expenses] recurring generation failed:", template.id, insertError.message);
+      continue;
+    }
+
+    generated += inserted?.length ?? 0;
+
     // Update last_generated_date on the template
-    const lastGenerated = new Date(cursor);
-    lastGenerated.setMonth(lastGenerated.getMonth() - 1);
     await supabase
       .from("expenses")
-      .update({ last_generated_date: lastGenerated.toISOString().split("T")[0] })
+      .update({ last_generated_date: rows[rows.length - 1].date })
       .eq("id", template.id);
   }
 
