@@ -19,8 +19,9 @@ export interface EnquiryPackage {
   showUntil?: string;        // last day it is offered (YYYY-MM-DD, Sydney)
 }
 
-// Spring Weekend Special — extended by Johnny on 27 Oct 2026 to the end of November.
-export const SPRING_LAST_BOOKING_DAY = "2026-11-30";
+// Spring Weekend Special — extended by Johnny on 27 Oct 2026 to the end of November,
+// then taken down early on 17 Nov 2026 (WINTER27 replaces it). Last day shown: 16 Nov.
+export const SPRING_LAST_BOOKING_DAY = "2026-11-16";
 
 // WINTER27 — 20% off selected packages for Jun–Aug 2027 weddings. The 6-date cap is
 // managed by hand: once 6 dates are booked, set WINTER27_LAST_BOOKING_DAY to that day.
